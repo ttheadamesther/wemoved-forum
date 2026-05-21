@@ -13,20 +13,25 @@ export default function Navbar() {
   const location  = useLocation()
   const navigate  = useNavigate()
   const path      = location.pathname
-  const [search, setSearch]       = useState('')
-  const [results, setResults]     = useState([])
-  const [showRes, setShowRes]     = useState(false)
-  const [notifs,  setNotifs]      = useState([])
+  const [search, setSearch]         = useState('')
+  const [results, setResults]       = useState([])
+  const [showRes, setShowRes]       = useState(false)
+  const [notifs,  setNotifs]        = useState([])
   const [showNotifs, setShowNotifs] = useState(false)
-  const [menuOpen, setMenuOpen]   = useState(false)
-  const [isMobile, setIsMobile]   = useState(window.innerWidth < 768)
+  const [menuOpen, setMenuOpen]     = useState(false)
+  const [isMobile, setIsMobile]     = useState(false)
   const searchRef = useRef()
   const notifRef  = useRef()
+  const navRef    = useRef()
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768)
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setIsMobile(entry.contentRect.width < 768)
+      }
+    })
+    if (navRef.current) observer.observe(navRef.current)
+    return () => observer.disconnect()
   }, [])
 
   useEffect(() => { setMenuOpen(false) }, [path])
@@ -93,7 +98,7 @@ export default function Navbar() {
 
   return (
     <>
-      <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999, height: 64, display: 'flex', alignItems: 'center', padding: '0 16px', background: '#111', borderBottom: `2px solid ${C.navBorder}`, gap: 8 }}>
+      <nav ref={navRef} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999, height: 64, display: 'flex', alignItems: 'center', padding: '0 16px', background: '#111', borderBottom: `2px solid ${C.navBorder}`, gap: 8 }}>
 
         {/* Logo */}
         <Link to="/" style={{ flexShrink: 0, marginTop: 8, marginRight: 8 }}>
@@ -199,9 +204,9 @@ export default function Navbar() {
           {/* Hamburger mobile */}
           {isMobile && (
             <button onClick={() => setMenuOpen(m => !m)} style={{ width: 40, height: 40, borderRadius: 6, border: 'none', background: '#222', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-              <span style={{ width: 20, height: 2, background: menuOpen ? C.accent : '#ccc', transition: 'all .2s', transform: menuOpen ? 'rotate(45deg) translateY(7px)' : 'none' }} />
-              <span style={{ width: 20, height: 2, background: menuOpen ? 'transparent' : '#ccc', transition: 'all .2s' }} />
-              <span style={{ width: 20, height: 2, background: menuOpen ? C.accent : '#ccc', transition: 'all .2s', transform: menuOpen ? 'rotate(-45deg) translateY(-7px)' : 'none' }} />
+              <span style={{ width: 20, height: 2, background: menuOpen ? C.accent : '#ccc', transition: 'all .2s', transform: menuOpen ? 'rotate(45deg) translateY(7px)' : 'none', display: 'block' }} />
+              <span style={{ width: 20, height: 2, background: menuOpen ? 'transparent' : '#ccc', transition: 'all .2s', display: 'block' }} />
+              <span style={{ width: 20, height: 2, background: menuOpen ? C.accent : '#ccc', transition: 'all .2s', transform: menuOpen ? 'rotate(-45deg) translateY(-7px)' : 'none', display: 'block' }} />
             </button>
           )}
         </div>
@@ -210,7 +215,7 @@ export default function Navbar() {
       {/* Menu mobile */}
       {isMobile && menuOpen && (
         <div style={{ position: 'fixed', top: 64, left: 0, right: 0, background: '#111', zIndex: 998, borderBottom: `2px solid ${C.navBorder}`, boxShadow: '0 4px 20px rgba(0,0,0,.5)' }}>
-          
+
           {/* Recherche mobile */}
           <div style={{ padding: '12px 16px', borderBottom: '1px solid #222' }}>
             <div style={{ display: 'flex', alignItems: 'center', background: '#222', border: '1px solid #333', borderRadius: 20, padding: '0 12px', gap: 8 }}>
@@ -238,12 +243,12 @@ export default function Navbar() {
           </div>
 
           {/* Liens navigation */}
-          <NavLink to="/"             label="Accueil"         icon="🏠" />
-          <NavLink to="/forum"        label="Forum"           icon="💬" />
-          <NavLink to="/members"      label="Membres"         icon="👥" />
-          {user && <NavLink to="/messages"     label="Messages privés" icon="✉️" />}
-          {user && <NavLink to="/notifications" label="Notifications"  icon="🔔" />}
-          {user && <NavLink to="/profile"      label="Mon Profil"      icon="👤" />}
+          <NavLink to="/"              label="Accueil"         icon="🏠" />
+          <NavLink to="/forum"         label="Forum"           icon="💬" />
+          <NavLink to="/members"       label="Membres"         icon="👥" />
+          {user && <NavLink to="/messages"      label="Messages privés" icon="✉️" />}
+          {user && <NavLink to="/notifications" label="Notifications"   icon="🔔" />}
+          {user && <NavLink to="/profile"       label="Mon Profil"      icon="👤" />}
 
           {/* Profil mobile */}
           {user && (
