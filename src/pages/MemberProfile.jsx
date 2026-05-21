@@ -88,7 +88,6 @@ export default function MemberProfile() {
 
       <Btn onClick={() => navigate('/members')} variant="ghost" style={{ marginBottom: 12, fontSize: 12 }}>← Retour</Btn>
 
-      {/* Header */}
       <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: 24, marginBottom: 12, display: 'flex', gap: 20, alignItems: 'flex-start' }}>
         <div style={{ width: 80, height: 80, borderRadius: 4, background: '#444', border: '2px solid #333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 28, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
           {member.avatar_url
@@ -116,7 +115,6 @@ export default function MemberProfile() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
 
-        {/* Bio */}
         <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: 16 }}>
           <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 10 }}>Bio</div>
           <p style={{ fontSize: 13, color: C.text, lineHeight: 1.6, margin: 0 }}>
@@ -124,14 +122,14 @@ export default function MemberProfile() {
           </p>
         </div>
 
-        {/* Stats */}
         <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: 16 }}>
           <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 10 }}>Stats</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {[
-              { label: 'Amis',        value: profile.friends || 0 },
-{ label: 'Posts',       value: profile.posts   || 0 },
-{ label: 'Votes reçus', value: totalVotes },
+              { label: 'Amis',        value: member.friends || 0 },
+              { label: 'Posts',       value: member.posts   || 0 },
+              { label: 'Votes reçus', value: totalVotes },
+              { label: 'Âge',         value: member.age     || '—' },
             ].map(s => (
               <div key={s.label} style={{ background: C.surfaceB, borderRadius: 3, padding: '10px 14px', textAlign: 'center' }}>
                 <div style={{ fontWeight: 700, fontSize: 20, color: C.text }}>{s.value}</div>
@@ -141,7 +139,6 @@ export default function MemberProfile() {
           </div>
         </div>
 
-        {/* Votes */}
         <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: 16 }}>
           <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 10 }}>Voter ce mois</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -169,7 +166,6 @@ export default function MemberProfile() {
           {!user && <p style={{ fontSize: 11, color: C.textDim, marginTop: 10, fontStyle: 'italic' }}>Connecte-toi pour voter</p>}
         </div>
 
-        {/* Intérêts */}
         <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: 16 }}>
           <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 10 }}>Intérêts</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -184,7 +180,6 @@ export default function MemberProfile() {
 
       </div>
 
-      {/* Photos */}
       {(member.photos || []).length > 0 && (
         <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: 16, marginTop: 12 }}>
           <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 12 }}>Photos</div>
