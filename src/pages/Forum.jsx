@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { C, CATS } from '../lib/constants'
-import { RoleBadge, CatBadge, Btn, Input, Textarea } from '../components/UI'
+import { RoleBadge, Btn, Input } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
 import EmojiPicker from 'emoji-picker-react'
 
@@ -18,13 +18,12 @@ function formatDate(ts) {
   if (!ts) return ''
   const d = new Date(ts)
   const diff = Math.floor((Date.now() - d) / 1000)
-  if (diff < 60)   return 'À l\'instant'
-  if (diff < 3600) return `Il y a ${Math.floor(diff / 60)} min`
+  if (diff < 60)    return 'À l\'instant'
+  if (diff < 3600)  return `Il y a ${Math.floor(diff / 60)} min`
   if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)} h`
   return d.toLocaleDateString('fr-FR')
 }
 
-// Rendu du texte avec liens cliquables
 function RichText({ text }) {
   if (!text) return null
   const urlRegex = /(https?:\/\/[^\s]+)/g
@@ -40,7 +39,6 @@ function RichText({ text }) {
   )
 }
 
-// Input avec émojis
 function RichInput({ value, onChange, placeholder, rows = 3 }) {
   const [showEmoji, setShowEmoji] = useState(false)
   const textareaRef = useRef()
@@ -71,13 +69,13 @@ function RichInput({ value, onChange, placeholder, rows = 3 }) {
         onChange={onChange}
         placeholder={placeholder}
         rows={rows}
-        style={{ width: '100%', border: `1px solid ${C.borderMid}`, borderRadius: 2, padding: '7px 10px', fontSize: 13, color: C.text, background: C.white, fontFamily: "'Open Sans',sans-serif", resize: 'vertical', lineHeight: 1.6 }}
+        style={{ width: '100%', border: `1px solid ${C.borderMid}`, borderRadius: 10, padding: '10px 44px 10px 14px', fontSize: 13, color: C.text, background: '#fafafa', fontFamily: 'inherit', resize: 'vertical', lineHeight: 1.6, outline: 'none', transition: 'border .2s', boxSizing: 'border-box' }}
+        onFocus={e => e.target.style.borderColor = '#c8a200'}
+        onBlur={e => e.target.style.borderColor = C.borderMid}
       />
-      <button
-        type="button"
-        onClick={() => setShowEmoji(s => !s)}
-        style={{ position: 'absolute', bottom: 8, right: 8, background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}
-      >😊</button>
+      <button type="button" onClick={() => setShowEmoji(s => !s)} style={{ position: 'absolute', bottom: 10, right: 10, background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, lineHeight: 1, opacity: .6 }}>
+        😊
+      </button>
       {showEmoji && (
         <div ref={emojiRef} style={{ position: 'absolute', bottom: '110%', right: 0, zIndex: 1000 }}>
           <EmojiPicker onEmojiClick={insertEmoji} width={300} height={350} />
@@ -88,8 +86,10 @@ function RichInput({ value, onChange, placeholder, rows = 3 }) {
 }
 
 function Avatar({ member, size = 36 }) {
+  const colors = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
+  const color = colors[(member?.pseudo?.charCodeAt(0) || 0) % colors.length]
   return (
-    <div style={{ width: size, height: size, borderRadius: 3, background: '#444', border: '1px solid #333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * .28, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
+    <div style={{ width: size, height: size, borderRadius: '50%', background: member?.avatar_url ? '#444' : color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * .32, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, border: '2px solid rgba(255,255,255,.3)' }}>
       {member?.avatar_url
         ? <img src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
         : member?.initials || '??'
@@ -100,6 +100,8 @@ function Avatar({ member, size = 36 }) {
 
 export default function ForumPage() {
   const { user, profile } = useAuth()
+  const containerRef = useRef()
+  const [isMobile, setIsMobile] = useState(false)
   const [members,   setMembers]   = useState([])
   const [threads,   setThreads]   = useState([])
   const [replies,   setReplies]   = useState([])
@@ -121,6 +123,14 @@ export default function ForumPage() {
   const getMember = (id) => members.find(m => m.id === id)
 
   useEffect(() => {
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) setIsMobile(entry.contentRect.width < 600)
+    })
+    if (containerRef.current) observer.observe(containerRef.current)
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
     api('/rest/v1/profiles?select=*').then(r => r.json()).then(d => { if (Array.isArray(d)) setMembers(d) })
     loadThreads()
   }, [])
@@ -133,10 +143,7 @@ export default function ForumPage() {
     api(`/rest/v1/replies?thread_id=eq.${threadId}&order=created_at.asc`).then(r => r.json()).then(d => { if (Array.isArray(d)) setReplies(d) })
   }
 
-  const openThread = (id) => {
-    setOpenId(id)
-    loadReplies(id)
-  }
+  const openThread = (id) => { setOpenId(id); loadReplies(id) }
 
   const postThread = async () => {
     if (!nTitle.trim() || !nBody.trim() || !user) return
@@ -145,9 +152,7 @@ export default function ForumPage() {
       method: 'POST',
       body: JSON.stringify({ author_id: user.id, cat: nCat, title: nTitle.trim(), body: nBody.trim(), likes: 0, pinned: false, locked: false, hidden: false })
     })
-    setNTitle(''); setNBody(''); setComposing(false)
-    loadThreads()
-    setPosting(false)
+    setNTitle(''); setNBody(''); setComposing(false); loadThreads(); setPosting(false)
   }
 
   const postReply = async () => {
@@ -157,9 +162,7 @@ export default function ForumPage() {
       method: 'POST',
       body: JSON.stringify({ thread_id: openId, author_id: user.id, body: replyText.trim(), hidden: false })
     })
-    setReplyText('')
-    loadReplies(openId)
-    setPosting(false)
+    setReplyText(''); loadReplies(openId); setPosting(false)
   }
 
   const patchThread = async (id, body) => {
@@ -168,19 +171,17 @@ export default function ForumPage() {
   }
 
   const toggleLike = async (thread) => {
-    const liked    = likes[thread.id]
-    const newLikes = thread.likes + (liked ? -1 : 1)
+    const liked = likes[thread.id]
     setLikes(l => ({ ...l, [thread.id]: !liked }))
-    await patchThread(thread.id, { likes: newLikes })
+    await patchThread(thread.id, { likes: thread.likes + (liked ? -1 : 1) })
   }
 
   const currentThread = threads.find(t => t.id === openId)
   const visReplies    = replies.filter(r => !r.hidden || canMod)
-  const filtered      = (cat === 'Tous' ? threads : threads.filter(t => t.cat === cat))
-    .filter(t => !t.hidden || canMod)
+  const filtered      = (cat === 'Tous' ? threads : threads.filter(t => t.cat === cat)).filter(t => !t.hidden || canMod)
 
   const ModBar = ({ thread }) => (
-    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '7px 10px', background: '#fff8e1', border: `1px solid ${C.accentDk}`, borderRadius: 2, marginTop: 10 }}>
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '8px 12px', background: '#fffae6', border: `1px solid ${C.accentDk}`, borderRadius: 10, marginTop: 10 }}>
       <span style={{ fontSize: 10, color: C.accentTxt, fontWeight: 700, alignSelf: 'center' }}>🛡 Modération :</span>
       <Btn onClick={() => patchThread(thread.id, { pinned: !thread.pinned })} variant={thread.pinned ? 'yellow' : 'ghost'} style={{ fontSize: 10 }}>{thread.pinned ? '📌 Désépingler' : '📌 Épingler'}</Btn>
       <Btn onClick={() => patchThread(thread.id, { locked: !thread.locked })} variant={thread.locked ? 'yellow' : 'ghost'} style={{ fontSize: 10 }}>{thread.locked ? '🔓 Déverrouiller' : '🔒 Verrouiller'}</Btn>
@@ -188,36 +189,38 @@ export default function ForumPage() {
     </div>
   )
 
-  // ── Thread ouvert ──────────────────────────────────────────────────────────
+  // ── Thread ouvert ──
   if (currentThread) {
     const author = getMember(currentThread.author_id)
     return (
-      <div style={{ maxWidth: 780, margin: '0 auto', padding: '20px 16px' }}>
-        <Btn onClick={() => { setOpenId(null); setReplies([]) }} variant="ghost" style={{ marginBottom: 12 }}>← Retour au forum</Btn>
+      <div ref={containerRef} style={{ maxWidth: 780, margin: '0 auto', padding: isMobile ? '12px' : '20px 16px' }}>
+        <button onClick={() => { setOpenId(null); setReplies([]) }} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: C.textMid, cursor: 'pointer', fontSize: 13, fontWeight: 600, marginBottom: 16, padding: 0 }}>
+          ← Retour au forum
+        </button>
 
         {currentThread.hidden && (
-          <div style={{ background: '#ffe0e0', border: '1px solid #c0392b', borderRadius: 3, padding: '8px 14px', marginBottom: 10, fontSize: 12, color: C.red, fontWeight: 600 }}>🗑 Discussion masquée</div>
+          <div style={{ background: '#ffe0e0', border: '1px solid #c0392b', borderRadius: 10, padding: '8px 14px', marginBottom: 12, fontSize: 12, color: C.red, fontWeight: 600 }}>🗑 Discussion masquée</div>
         )}
 
         {/* Post principal */}
-        <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 3, padding: '16px 14px', marginBottom: 10 }}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-            <Avatar member={author} size={44} />
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 5 }}>
+        <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: isMobile ? '14px' : '20px', marginBottom: 12, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
+          <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+            <Avatar member={author} size={isMobile ? 36 : 48} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
                 <strong style={{ fontSize: 14, color: C.text }}>@{author?.pseudo || 'Inconnu'}</strong>
                 <RoleBadge role={author?.role || 'membre'} />
-                <CatBadge cat={currentThread.cat} />
+                <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: '#fffae6', color: '#7a6200', border: '1px solid #c8a20044' }}>{currentThread.cat}</span>
                 {currentThread.pinned && <span style={{ fontSize: 11, color: C.accentTxt, fontWeight: 700 }}>📌 Épinglé</span>}
                 {currentThread.locked && <span style={{ fontSize: 11, color: C.red, fontWeight: 700 }}>🔒 Verrouillé</span>}
                 <span style={{ fontSize: 11, color: C.textDim, marginLeft: 'auto' }}>{formatDate(currentThread.created_at)}</span>
               </div>
-              <h2 style={{ fontSize: 17, fontWeight: 700, color: C.text, lineHeight: 1.3, marginBottom: 10 }}>{currentThread.title}</h2>
-              <p style={{ fontSize: 13, color: C.textMid, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+              <h2 style={{ fontSize: isMobile ? 16 : 19, fontWeight: 700, color: C.text, lineHeight: 1.3, marginBottom: 12 }}>{currentThread.title}</h2>
+              <p style={{ fontSize: 13, color: C.textMid, lineHeight: 1.8, whiteSpace: 'pre-wrap', margin: 0 }}>
                 <RichText text={currentThread.body} />
               </p>
-              <div style={{ marginTop: 10 }}>
-                <button onClick={() => toggleLike(currentThread)} style={{ background: likes[currentThread.id] ? '#fffae6' : 'transparent', border: `1px solid ${likes[currentThread.id] ? C.accentDk : C.borderMid}`, color: likes[currentThread.id] ? C.accentTxt : C.textMid, borderRadius: 2, padding: '4px 12px', cursor: 'pointer', fontSize: 12, fontFamily: "'Open Sans',sans-serif" }}>
+              <div style={{ marginTop: 14, display: 'flex', gap: 8 }}>
+                <button onClick={() => toggleLike(currentThread)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: likes[currentThread.id] ? '#fffae6' : '#f5f5f5', border: `1px solid ${likes[currentThread.id] ? C.accentDk : '#ddd'}`, color: likes[currentThread.id] ? C.accentTxt : C.textMid, borderRadius: 20, padding: '6px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', transition: 'all .15s' }}>
                   ♥ {currentThread.likes + (likes[currentThread.id] ? 1 : 0)} J'aime
                 </button>
               </div>
@@ -227,55 +230,58 @@ export default function ForumPage() {
         </div>
 
         {/* Réponses */}
-        {visReplies.map(r => {
-          const ru = getMember(r.author_id)
-          return (
-            <div key={r.id} style={{ background: r.hidden ? '#fff8f8' : C.white, border: `1px solid ${r.hidden ? '#f5c0c0' : C.border}`, borderRadius: 3, padding: '12px 14px', marginBottom: 6, display: 'flex', gap: 10 }}>
-              <Avatar member={ru} size={32} />
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 5 }}>
-                  <strong style={{ fontSize: 12, color: C.text }}>@{ru?.pseudo || 'Inconnu'}</strong>
-                  <RoleBadge role={ru?.role || 'membre'} />
-                  <span style={{ fontSize: 11, color: C.textDim }}>{formatDate(r.created_at)}</span>
-                  {r.hidden && <span style={{ fontSize: 10, color: C.red, fontWeight: 700 }}>🗑 Masqué</span>}
-                </div>
-                <p style={{ fontSize: 13, color: C.textMid, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                  <RichText text={r.body} />
-                </p>
-                {canMod && (
-                  <div style={{ marginTop: 7 }}>
-                    <Btn onClick={async () => {
-                      await api(`/rest/v1/replies?id=eq.${r.id}`, { method: 'PATCH', body: JSON.stringify({ hidden: !r.hidden }) })
-                      loadReplies(openId)
-                    }} variant={r.hidden ? 'green' : 'red'} style={{ fontSize: 10 }}>
-                      {r.hidden ? 'Restaurer' : 'Masquer'}
-                    </Btn>
-                  </div>
-                )}
-              </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+          {visReplies.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '20px', background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, fontSize: 12, color: C.textDim }}>
+              Aucune réponse — soyez le premier !
             </div>
-          )
-        })}
+          )}
+          {visReplies.map(r => {
+            const ru = getMember(r.author_id)
+            return (
+              <div key={r.id} style={{ background: r.hidden ? '#fff8f8' : C.white, border: `1px solid ${r.hidden ? '#f5c0c0' : C.border}`, borderRadius: 14, padding: isMobile ? '12px' : '14px 16px', display: 'flex', gap: 12, boxShadow: '0 1px 3px rgba(0,0,0,.03)' }}>
+                <Avatar member={ru} size={34} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
+                    <strong style={{ fontSize: 12, color: C.text }}>@{ru?.pseudo || 'Inconnu'}</strong>
+                    <RoleBadge role={ru?.role || 'membre'} />
+                    <span style={{ fontSize: 11, color: C.textDim }}>{formatDate(r.created_at)}</span>
+                    {r.hidden && <span style={{ fontSize: 10, color: C.red, fontWeight: 700 }}>🗑 Masqué</span>}
+                  </div>
+                  <p style={{ fontSize: 13, color: C.textMid, lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}>
+                    <RichText text={r.body} />
+                  </p>
+                  {canMod && (
+                    <div style={{ marginTop: 8 }}>
+                      <Btn onClick={async () => {
+                        await api(`/rest/v1/replies?id=eq.${r.id}`, { method: 'PATCH', body: JSON.stringify({ hidden: !r.hidden }) })
+                        loadReplies(openId)
+                      }} variant={r.hidden ? 'green' : 'red'} style={{ fontSize: 10 }}>
+                        {r.hidden ? 'Restaurer' : 'Masquer'}
+                      </Btn>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
 
-        {visReplies.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '14px', background: C.white, border: `1px solid ${C.border}`, borderRadius: 3, fontSize: 12, color: C.textDim }}>
-            Aucune réponse — soyez le premier !
-          </div>
-        )}
-
-        {/* Zone de réponse */}
+        {/* Zone réponse */}
         {user && !currentThread.locked ? (
-          <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 3, padding: 14, marginTop: 12 }}>
-            <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 10 }}>Votre réponse</div>
-            <RichInput value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Écris ta réponse… (supporte les liens et les émojis)" rows={3} />
-            <Btn onClick={postReply} variant="yellow" style={{ marginTop: 8 }}>{posting ? '…' : 'Publier ma réponse »'}</Btn>
+          <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: isMobile ? '14px' : '16px', boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
+            <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 10 }}>Votre réponse</div>
+            <RichInput value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Écris ta réponse… (liens et émojis supportés)" rows={3} />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
+              <Btn onClick={postReply} variant="yellow">{posting ? '…' : 'Publier ma réponse'}</Btn>
+            </div>
           </div>
         ) : currentThread.locked ? (
-          <div style={{ textAlign: 'center', padding: '12px', background: '#fff8f8', border: `1px solid ${C.borderMid}`, borderRadius: 3, fontSize: 12, color: C.red, marginTop: 10 }}>
+          <div style={{ textAlign: 'center', padding: '14px', background: '#fff8f8', border: `1px solid ${C.borderMid}`, borderRadius: 12, fontSize: 12, color: C.red, marginTop: 10 }}>
             🔒 Discussion verrouillée.
           </div>
         ) : (
-          <div style={{ textAlign: 'center', padding: '12px', background: '#f9f9f9', border: `1px solid ${C.border}`, borderRadius: 3, fontSize: 12, color: C.textDim, marginTop: 10 }}>
+          <div style={{ textAlign: 'center', padding: '14px', background: '#f9f9f9', border: `1px solid ${C.border}`, borderRadius: 12, fontSize: 12, color: C.textDim, marginTop: 10 }}>
             Connecte-toi pour répondre.
           </div>
         )}
@@ -283,75 +289,80 @@ export default function ForumPage() {
     )
   }
 
-  // ── Liste des threads ──────────────────────────────────────────────────────
+  // ── Liste threads ──
   return (
-    <div style={{ maxWidth: 780, margin: '0 auto', padding: '20px 16px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+    <div ref={containerRef} style={{ maxWidth: 780, margin: '0 auto', padding: isMobile ? '12px' : '20px 16px' }}>
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>
-          <h1 style={{ fontWeight: 700, fontSize: 19, color: '#555' }}>Forum</h1>
+          <h1 style={{ fontWeight: 700, fontSize: isMobile ? 18 : 22, color: '#242424', marginBottom: 2 }}>Forum</h1>
           <p style={{ fontSize: 12, color: C.textDim }}>{filtered.length} discussion{filtered.length !== 1 ? 's' : ''}</p>
         </div>
-        {user && <Btn onClick={() => setComposing(v => !v)} variant="yellow">+ Nouvelle discussion</Btn>}
+        {user && (
+          <button onClick={() => setComposing(v => !v)} style={{ padding: isMobile ? '8px 14px' : '10px 20px', background: 'linear-gradient(135deg,#f0c800,#c8a200)', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 13, color: '#3a2e00', boxShadow: '0 2px 8px rgba(200,162,0,.3)', fontFamily: 'inherit' }}>
+            + Nouvelle discussion
+          </button>
+        )}
       </div>
 
       {/* Formulaire nouvelle discussion */}
       {composing && (
-        <div style={{ background: C.white, border: `1px solid ${C.accentDk}`, borderRadius: 3, padding: 16, marginBottom: 12 }}>
-          <div style={{ fontWeight: 700, fontSize: 12, color: C.text, marginBottom: 12 }}>Nouvelle discussion</div>
-          <div style={{ marginBottom: 10 }}>
-            <label style={{ fontSize: 12, color: C.textMid, display: 'block', marginBottom: 5 }}>Catégorie :</label>
+        <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 16, boxShadow: '0 2px 12px rgba(0,0,0,.06)', animation: 'fadein .2s ease' }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 14 }}>Nouvelle discussion</div>
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: '#888', fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Catégorie</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {CATS.filter(c => c !== 'Tous').map(c => (
-                <button key={c} onClick={() => setNCat(c)} style={{ padding: '4px 11px', borderRadius: 20, cursor: 'pointer', background: nCat === c ? '#fffae6' : '#f5f5f5', border: `1px solid ${nCat === c ? C.accentDk : C.border}`, color: nCat === c ? C.accentTxt : C.textMid, fontSize: 11, fontFamily: "'Open Sans',sans-serif" }}>
+                <button key={c} onClick={() => setNCat(c)} style={{ padding: '5px 14px', borderRadius: 20, cursor: 'pointer', background: nCat === c ? '#fffae6' : '#f5f5f5', border: `1px solid ${nCat === c ? C.accentDk : '#ddd'}`, color: nCat === c ? C.accentTxt : C.textMid, fontSize: 12, fontFamily: 'inherit', fontWeight: nCat === c ? 700 : 400, transition: 'all .15s' }}>
                   {c}
                 </button>
               ))}
             </div>
           </div>
-          <label style={{ fontSize: 12, color: C.textMid, display: 'block', marginBottom: 4 }}>Titre :</label>
-          <Input value={nTitle} onChange={e => setNTitle(e.target.value)} placeholder="Titre de ta discussion…" style={{ width: '100%', marginBottom: 10 }} />
-          <label style={{ fontSize: 12, color: C.textMid, display: 'block', marginBottom: 4 }}>Message :</label>
-          <RichInput value={nBody} onChange={e => setNBody(e.target.value)} placeholder="Développe ta discussion… (supporte les liens et les émojis)" rows={4} />
-          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-            <Btn onClick={postThread} variant="yellow">{posting ? '…' : 'Publier »'}</Btn>
+          <div style={{ fontSize: 11, color: '#888', fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 6 }}>Titre</div>
+          <Input value={nTitle} onChange={e => setNTitle(e.target.value)} placeholder="Titre de ta discussion…" style={{ width: '100%', marginBottom: 14, borderRadius: 10, padding: '10px 14px' }} />
+          <div style={{ fontSize: 11, color: '#888', fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 6 }}>Message</div>
+          <RichInput value={nBody} onChange={e => setNBody(e.target.value)} placeholder="Développe ta discussion…" rows={4} />
+          <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'flex-end' }}>
             <Btn onClick={() => setComposing(false)} variant="ghost">Annuler</Btn>
+            <Btn onClick={postThread} variant="yellow">{posting ? '…' : 'Publier'}</Btn>
           </div>
         </div>
       )}
 
-      {/* Filtres catégories */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+      {/* Filtres */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
         {CATS.map(c => (
-          <button key={c} onClick={() => setCat(c)} style={{ padding: '4px 11px', borderRadius: 20, cursor: 'pointer', background: cat === c ? '#fffae6' : '#f0f0f0', border: `1px solid ${cat === c ? C.accentDk : C.border}`, color: cat === c ? C.accentTxt : C.textMid, fontSize: 11, fontFamily: "'Open Sans',sans-serif" }}>
+          <button key={c} onClick={() => setCat(c)} style={{ padding: '5px 14px', borderRadius: 20, cursor: 'pointer', background: cat === c ? '#fffae6' : '#f0f0f0', border: `1px solid ${cat === c ? C.accentDk : '#ddd'}`, color: cat === c ? C.accentTxt : C.textMid, fontSize: 12, fontFamily: 'inherit', fontWeight: cat === c ? 700 : 400, transition: 'all .15s' }}>
             {c}
           </button>
         ))}
       </div>
 
       {/* Liste */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {filtered.map(t => {
           const author = getMember(t.author_id)
           return (
-            <div key={t.id} onClick={() => openThread(t.id)} style={{ background: t.hidden ? '#fff8f8' : t.pinned ? '#fffef0' : C.white, border: `1px solid ${t.hidden ? '#f5c0c0' : t.pinned ? C.accentDk : C.border}`, borderRadius: 3, padding: '11px 14px', cursor: 'pointer', display: 'flex', gap: 12, transition: 'all .2s' }}
-              onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,.08)'}
-              onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+            <div key={t.id} onClick={() => openThread(t.id)} style={{ background: t.hidden ? '#fff8f8' : t.pinned ? '#fffef5' : C.white, border: `1px solid ${t.hidden ? '#f5c0c0' : t.pinned ? C.accentDk : C.border}`, borderRadius: 14, padding: isMobile ? '12px' : '14px 16px', cursor: 'pointer', display: 'flex', gap: 12, transition: 'all .2s', boxShadow: '0 1px 3px rgba(0,0,0,.03)' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,.08)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,.03)' }}
             >
-              <Avatar member={author} size={36} />
+              <Avatar member={author} size={isMobile ? 36 : 42} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 3, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 4, flexWrap: 'wrap' }}>
                   <strong style={{ fontSize: 12, color: C.text }}>@{author?.pseudo || 'Inconnu'}</strong>
                   <RoleBadge role={author?.role || 'membre'} />
-                  <CatBadge cat={t.cat} />
+                  <span style={{ padding: '1px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: '#fffae6', color: '#7a6200', border: '1px solid #c8a20044' }}>{t.cat}</span>
                   {t.pinned && <span style={{ fontSize: 10, color: C.accentTxt, fontWeight: 700 }}>📌</span>}
                   {t.locked && <span style={{ fontSize: 10, color: C.red, fontWeight: 700 }}>🔒</span>}
-                  {t.hidden && canMod && <span style={{ fontSize: 10, color: C.red, fontWeight: 700 }}>🗑 Masqué</span>}
+                  {t.hidden && canMod && <span style={{ fontSize: 10, color: C.red, fontWeight: 700 }}>🗑</span>}
                   <span style={{ fontSize: 11, color: C.textDim, marginLeft: 'auto' }}>{formatDate(t.created_at)}</span>
                 </div>
-                <div style={{ fontWeight: 600, fontSize: 14, color: C.text, marginBottom: 2 }}>{t.title}</div>
+                <div style={{ fontWeight: 700, fontSize: isMobile ? 13 : 14, color: C.text, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</div>
                 <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>{t.body}</div>
-                <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
-                  <span style={{ fontSize: 11, color: C.textDim }}>♥ {t.likes}</span>
+                <div style={{ display: 'flex', gap: 14, marginTop: 8 }}>
+                  <span style={{ fontSize: 11, color: C.textDim, display: 'flex', alignItems: 'center', gap: 4 }}>♥ {t.likes}</span>
                   <span style={{ fontSize: 11, color: C.textDim }}>↩ réponses</span>
                 </div>
               </div>
@@ -359,7 +370,7 @@ export default function ForumPage() {
           )
         })}
         {filtered.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '20px', background: C.white, border: `1px solid ${C.border}`, borderRadius: 3, fontSize: 12, color: C.textDim }}>
+          <div style={{ textAlign: 'center', padding: '30px', background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, fontSize: 13, color: C.textDim }}>
             Aucune discussion dans cette catégorie.
           </div>
         )}

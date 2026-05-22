@@ -92,27 +92,7 @@ export default function Home() {
   return (
     <div ref={containerRef}>
 
-   {/* ── HERO BANNER ── */}
-<div style={{ background: 'linear-gradient(135deg, #111 0%, #1a1a2e 100%)', borderBottom: '2px solid #c8a200', padding: isMobile ? '20px 16px' : '24px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-  <div>
-    <h1 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, color: '#fff', marginBottom: 4 }}>
-      Bienvenue sur <span style={{ color: '#c8a200' }}>WeMoved</span> 👋
-    </h1>
-    <p style={{ fontSize: 12, color: '#888', margin: 0 }}>Une communauté ouverte à tous.</p>
-  </div>
-  <div style={{ display: 'flex', gap: 20 }}>
-    {[
-      { value: stats.members, label: 'Membres' },
-      { value: stats.threads, label: 'Discussions' },
-      { value: stats.online,  label: 'En ligne' },
-    ].map(s => (
-      <div key={s.label} style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: isMobile ? 16 : 20, fontWeight: 700, color: '#c8a200' }}>{s.value}</div>
-        <div style={{ fontSize: 10, color: '#888', textTransform: 'uppercase', letterSpacing: .8 }}>{s.label}</div>
-      </div>
-    ))}
-  </div>
-</div>
+   
 
       {/* ── GRILLE PRINCIPALE ── */}
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: isMobile ? '16px 12px' : '24px 16px', ...gridStyle }}>
@@ -198,7 +178,7 @@ export default function Home() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 style={{ fontWeight: 700, fontSize: isMobile ? 13 : 15, color: '#bbb', textTransform: 'uppercase', letterSpacing: 1 }}>Discussions récentes</h2>
+            <h2 style={{ fontWeight: 700, fontSize: isMobile ? 13 : 15, color: '#242424', textTransform: 'uppercase', letterSpacing: 1 }}>Discussions récentes</h2>
             {user && (
               <button onClick={() => setNewThread(t => !t)} style={{ padding: isMobile ? '7px 14px' : '9px 18px', background: 'linear-gradient(135deg,#f0c800,#c8a200)', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: isMobile ? 12 : 13, color: '#3a2e00', boxShadow: '0 2px 8px rgba(200,162,0,.3)' }}>
                 + Nouvelle discussion
