@@ -19,7 +19,7 @@ export default function Navbar() {
   const [notifs,  setNotifs]        = useState([])
   const [showNotifs, setShowNotifs] = useState(false)
   const [menuOpen, setMenuOpen]     = useState(false)
-  const [isMobile, setIsMobile]     = useState(false)
+const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const searchRef = useRef()
   const notifRef  = useRef()
   const navRef    = useRef()

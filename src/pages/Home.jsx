@@ -25,7 +25,7 @@ export default function Home() {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
   const containerRef = useRef()
-  const [isMobile, setIsMobile] = useState(false)
+const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const [members,   setMembers]   = useState([])
   const [threads,   setThreads]   = useState([])
   const [stats,     setStats]     = useState({ members: 0, threads: 0, messages: 0, online: 0 })

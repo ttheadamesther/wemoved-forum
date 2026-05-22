@@ -101,7 +101,7 @@ function Avatar({ member, size = 36 }) {
 export default function ForumPage() {
   const { user, profile } = useAuth()
   const containerRef = useRef()
-  const [isMobile, setIsMobile] = useState(false)
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const [members,   setMembers]   = useState([])
   const [threads,   setThreads]   = useState([])
   const [replies,   setReplies]   = useState([])

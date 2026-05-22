@@ -12,7 +12,7 @@ export default function MembersPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const containerRef = useRef()
-  const [isMobile, setIsMobile] = useState(false)
+ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const [members, setMembers] = useState([])
   const [search, setSearch]   = useState('')
   const [region, setRegion]   = useState('')
