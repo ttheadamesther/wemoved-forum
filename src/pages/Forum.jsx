@@ -294,8 +294,8 @@ export default function ForumPage() {
 
               {/* Like + bouton modifier (auteur) */}
               <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                <button onClick={() => toggleLike(currentThread)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: likes[currentThread.id] ? '#fffae6' : '#f5f5f5', border: `1px solid ${likes[currentThread.id] ? C.accentDk : '#ddd'}`, color: likes[currentThread.id] ? C.accentTxt : C.textMid, borderRadius: 20, padding: '6px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', transition: 'all .15s' }}>
-                  ♥ {currentThread.likes + (likes[currentThread.id] ? 1 : 0)} J'aime
+                <button onClick={() => toggleLike(currentThread)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: nCat === c ? '#fffae6' : C.surfaceB  , border: `1px solid ${likes[currentThread.id] ? C.accentDk : '#ddd'}`, color: likes[currentThread.id] ? C.accentTxt : C.textMid, borderRadius: 20, padding: '6px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', transition: 'all .15s' }}>
+                  ♥ {currentThread.likes + (likes[currentThread.id] ? 1 : 0)} J'aime'#f5f5f5'
                 </button>
 
                 {/* Modifier — visible par l'auteur uniquement */}
@@ -460,7 +460,7 @@ export default function ForumPage() {
       {/* Filtres */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
         {CATS.map(c => (
-          <button key={c} onClick={() => setCat(c)} style={{ padding: '5px 14px', borderRadius: 20, cursor: 'pointer', background: cat === c ? '#fffae6' : '#f0f0f0', border: `1px solid ${cat === c ? C.accentDk : '#ddd'}`, color: cat === c ? C.accentTxt : C.textMid, fontSize: 12, fontFamily: 'inherit', fontWeight: cat === c ? 700 : 400, transition: 'all .15s' }}>
+          <button key={c} onClick={() => setCat(c)} style={{ padding: '5px 14px', borderRadius: 20, cursor: 'pointer', background: cat === c ? '#fffae6' : C.surfaceB, border: `1px solid ${cat === c ? C.accentDk : '#ddd'}`, color: cat === c ? C.accentTxt : C.textMid, fontSize: 12, fontFamily: 'inherit', fontWeight: cat === c ? 700 : 400, transition: 'all .15s' }}>
             {c}
           </button>
         ))}
@@ -471,7 +471,7 @@ export default function ForumPage() {
         {filtered.map(t => {
           const author = getMember(t.author_id)
           return (
-            <div key={t.id} onClick={() => openThread(t.id)} style={{ background: t.hidden ? '#fff8f8' : t.pinned ? '#fffef5' : C.white, border: `1px solid ${t.hidden ? '#f5c0c0' : t.pinned ? C.accentDk : C.border}`, borderRadius: 14, padding: isMobile ? '12px' : '14px 16px', cursor: 'pointer', display: 'flex', gap: 12, transition: 'all .2s', boxShadow: '0 1px 3px rgba(0,0,0,.03)' }}
+            <div key={t.id} onClick={() => openThread(t.id)} style={{ background: t.hidden ? '#fff8f8' : C.white, border: `1px solid ${t.hidden ? '#f5c0c0' : t.pinned ? C.accentDk : C.border}`, borderRadius: 14, padding: isMobile ? '12px' : '14px 16px', cursor: 'pointer', display: 'flex', gap: 12, transition: 'all .2s', boxShadow: '0 1px 3px rgba(0,0,0,.03)' }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 16px var(--card-shadow)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,.03)' }}
             >
