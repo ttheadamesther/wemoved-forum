@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext(null)
 
+const ADMIN_ID = '5b9c6fb1-7a61-4a34-8bb0-ba89a0569e76'
+
 export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(undefined)
   const [profile, setProfile] = useState(null)
@@ -77,31 +79,50 @@ export function AuthProvider({ children }) {
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) return { error }
     if (data.user) {
+      const token = data.session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY
+
+      // Création du profil
       await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/profiles`, {
         method: 'POST',
         headers: {
           'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${data.session?.access_token}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          id:      data.user.id,
+          id:        data.user.id,
           pseudo,
           email,
-          role:    'membre',
-          bio:     '',
+          role:      'membre',
+          bio:       '',
           interests: [],
-          friends: 0,
-          posts:   0,
-          joined:  new Date().toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }),
-          online:  true,
-          banned:  false,
-          votes:   { mimi: 0, cool: 0, sexy: 0, loose: 0 },
-          age:     extra.age    || null,
-          sexe:    extra.sexe   || null,
-          region:  extra.region || '',
-          dept:    extra.dept   || '',
-          city:    extra.city   || '',
+          friends:   0,
+          posts:     0,
+          joined:    new Date().toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }),
+          online:    true,
+          banned:    false,
+          votes:     { mimi: 0, cool: 0, sexy: 0, loose: 0 },
+          age:       extra.age    || null,
+          sexe:      extra.sexe   || null,
+          region:    extra.region || '',
+          dept:      extra.dept   || '',
+          city:      extra.city   || '',
+        })
+      })
+
+      // Message de bienvenue automatique
+      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/messages`, {
+        method: 'POST',
+        headers: {
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from_id: ADMIN_ID,
+          to_id:   data.user.id,
+          body:    `👋 Bienvenue sur WeMoved, @${pseudo} ! Nous sommes ravis de t'accueillir dans la communauté. N'hésite pas à compléter ton profil et à te présenter sur le forum. Bonne aventure ! 🚀`,
+          read:    false
         })
       })
     }
