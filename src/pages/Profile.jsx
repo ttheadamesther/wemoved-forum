@@ -1,8 +1,9 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import Cropper from 'react-easy-crop'
 import { useAuth } from '../hooks/useAuth'
 import { C, VOTES_DEF } from '../lib/constants'
 import { RoleBadge, Btn, Input, Textarea } from '../components/UI'
+import { GeoSelects } from '../components/GeoSelects'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -60,7 +61,12 @@ const BANNER_GRADIENTS = [
   'linear-gradient(135deg, #0a1628, #1a2a4a)',
 ]
 
-const XP_LEVEL_MAX = 1000
+const STATUTS = [
+  { value: '',            label: 'Non renseigné',    emoji: '—' },
+  { value: 'celibataire', label: 'Célibataire',      emoji: '💚' },
+  { value: 'couple',      label: 'En couple',        emoji: '❤️' },
+  { value: 'complique',   label: "C'est compliqué",  emoji: '💛' },
+]
 
 const PANEL = {
   background: C.white,
@@ -96,6 +102,14 @@ export default function Profile() {
   const [bannerCroppedArea, setBannerCroppedArea] = useState(null)
   const [uploadingBanner, setUploadingBanner]     = useState(false)
 
+  // ── Infos personnelles ──
+  const [editingInfos, setEditingInfos] = useState(false)
+  const [infosRegion,  setInfosRegion]  = useState('')
+  const [infosDept,    setInfosDept]    = useState('')
+  const [infosCity,    setInfosCity]    = useState('')
+  const [infosStatut,  setInfosStatut]  = useState('')
+  const [savingInfos,  setSavingInfos]  = useState(false)
+
   const avatarRef = useRef()
   const photoRef  = useRef()
   const bannerRef = useRef()
@@ -119,6 +133,21 @@ export default function Profile() {
   const save = async () => { setSaving(true); await patchProfile({ bio }); setSaving(false); setEditing(false) }
   const addInterest = async () => { if (!interest.trim()) return; await patchProfile({ interests: [...(profile.interests || []), interest.trim()] }); setInterest('') }
   const removeInterest = async (item) => { await patchProfile({ interests: (profile.interests || []).filter(i => i !== item) }) }
+
+  const openEditInfos = () => {
+    setInfosRegion(profile.region || '')
+    setInfosDept(profile.dept || '')
+    setInfosCity(profile.city || '')
+    setInfosStatut(profile.statut || '')
+    setEditingInfos(true)
+  }
+
+  const saveInfos = async () => {
+    setSavingInfos(true)
+    await patchProfile({ region: infosRegion, dept: infosDept, city: infosCity, statut: infosStatut })
+    setSavingInfos(false)
+    setEditingInfos(false)
+  }
 
   const uploadAvatar = (e) => {
     const file = e.target.files[0]; if (!file) return
@@ -159,16 +188,15 @@ export default function Profile() {
   }
   const removePhoto = async (url) => { await patchProfile({ photos: (profile.photos || []).filter(p => p !== url) }) }
 
-  const votes      = profile.votes || {}
-  const totalVotes = Object.values(votes).reduce((a, b) => a + b, 0)
-  const sexeLabel  = profile.sexe ? profile.sexe.charAt(0).toUpperCase() + profile.sexe.slice(1) : null
-  const colors     = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
+  const votes       = profile.votes || {}
+  const totalVotes  = Object.values(votes).reduce((a, b) => a + b, 0)
+  const sexeLabel   = profile.sexe ? profile.sexe.charAt(0).toUpperCase() + profile.sexe.slice(1) : null
+  const statutDef   = STATUTS.find(s => s.value === (profile.statut || '')) || STATUTS[0]
+  const colors      = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
   const avatarColor = colors[(profile.pseudo?.charCodeAt(0) || 0) % colors.length]
   const bannerStyle = profile.banner_url
     ? { backgroundImage: `url(${profile.banner_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : { background: profile.banner_gradient || BANNER_GRADIENTS[0] }
-  const xp = profile.xp || 0
-  const level = profile.level || 1
   const topVote = VOTES_DEF.reduce((best, v) => (votes[v.key] || 0) > (votes[best?.key] || 0) ? v : best, null)
 
   return (
@@ -264,12 +292,13 @@ export default function Profile() {
             )}
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {profile.joined && <Tag icon="📅" label={profile.joined} />}
-            {profile.age    && <Tag icon="🎂" label={`${profile.age} ans`} />}
-            {sexeLabel      && <Tag icon="👤" label={sexeLabel} />}
-            {profile.city   && <Tag icon="📍" label={profile.city} />}
-            {profile.dept   && <Tag icon="🗺️" label={profile.dept} />}
-            {profile.region && <Tag icon="🏳️" label={profile.region} />}
+            {profile.joined  && <Tag icon="📅" label={profile.joined} />}
+            {profile.age     && <Tag icon="🎂" label={`${profile.age} ans`} />}
+            {sexeLabel       && <Tag icon="👤" label={sexeLabel} />}
+            {profile.city    && <Tag icon="📍" label={profile.city} />}
+            {profile.dept    && <Tag icon="🗺️" label={profile.dept} />}
+            {profile.region  && <Tag icon="🏳️" label={profile.region} />}
+            {profile.statut  && statutDef.value && <Tag icon={statutDef.emoji} label={statutDef.label} />}
           </div>
         </div>
       </div>
@@ -277,7 +306,7 @@ export default function Profile() {
       {/* ── CONTENU ── */}
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-        {/* Stats 3 colonnes — auto-fit pour mobile */}
+        {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
           {[
             { icon: '👥', label: 'Amis',       value: profile.friends || 0, color: '#3498db' },
@@ -292,7 +321,68 @@ export default function Profile() {
           ))}
         </div>
 
-        {/* Bio — pleine largeur */}
+        {/* ── INFOS PERSONNELLES ── */}
+        <div style={PANEL}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>📍 Infos personnelles</div>
+            {!editingInfos && (
+              <button onClick={openEditInfos} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.accentTxt, fontWeight: 600 }}>Modifier</button>
+            )}
+          </div>
+
+          {editingInfos ? (
+            <div>
+              <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Localisation</div>
+              <GeoSelects
+                region={infosRegion} dept={infosDept} city={infosCity}
+                onRegion={v => { setInfosRegion(v); setInfosDept(''); setInfosCity('') }}
+                onDept={v => { setInfosDept(v); setInfosCity('') }}
+                onCity={setInfosCity}
+              />
+
+              <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, margin: '14px 0 8px' }}>Statut relationnel</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {STATUTS.map(s => (
+                  <button key={s.value} onClick={() => setInfosStatut(s.value)}
+                    style={{
+                      padding: '7px 14px', borderRadius: 20, cursor: 'pointer',
+                      background: infosStatut === s.value ? '#fffae6' : C.surfaceB,
+                      border: `1px solid ${infosStatut === s.value ? C.accentDk : C.border}`,
+                      color: infosStatut === s.value ? C.accentTxt : C.textMid,
+                      fontSize: 12, fontFamily: 'inherit', fontWeight: infosStatut === s.value ? 700 : 400,
+                      transition: 'all .15s'
+                    }}>
+                    {s.emoji} {s.label}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                <Btn onClick={saveInfos} variant="yellow">{savingInfos ? '…' : 'Sauvegarder'}</Btn>
+                <Btn onClick={() => setEditingInfos(false)} variant="ghost">Annuler</Btn>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[
+                { icon: '🌍', label: 'Région',          value: profile.region },
+                { icon: '🗺️', label: 'Département',      value: profile.dept },
+                { icon: '📍', label: 'Ville',            value: profile.city },
+                { icon: statutDef.emoji, label: 'Statut', value: statutDef.value ? statutDef.label : null },
+              ].map(item => (
+                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: C.surfaceB, borderRadius: 10 }}>
+                  <span style={{ fontSize: 16, width: 24, textAlign: 'center' }}>{item.icon}</span>
+                  <span style={{ fontSize: 12, color: C.textMid, flex: 1 }}>{item.label}</span>
+                  <span style={{ fontSize: 13, color: item.value ? C.text : C.textDim, fontStyle: item.value ? 'normal' : 'italic', fontWeight: item.value ? 600 : 400 }}>
+                    {item.value || 'Non renseigné'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Bio */}
         <div style={PANEL}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>✍️ Bio</div>
@@ -313,7 +403,7 @@ export default function Profile() {
           )}
         </div>
 
-        {/* Votes reçus — pleine largeur */}
+        {/* Votes reçus */}
         <div style={PANEL}>
           <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>🗳️ Votes reçus</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -336,7 +426,7 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Intérêts — pleine largeur */}
+        {/* Intérêts */}
         <div style={PANEL}>
           <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>🎯 Intérêts</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 14, minHeight: 36 }}>
@@ -360,7 +450,7 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Photos — pleine largeur */}
+        {/* Photos */}
         <div style={PANEL}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>🖼️ Photos ({(profile.photos || []).length})</div>
@@ -388,6 +478,7 @@ export default function Profile() {
             )
           }
         </div>
+
       </div>
     </div>
   )
