@@ -23,37 +23,23 @@ export default function Login() {
     if (mode === 'login') {
       const { data, error: err } = await signIn(email, password)
       setLoading(false)
-      if (err) {
-        setError(err.message)
-        return
-      }
-      // On attend que la session soit bien établie avant de naviguer
-      if (data?.session) {
-        navigate('/', { replace: true })
-      } else {
-        setError('Connexion échouée — vérifie tes identifiants.')
-      }
+      if (err) { setError(err.message); return }
+      if (data?.session) { navigate('/', { replace: true }) }
+      else { setError('Connexion échouée — vérifie tes identifiants.') }
     } else {
-      // Inscription
       if (!pseudo.trim())      { setLoading(false); setError('Le pseudo est obligatoire.'); return }
       if (pseudo.length < 3)   { setLoading(false); setError('Pseudo trop court (3 min).'); return }
       if (password.length < 6) { setLoading(false); setError('Mot de passe trop court (6 min).'); return }
-
       const { error: err } = await signUp(email, password, pseudo)
       setLoading(false)
-      if (err) {
-        setError(err.message)
-        return
-      }
-      // Après inscription Supabase envoie parfois un email de confirmation
-      setError('')
+      if (err) { setError(err.message); return }
       navigate('/', { replace: true })
     }
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '36px 40px', width: 380, boxShadow: '0 4px 24px rgba(0,0,0,.10)' }}>
+    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
+      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: '36px 32px', width: '100%', maxWidth: 380, boxShadow: '0 4px 24px rgba(0,0,0,.10)' }}>
 
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
           <Logo height={52} />
@@ -96,7 +82,6 @@ export default function Login() {
             : <>Déjà inscrit ?{' '}<span onClick={() => { setMode('login'); setError('') }} style={{ color: C.accentTxt, fontWeight: 700, cursor: 'pointer' }}>Se connecter</span></>
           }
         </div>
-
       </div>
     </div>
   )

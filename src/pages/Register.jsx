@@ -6,7 +6,6 @@ import { Logo } from '../components/Logo'
 import { useAuth } from '../hooks/useAuth'
 import { GeoSelects } from '../components/GeoSelects'
 
-// ✅ Défini HORS du composant pour éviter le re-render à chaque frappe
 const Field = ({ label, required, children }) => (
   <div style={{ marginBottom: 12 }}>
     <label style={{ fontSize: 12, color: C.textMid, display: 'block', marginBottom: 4 }}>
@@ -35,7 +34,7 @@ export default function Register() {
     setError('')
     if (!pseudo.trim())       return setError('Le pseudo est obligatoire.')
     if (pseudo.length < 3)    return setError('Le pseudo doit faire au moins 3 caractères.')
-    if (!email.trim())        return setError('L\'email est obligatoire.')
+    if (!email.trim())        return setError("L'email est obligatoire.")
     if (password.length < 6)  return setError('Le mot de passe doit faire au moins 6 caractères.')
     if (password !== confirm)  return setError('Les mots de passe ne correspondent pas.')
     if (!sexe)                return setError('Le sexe est obligatoire.')
@@ -49,7 +48,7 @@ export default function Register() {
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
-      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '36px 40px', width: 420, boxShadow: '0 4px 24px rgba(0,0,0,.10)' }}>
+      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: '36px 32px', width: '100%', maxWidth: 420, boxShadow: '0 4px 24px rgba(0,0,0,.10)' }}>
 
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
           <Logo height={52} />
@@ -78,7 +77,6 @@ export default function Register() {
           {confirm && confirm !== password && <span style={{ fontSize: 10, color: C.red, marginTop: 3, display: 'block' }}>Ne correspond pas.</span>}
         </Field>
 
-        {/* Âge + Sexe */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
           <div>
             <label style={{ fontSize: 12, color: C.textMid, display: 'block', marginBottom: 4 }}>Âge <span style={{ color: C.red }}>*</span></label>
@@ -86,7 +84,7 @@ export default function Register() {
           </div>
           <div>
             <label style={{ fontSize: 12, color: C.textMid, display: 'block', marginBottom: 4 }}>Sexe <span style={{ color: C.red }}>*</span></label>
-            <select value={sexe} onChange={e => setSexe(e.target.value)} style={{ width: '100%', padding: '7px 10px', border: `1px solid ${C.borderMid}`, borderRadius: 2, fontSize: 13, color: C.text, background: C.white, fontFamily: "'Open Sans',sans-serif" }}>
+            <select value={sexe} onChange={e => setSexe(e.target.value)} style={{ width: '100%', padding: '7px 10px', border: `1px solid ${C.borderMid}`, borderRadius: 8, fontSize: 13, color: C.text, background: C.white, fontFamily: 'inherit' }}>
               <option value="">Choisir…</option>
               <option value="homme">Homme</option>
               <option value="femme">Femme</option>
@@ -95,7 +93,6 @@ export default function Register() {
           </div>
         </div>
 
-        {/* Localisation */}
         <Field label="Localisation">
           <GeoSelects region={region} dept={dept} city={city} onRegion={setRegion} onDept={setDept} onCity={setCity} />
           <span style={{ fontSize: 10, color: C.textDim, marginTop: 3, display: 'block' }}>Optionnel — visible sur ton profil.</span>
