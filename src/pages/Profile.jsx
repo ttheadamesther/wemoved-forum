@@ -80,7 +80,7 @@ const Tag = ({ icon, label }) => (
 export default function Profile() {
   const { user, profile, loading, refreshProfile } = useAuth()
   const containerRef = useRef()
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [isMobile, setIsMobile] = useState(true) 
   const [editing, setEditing]         = useState(false)
   const [bio, setBio]                 = useState('')
   const [interest, setInterest]       = useState('')
