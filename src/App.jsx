@@ -12,6 +12,8 @@ import Profile  from './pages/Profile'
 import React    from 'react'
 import MemberProfile from './pages/MemberProfile'
 import Notifications from './pages/Notifications'
+import BugReport   from './pages/BugReport'
+import Moderation  from './pages/Moderation'
 // ── Error Boundary pour attraper les crashs silencieux ───────────────────────
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -84,7 +86,9 @@ export default function App() {
             <Route path="/members" element={<Layout><Members /></Layout>} />
             <Route path="/members/:id" element={<Layout><MemberProfile /></Layout>} />
             <Route path="/messages" element={<PrivateRoute><Layout><Messages /></Layout></PrivateRoute>} />
-           <Route path="/notifications" element={<PrivateRoute><Layout><Notifications /></Layout></PrivateRoute>} />
+            <Route path="/bug-report" element={<PrivateRoute><Layout><BugReport /></Layout></PrivateRoute>} />
+            <Route path="/moderation" element={<PrivateRoute><Layout><Moderation /></Layout></PrivateRoute>} />
+            <Route path="/notifications" element={<PrivateRoute><Layout><Notifications /></Layout></PrivateRoute>} />
             <Route path="/profile" element={<PrivateRoute><Layout><ErrorBoundary><Profile /></ErrorBoundary></Layout></PrivateRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

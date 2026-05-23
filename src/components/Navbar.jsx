@@ -24,6 +24,8 @@ export default function Navbar() {
   const notifRef  = useRef()
   const navRef    = useRef()
 
+  const canMod = ['admin', 'manager', 'moderateur'].includes(profile?.role)
+
   useEffect(() => {
     const observer = new ResizeObserver(entries => {
       for (const entry of entries) setIsMobile(entry.contentRect.width < 768)
@@ -103,23 +105,22 @@ export default function Navbar() {
     <>
       <nav ref={navRef} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999, height: 64, display: 'flex', alignItems: 'center', padding: '0 16px', background: '#111', borderBottom: `2px solid ${C.navBorder}`, gap: 8 }}>
 
-        {/* Logo */}
         <Link to="/" style={{ flexShrink: 0, marginTop: 8, marginRight: 8 }}>
           <Logo height={70} />
         </Link>
 
-        {/* Nav desktop */}
         {!isMobile && (
           <>
-            <NavLink to="/"        label="Accueil"         icon="🏠" />
-            <NavLink to="/forum"   label="Forum"           icon="💬" />
-            <NavLink to="/members" label="Membres"         icon="👥" />
-            {user && <NavLink to="/messages" label="Messages privés" icon="✉️" />}
-            {user && <NavLink to="/profile"  label="Mon Profil"      icon="👤" />}
+            <NavLink to="/"           label="Accueil"         icon="🏠" />
+            <NavLink to="/forum"      label="Forum"           icon="💬" />
+            <NavLink to="/members"    label="Membres"         icon="👥" />
+            {user && <NavLink to="/messages"   label="Messages privés" icon="✉️" />}
+            {user && <NavLink to="/profile"    label="Mon Profil"      icon="👤" />}
+            {user && <NavLink to="/bug-report" label="Signaler un bug" icon="🐛" />}
+            {user && canMod && <NavLink to="/moderation" label="Modération" icon="🛡️" />}
           </>
         )}
 
-        {/* Recherche desktop */}
         {!isMobile && (
           <div ref={searchRef} style={{ marginLeft: 'auto', position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'center', background: '#222', border: '1px solid #333', borderRadius: 20, padding: '0 12px', gap: 8 }}>
@@ -151,10 +152,8 @@ export default function Navbar() {
           </div>
         )}
 
-        {/* Côté droit */}
         <div style={{ marginLeft: isMobile ? 'auto' : 8, display: 'flex', alignItems: 'center', gap: 8 }}>
 
-          {/* Notifications */}
           {user && (
             <div ref={notifRef} style={{ position: 'relative' }}>
               <button onClick={() => setShowNotifs(s => !s)} style={{ width: 38, height: 38, borderRadius: '50%', border: 'none', background: '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, position: 'relative' }}>
@@ -182,7 +181,6 @@ export default function Navbar() {
             </div>
           )}
 
-          {/* Avatar + XP desktop */}
           {user && !isMobile && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', height: 44, background: '#1a1a1a', borderRadius: 22, border: '1px solid #2a2a2a' }}>
               <div style={{ width: 28, height: 28, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
@@ -193,7 +191,6 @@ export default function Navbar() {
                   <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>@{profile?.pseudo || user.email?.split('@')[0]}</span>
                   {profile && <RoleBadge role={profile.role} />}
                 </div>
-                {/* Barre XP mini */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <span style={{ fontSize: 9, color: '#c8a200', fontWeight: 700 }}>Niv.{level}</span>
                   <div style={{ width: 60, height: 3, background: '#333', borderRadius: 3, overflow: 'hidden' }}>
@@ -206,7 +203,6 @@ export default function Navbar() {
             </div>
           )}
 
-          {/* Boutons connexion desktop */}
           {!user && !isMobile && (
             <div style={{ display: 'flex', gap: 8 }}>
               <Link to="/login"><button style={{ padding: '0 14px', height: 36, border: '1px solid #333', borderRadius: 8, cursor: 'pointer', background: 'transparent', color: '#ccc', fontSize: 12 }}>Connexion</button></Link>
@@ -214,7 +210,6 @@ export default function Navbar() {
             </div>
           )}
 
-          {/* Hamburger mobile */}
           {isMobile && (
             <button onClick={() => setMenuOpen(m => !m)} style={{ width: 40, height: 40, borderRadius: 6, border: 'none', background: '#222', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
               <span style={{ width: 20, height: 2, background: menuOpen ? C.accent : '#ccc', transition: 'all .2s', transform: menuOpen ? 'rotate(45deg) translateY(7px)' : 'none', display: 'block' }} />
@@ -225,11 +220,9 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Menu mobile */}
       {isMobile && menuOpen && (
         <div style={{ position: 'fixed', top: 64, left: 0, right: 0, background: '#111', zIndex: 998, borderBottom: `2px solid ${C.navBorder}`, boxShadow: '0 4px 20px rgba(0,0,0,.5)' }}>
 
-          {/* Recherche mobile */}
           <div style={{ padding: '12px 16px', borderBottom: '1px solid #222' }}>
             <div style={{ display: 'flex', alignItems: 'center', background: '#222', border: '1px solid #333', borderRadius: 20, padding: '0 12px', gap: 8 }}>
               <span style={{ color: '#888' }}>🔍</span>
@@ -261,8 +254,9 @@ export default function Navbar() {
           {user && <NavLink to="/messages"      label="Messages privés" icon="✉️" />}
           {user && <NavLink to="/notifications" label="Notifications"   icon="🔔" />}
           {user && <NavLink to="/profile"       label="Mon Profil"      icon="👤" />}
+          {user && <NavLink to="/bug-report"    label="Signaler un bug" icon="🐛" />}
+          {user && canMod && <NavLink to="/moderation" label="Modération" icon="🛡️" />}
 
-          {/* Profil mobile avec XP */}
           {user && (
             <div style={{ padding: '14px 20px', borderTop: '1px solid #222' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
@@ -275,7 +269,6 @@ export default function Navbar() {
                 </div>
                 <button onClick={handleSignOut} style={{ background: 'none', border: '1px solid #333', borderRadius: 6, color: '#aaa', cursor: 'pointer', fontSize: 12, padding: '6px 12px' }}>Déco</button>
               </div>
-              {/* Barre XP mobile */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 10, color: '#c8a200', fontWeight: 700 }}>Niv.{level}</span>
                 <div style={{ flex: 1, height: 3, background: '#333', borderRadius: 3, overflow: 'hidden' }}>
