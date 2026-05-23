@@ -13,14 +13,15 @@ export default function Navbar() {
   const location  = useLocation()
   const navigate  = useNavigate()
   const path      = location.pathname
-  const [search, setSearch]         = useState('')
-  const [results, setResults]       = useState([])
-  const [showRes, setShowRes]       = useState(false)
-  const [showSearch, setShowSearch] = useState(false)
-  const [notifs,  setNotifs]        = useState([])
-  const [showNotifs, setShowNotifs] = useState(false)
-  const [menuOpen, setMenuOpen]     = useState(false)
-  const [isMobile, setIsMobile]     = useState(window.innerWidth < 768)
+  const [search, setSearch]               = useState('')
+  const [results, setResults]             = useState([])
+  const [showRes, setShowRes]             = useState(false)
+  const [showSearch, setShowSearch]       = useState(false)
+  const [notifs,  setNotifs]              = useState([])
+  const [showNotifs, setShowNotifs]       = useState(false)
+  const [menuOpen, setMenuOpen]           = useState(false)
+  const [isMobile, setIsMobile]           = useState(window.innerWidth < 768)
+  const [unreadMessages, setUnreadMessages] = useState(0)
   const searchRef = useRef()
   const notifRef  = useRef()
   const navRef    = useRef()
@@ -43,6 +44,14 @@ export default function Navbar() {
       headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
     }).then(r => r.json()).then(d => { if (Array.isArray(d)) setNotifs(d) })
   }, [user])
+
+  // Messages non lus — se rafraîchit à chaque changement de page
+  useEffect(() => {
+    if (!user) return
+    fetch(`${SUPABASE_URL}/rest/v1/messages?to_id=eq.${user.id}&read=eq.false&select=id`, {
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+    }).then(r => r.json()).then(d => { if (Array.isArray(d)) setUnreadMessages(d.length) })
+  }, [user, path])
 
   useEffect(() => {
     if (!search.trim()) { setResults([]); return }
@@ -102,6 +111,37 @@ export default function Navbar() {
     )
   }
 
+  // NavLink Messages avec badge
+  const MessagesNavLink = () => {
+    const active = path === '/messages'
+    return (
+      <Link to="/messages" onClick={() => { setMenuOpen(false); setUnreadMessages(0) }} style={{ textDecoration: 'none' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: isMobile ? '14px 20px' : '0 10px',
+          height: isMobile ? 'auto' : 64,
+          color: active ? C.accent : '#ccc',
+          fontWeight: active ? 700 : 400, fontSize: 12,
+          borderBottom: isMobile ? `1px solid #222` : active ? `2px solid ${C.accent}` : '2px solid transparent',
+          background: active && isMobile ? 'rgba(200,162,0,.1)' : 'transparent',
+          cursor: 'pointer', transition: 'all .15s', whiteSpace: 'nowrap'
+        }}>
+          <span style={{ fontSize: 14 }}>✉️</span>
+          Messages
+          {unreadMessages > 0 && (
+            <span style={{
+              background: C.red, color: '#fff', borderRadius: 10,
+              fontSize: 9, fontWeight: 700, padding: '1px 5px', marginLeft: 2,
+              lineHeight: 1.6
+            }}>
+              {unreadMessages > 9 ? '9+' : unreadMessages}
+            </span>
+          )}
+        </div>
+      </Link>
+    )
+  }
+
   return (
     <>
       <nav ref={navRef} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999, height: 64, display: 'flex', alignItems: 'center', padding: '0 12px', background: '#111', borderBottom: `2px solid ${C.navBorder}`, gap: 4 }}>
@@ -116,7 +156,7 @@ export default function Navbar() {
             <NavLink to="/"           label="Accueil"   icon="🏠" />
             <NavLink to="/forum"      label="Forum"     icon="💬" />
             <NavLink to="/members"    label="Membres"   icon="👥" />
-            {user && <NavLink to="/messages"   label="Messages"  icon="✉️" />}
+            {user && <MessagesNavLink />}
             {user && <NavLink to="/profile"    label="Profil"    icon="👤" />}
             {user && <NavLink to="/bug-report" label="Bug"       icon="🐛" />}
             {user && canMod && <NavLink to="/moderation" label="Modération" icon="🛡️" />}
@@ -126,7 +166,7 @@ export default function Navbar() {
         {/* Droite */}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
 
-          {/* Recherche desktop — icône bouton */}
+          {/* Recherche desktop */}
           {!isMobile && (
             <div ref={searchRef} style={{ position: 'relative' }}>
               <button onClick={() => setShowSearch(s => !s)} style={{ width: 36, height: 36, borderRadius: '50%', border: 'none', background: showSearch ? '#333' : '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
@@ -261,7 +301,7 @@ export default function Navbar() {
           <NavLink to="/"              label="Accueil"     icon="🏠" />
           <NavLink to="/forum"         label="Forum"       icon="💬" />
           <NavLink to="/members"       label="Membres"     icon="👥" />
-          {user && <NavLink to="/messages"      label="Messages"    icon="✉️" />}
+          {user && <MessagesNavLink />}
           {user && <NavLink to="/notifications" label="Notifications" icon="🔔" />}
           {user && <NavLink to="/profile"       label="Mon Profil"  icon="👤" />}
           {user && <NavLink to="/bug-report"    label="Signaler un bug" icon="🐛" />}
