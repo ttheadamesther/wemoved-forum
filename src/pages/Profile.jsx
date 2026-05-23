@@ -79,8 +79,6 @@ const Tag = ({ icon, label }) => (
 
 export default function Profile() {
   const { user, profile, loading, refreshProfile } = useAuth()
-  const containerRef = useRef()
-  const [isMobile, setIsMobile] = useState(true) 
   const [editing, setEditing]         = useState(false)
   const [bio, setBio]                 = useState('')
   const [interest, setInterest]       = useState('')
@@ -104,13 +102,6 @@ export default function Profile() {
 
   const onCropComplete       = useCallback((_, p) => setCroppedArea(p), [])
   const onBannerCropComplete = useCallback((_, p) => setBannerCroppedArea(p), [])
-
-  useEffect(() => {
-  const check = () => setIsMobile(window.innerWidth < 768)
-  check()
-  window.addEventListener('resize', check)
-  return () => window.removeEventListener('resize', check)
-}, [])
 
   if (loading)  return <div style={{ padding: 40, textAlign: 'center', color: C.textMid }}>Chargement…</div>
   if (!user)    return <div style={{ padding: 40, textAlign: 'center', color: C.textMid }}>Non connecté</div>
@@ -178,16 +169,15 @@ export default function Profile() {
     : { background: profile.banner_gradient || BANNER_GRADIENTS[0] }
   const xp = profile.xp || 0
   const level = profile.level || 1
-  const xpPercent = (xp % XP_LEVEL_MAX) / XP_LEVEL_MAX * 100
   const topVote = VOTES_DEF.reduce((best, v) => (votes[v.key] || 0) > (votes[best?.key] || 0) ? v : best, null)
 
   return (
-    <div ref={containerRef} style={{ maxWidth: 860, margin: '0 auto', paddingBottom: 32 }}>
+    <div style={{ maxWidth: 860, margin: '0 auto', paddingBottom: 32 }}>
 
       {/* ── MODAL CROP AVATAR ── */}
       {cropSrc && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: C.white, borderRadius: 12, overflow: 'hidden', width: Math.min(400, window.innerWidth - 32), boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
+          <div style={{ background: C.white, borderRadius: 12, overflow: 'hidden', width: '100%', maxWidth: 400, boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
             <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 14 }}>Recadrer la photo de profil</div>
             <div style={{ position: 'relative', width: '100%', height: 300, background: '#222' }}>
               <Cropper image={cropSrc} crop={crop} zoom={zoom} aspect={1} cropShape="round" showGrid={false} onCropChange={setCrop} onZoomChange={setZoom} onCropComplete={onCropComplete} />
@@ -208,7 +198,7 @@ export default function Profile() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
           <div style={{ background: C.white, borderRadius: 12, overflow: 'hidden', width: '100%', maxWidth: 600, boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
             <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 14 }}>Recadrer la bannière</div>
-            <div style={{ position: 'relative', width: '100%', height: isMobile ? 180 : 240, background: '#222' }}>
+            <div style={{ position: 'relative', width: '100%', height: 200, background: '#222' }}>
               <Cropper image={bannerCropSrc} crop={bannerCrop} zoom={bannerZoom} aspect={3} showGrid={false} onCropChange={setBannerCrop} onZoomChange={setBannerZoom} onCropComplete={onBannerCropComplete} />
             </div>
             <div style={{ padding: '14px 20px', borderTop: `1px solid ${C.border}` }}>
@@ -223,14 +213,14 @@ export default function Profile() {
       )}
 
       {/* ── BANNIÈRE ── */}
-      <div style={{ position: 'relative', height: isMobile ? 140 : 200, ...bannerStyle }}>
+      <div style={{ position: 'relative', height: 180, ...bannerStyle }}>
         <div style={{ position: 'absolute', top: 12, right: 12 }}>
           <button onClick={() => setShowBannerPicker(p => !p)} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
             🎨 Bannière
           </button>
         </div>
         {showBannerPicker && (
-          <div style={{ position: 'absolute', top: 44, right: 12, background: '#fff', borderRadius: 12, padding: 14, boxShadow: '0 8px 32px rgba(0,0,0,.2)', zIndex: 100, width: isMobile ? 240 : 280 }}>
+          <div style={{ position: 'absolute', top: 44, right: 12, background: '#fff', borderRadius: 12, padding: 14, boxShadow: '0 8px 32px rgba(0,0,0,.2)', zIndex: 100, width: 260 }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 10 }}>Dégradé</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6, marginBottom: 12 }}>
               {BANNER_GRADIENTS.map((g, i) => (
@@ -248,25 +238,24 @@ export default function Profile() {
       </div>
 
       {/* ── HEADER ── */}
-      <div style={{ background: C.white, borderBottom: '1px solid #e8e0c8', padding: isMobile ? '0 16px 20px' : '0 24px 24px', marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: isMobile ? -40 : -52 }}>
+      <div style={{ background: C.white, borderBottom: '1px solid #e8e0c8', padding: '0 20px 20px', marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: -44 }}>
           <div style={{ position: 'relative' }}>
-            <div onClick={() => avatarRef.current.click()} style={{ width: isMobile ? 80 : 100, height: isMobile ? 80 : 100, borderRadius: '50%', background: profile.avatar_url ? '#444' : avatarColor, border: '4px solid #fff', boxShadow: '0 4px 16px rgba(0,0,0,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: isMobile ? 26 : 34, color: '#fff', cursor: 'pointer', overflow: 'hidden', position: 'relative' }}>
+            <div onClick={() => avatarRef.current.click()} style={{ width: 88, height: 88, borderRadius: '50%', background: profile.avatar_url ? '#444' : avatarColor, border: '4px solid #fff', boxShadow: '0 4px 16px rgba(0,0,0,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 28, color: '#fff', cursor: 'pointer', overflow: 'hidden', position: 'relative' }}>
               {profile.avatar_url ? <img src={profile.avatar_url} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : profile.initials || profile.pseudo?.slice(0, 2).toUpperCase()}
               <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: '.2s', borderRadius: '50%' }}
                 onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0}>
-                <span style={{ color: '#fff', fontSize: 22 }}>{uploading ? '…' : '📷'}</span>
+                <span style={{ color: '#fff', fontSize: 20 }}>{uploading ? '…' : '📷'}</span>
               </div>
             </div>
             <input ref={avatarRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadAvatar} />
           </div>
-          <Btn onClick={() => { setBio(profile.bio || ''); setEditing(true) }} variant="ghost" style={{ marginBottom: 4, fontSize: isMobile ? 11 : 12 }}>✏️ Modifier</Btn>
+          <Btn onClick={() => { setBio(profile.bio || ''); setEditing(true) }} variant="ghost" style={{ marginBottom: 4, fontSize: 12 }}>✏️ Modifier</Btn>
         </div>
 
-        {/* Pseudo + infos sous l'avatar */}
         <div style={{ marginTop: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-            <span style={{ fontWeight: 700, fontSize: isMobile ? 18 : 22, color: C.text }}>@{profile.pseudo}</span>
+            <span style={{ fontWeight: 700, fontSize: 20, color: C.text }}>@{profile.pseudo}</span>
             <RoleBadge role={profile.role} />
             {topVote && totalVotes > 0 && (
               <span style={{ padding: '2px 10px', borderRadius: 20, fontSize: 11, background: '#fffae6', color: '#7a6200', border: '1px solid #c8a20066', fontWeight: 700 }}>
@@ -274,7 +263,6 @@ export default function Profile() {
               </span>
             )}
           </div>
-          {/* Tags infos */}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {profile.joined && <Tag icon="📅" label={profile.joined} />}
             {profile.age    && <Tag icon="🎂" label={`${profile.age} ans`} />}
@@ -287,96 +275,92 @@ export default function Profile() {
       </div>
 
       {/* ── CONTENU ── */}
-      <div style={{ padding: isMobile ? '0 12px' : '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-        {/* Stats */}
+        {/* Stats 3 colonnes — auto-fit pour mobile */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
           {[
             { icon: '👥', label: 'Amis',       value: profile.friends || 0, color: '#3498db' },
             { icon: '💬', label: 'Posts',       value: profile.posts   || 0, color: '#2ecc71' },
             { icon: '⭐', label: 'Votes reçus', value: totalVotes,          color: '#c8a200' },
           ].map(s => (
-            <div key={s.label} style={{ ...PANEL, borderTop: `3px solid ${s.color}`, padding: isMobile ? '14px 10px' : '18px 14px', textAlign: 'center' }}>
-              <div style={{ fontSize: isMobile ? 20 : 24, marginBottom: 4 }}>{s.icon}</div>
-              <div style={{ fontWeight: 700, fontSize: isMobile ? 22 : 26, color: C.text, lineHeight: 1 }}>{s.value}</div>
+            <div key={s.label} style={{ ...PANEL, borderTop: `3px solid ${s.color}`, padding: '14px 10px', textAlign: 'center' }}>
+              <div style={{ fontSize: 22, marginBottom: 4 }}>{s.icon}</div>
+              <div style={{ fontWeight: 700, fontSize: 24, color: C.text, lineHeight: 1 }}>{s.value}</div>
               <div style={{ fontSize: 10, color: C.textMid, marginTop: 4, textTransform: 'uppercase', letterSpacing: .5 }}>{s.label}</div>
             </div>
           ))}
         </div>
 
-        {/* Grille 2 colonnes */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
-
-          {/* Bio */}
-          <div style={PANEL}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8 }}>✍️ Bio</div>
-              {!editing && <button onClick={() => { setBio(profile.bio || ''); setEditing(true) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.accentTxt, fontWeight: 600 }}>Modifier</button>}
-            </div>
-            {editing ? (
-              <>
-                <Textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Parle de toi…" rows={4} />
-                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                  <Btn onClick={save} variant="yellow">{saving ? '…' : 'Sauvegarder'}</Btn>
-                  <Btn onClick={() => setEditing(false)} variant="ghost">Annuler</Btn>
-                </div>
-              </>
-            ) : (
-              <p style={{ fontSize: 13, color: profile.bio ? C.text : C.textDim, lineHeight: 1.7, margin: 0, fontStyle: profile.bio ? 'normal' : 'italic' }}>
-                {profile.bio || 'Aucune bio — clique sur Modifier pour en ajouter une.'}
-              </p>
-            )}
+        {/* Bio — pleine largeur */}
+        <div style={PANEL}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8 }}>✍️ Bio</div>
+            {!editing && <button onClick={() => { setBio(profile.bio || ''); setEditing(true) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.accentTxt, fontWeight: 600 }}>Modifier</button>}
           </div>
+          {editing ? (
+            <>
+              <Textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Parle de toi…" rows={4} />
+              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                <Btn onClick={save} variant="yellow">{saving ? '…' : 'Sauvegarder'}</Btn>
+                <Btn onClick={() => setEditing(false)} variant="ghost">Annuler</Btn>
+              </div>
+            </>
+          ) : (
+            <p style={{ fontSize: 13, color: profile.bio ? C.text : C.textDim, lineHeight: 1.7, margin: 0, fontStyle: profile.bio ? 'normal' : 'italic' }}>
+              {profile.bio || 'Aucune bio — clique sur Modifier pour en ajouter une.'}
+            </p>
+          )}
+        </div>
 
-          {/* Votes reçus */}
-          <div style={PANEL}>
-            <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>🗳️ Votes reçus</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {VOTES_DEF.map(v => {
-                const val = votes[v.key] || 0
-                const pct = totalVotes > 0 ? (val / totalVotes) * 100 : 0
-                return (
-                  <div key={v.key}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <span style={{ fontSize: 16 }}>{v.emoji}</span>
-                      <span style={{ fontSize: 12, color: C.textMid, flex: 1 }}>{v.label}</span>
-                      <span style={{ fontWeight: 700, fontSize: 13, color: C.text }}>{val}</span>
-                    </div>
-                    <div style={{ height: 4, background: '#f0f0f0', borderRadius: 4, overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(to right, #f0c800, #c8a200)', borderRadius: 4, transition: 'width .5s' }} />
-                    </div>
+        {/* Votes reçus — pleine largeur */}
+        <div style={PANEL}>
+          <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>🗳️ Votes reçus</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {VOTES_DEF.map(v => {
+              const val = votes[v.key] || 0
+              const pct = totalVotes > 0 ? (val / totalVotes) * 100 : 0
+              return (
+                <div key={v.key}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontSize: 16 }}>{v.emoji}</span>
+                    <span style={{ fontSize: 12, color: C.textMid, flex: 1 }}>{v.label}</span>
+                    <span style={{ fontWeight: 700, fontSize: 13, color: C.text }}>{val}</span>
                   </div>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Intérêts */}
-          <div style={{ ...PANEL, gridColumn: isMobile ? '1' : '1 / -1' }}>
-            <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>🎯 Intérêts</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 14, minHeight: 36 }}>
-              {(profile.interests || []).length === 0
-                ? <span style={{ fontSize: 12, color: C.textDim, fontStyle: 'italic' }}>Aucun intérêt — ajoutes-en ci-dessous</span>
-                : (profile.interests || []).map(i => (
-                  <span key={i} onClick={() => removeInterest(i)}
-                    style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, background: '#fffae6', color: '#7a6200', border: '1px solid #c8a20066', cursor: 'pointer', fontWeight: 600, transition: 'all .15s' }}
-                    onMouseEnter={e => e.currentTarget.style.opacity = '.7'}
-                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                    title="Cliquer pour supprimer"
-                  >
-                    {i} ✕
-                  </span>
-                ))
-              }
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Input value={interest} onChange={e => setInterest(e.target.value)} placeholder="Ajouter un intérêt…" onKeyDown={e => e.key === 'Enter' && addInterest()} style={{ flex: 1 }} />
-              <Btn onClick={addInterest} variant="yellow">+</Btn>
-            </div>
+                  <div style={{ height: 4, background: '#f0f0f0', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(to right, #f0c800, #c8a200)', borderRadius: 4, transition: 'width .5s' }} />
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
 
-        {/* Photos */}
+        {/* Intérêts — pleine largeur */}
+        <div style={PANEL}>
+          <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>🎯 Intérêts</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 14, minHeight: 36 }}>
+            {(profile.interests || []).length === 0
+              ? <span style={{ fontSize: 12, color: C.textDim, fontStyle: 'italic' }}>Aucun intérêt — ajoutes-en ci-dessous</span>
+              : (profile.interests || []).map(i => (
+                <span key={i} onClick={() => removeInterest(i)}
+                  style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, background: '#fffae6', color: '#7a6200', border: '1px solid #c8a20066', cursor: 'pointer', fontWeight: 600, transition: 'all .15s' }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '.7'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                  title="Cliquer pour supprimer"
+                >
+                  {i} ✕
+                </span>
+              ))
+            }
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Input value={interest} onChange={e => setInterest(e.target.value)} placeholder="Ajouter un intérêt…" onKeyDown={e => e.key === 'Enter' && addInterest()} style={{ flex: 1 }} />
+            <Btn onClick={addInterest} variant="yellow">+</Btn>
+          </div>
+        </div>
+
+        {/* Photos — pleine largeur */}
         <div style={PANEL}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8 }}>🖼️ Photos ({(profile.photos || []).length})</div>
@@ -393,7 +377,7 @@ export default function Profile() {
               </div>
             )
             : (
-              <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${isMobile ? 100 : 130}px, 1fr))`, gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10 }}>
                 {(profile.photos || []).map((url, i) => (
                   <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', border: '1px solid #e8e0c8' }}>
                     <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
