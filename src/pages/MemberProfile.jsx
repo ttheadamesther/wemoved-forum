@@ -7,15 +7,25 @@ import { useAuth } from '../hooks/useAuth'
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-export default function MemberProfile() {
-  const { id }       = useParams()
-  const { user }     = useAuth()
-  const navigate     = useNavigate()
-  const [member, setMember]   = useState(null)
-  const [myVotes, setMyVotes] = useState({})
-  const [voting, setVoting]   = useState(null)
-  const [loading, setLoading] = useState(true)
+const ROLES_ASSIGNABLES = [
+  { value: 'membre',     label: 'Membre',      color: '#555' },
+  { value: 'animateur',  label: 'Animateur',   color: '#1a3c6b' },
+  { value: 'moderateur', label: 'Modérateur',  color: '#1a5c30' },
+  { value: 'manager',    label: 'Manager',     color: '#5a0080' },
+]
 
+export default function MemberProfile() {
+  const { id }         = useParams()
+  const { user, profile } = useAuth()
+  const navigate       = useNavigate()
+  const [member, setMember]       = useState(null)
+  const [myVotes, setMyVotes]     = useState({})
+  const [voting, setVoting]       = useState(null)
+  const [loading, setLoading]     = useState(true)
+  const [showRolePanel, setShowRolePanel] = useState(false)
+  const [updatingRole, setUpdatingRole]   = useState(false)
+
+  const isAdmin = profile?.role === 'admin'
   const monthKey = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth()}` }
 
   useEffect(() => {
@@ -73,6 +83,18 @@ export default function MemberProfile() {
     setVoting(null)
   }
 
+  const assignRole = async (newRole) => {
+    setUpdatingRole(true)
+    await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ role: newRole })
+    })
+    setMember(m => ({ ...m, role: newRole }))
+    setUpdatingRole(false)
+    setShowRolePanel(false)
+  }
+
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: C.textMid }}>Chargement…</div>
   if (!member) return <div style={{ padding: 40, textAlign: 'center', color: C.textMid }}>Profil introuvable</div>
 
@@ -91,13 +113,10 @@ export default function MemberProfile() {
 
       {/* Bannière + Avatar */}
       <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, overflow: 'hidden', marginBottom: 16, boxShadow: '0 2px 12px rgba(0,0,0,.06)' }}>
-        {/* Bannière */}
         <div style={{ height: 160, background: member.banner_url ? `url(${member.banner_url}) center/cover no-repeat` : 'linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)', position: 'relative' }} />
 
-        {/* Avatar + infos */}
         <div style={{ padding: '0 24px 24px', position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12 }}>
-            {/* Avatar */}
             <div style={{ width: 90, height: 90, borderRadius: '50%', background: member.avatar_url ? '#444' : avatarColor, border: '4px solid #fff', marginTop: -45, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, boxShadow: '0 2px 12px rgba(0,0,0,.15)' }}>
               {member.avatar_url
                 ? <img src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
@@ -105,22 +124,51 @@ export default function MemberProfile() {
               }
             </div>
 
-            {/* Bouton envoyer un message */}
-            {user && user.id !== id && (
-              <Btn onClick={() => navigate('/messages')} variant="yellow" style={{ fontSize: 12 }}>
-                ✉️ Envoyer un message
-              </Btn>
-            )}
+            <div style={{ display: 'flex', gap: 8 }}>
+              {/* Bouton gestion rôle — admin uniquement */}
+              {isAdmin && user.id !== id && (
+                <Btn onClick={() => setShowRolePanel(v => !v)} variant="ghost" style={{ fontSize: 12 }}>
+                  🛡️ Gérer le rôle
+                </Btn>
+              )}
+              {user && user.id !== id && (
+                <Btn onClick={() => navigate('/messages')} variant="yellow" style={{ fontSize: 12 }}>
+                  ✉️ Envoyer un message
+                </Btn>
+              )}
+            </div>
           </div>
 
-          {/* Nom + role */}
+          {/* Panel gestion du rôle */}
+          {isAdmin && showRolePanel && (
+            <div style={{ background: C.surfaceB, border: `1px solid ${C.accentDk}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+              <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>🛡️ Attribuer un rôle à @{member.pseudo}</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {ROLES_ASSIGNABLES.map(r => (
+                  <button key={r.value} onClick={() => assignRole(r.value)} disabled={updatingRole || member.role === r.value}
+                    style={{
+                      padding: '8px 16px', borderRadius: 20, border: `2px solid ${member.role === r.value ? r.color : C.border}`,
+                      background: member.role === r.value ? r.color : C.white,
+                      color: member.role === r.value ? '#fff' : C.textMid,
+                      fontWeight: member.role === r.value ? 700 : 400, fontSize: 12,
+                      cursor: member.role === r.value ? 'default' : 'pointer',
+                      fontFamily: 'inherit', transition: 'all .15s',
+                      opacity: updatingRole ? 0.6 : 1
+                    }}>
+                    {updatingRole && member.role !== r.value ? '…' : r.label}
+                    {member.role === r.value && ' ✓'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
             <h1 style={{ fontWeight: 700, fontSize: 20, color: C.text, margin: 0 }}>@{member.pseudo}</h1>
             <RoleBadge role={member.role} />
             {member.online && <span style={{ fontSize: 11, color: '#2ecc71', fontWeight: 600 }}>● En ligne</span>}
           </div>
 
-          {/* Infos */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {member.joined  && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>📅 {member.joined}</span>}
             {member.age     && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>🎂 {member.age} ans</span>}
@@ -135,9 +183,9 @@ export default function MemberProfile() {
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
         {[
-          { label: 'AMIS',        value: member.friends || 0, color: '#3498db', bg: '#eaf4fd' },
-          { label: 'POSTS',       value: member.posts   || 0, color: '#2ecc71', bg: '#eafaf1' },
-          { label: 'VOTES REÇUS', value: totalVotes,          color: C.accentTxt, bg: '#fffae6' },
+          { label: 'AMIS',        value: member.friends || 0, color: '#3498db' },
+          { label: 'POSTS',       value: member.posts   || 0, color: '#2ecc71' },
+          { label: 'VOTES REÇUS', value: totalVotes,          color: C.accentTxt },
         ].map(s => (
           <div key={s.label} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: '20px 16px', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,.04)', borderTop: `3px solid ${s.color}` }}>
             <div style={{ fontWeight: 700, fontSize: 28, color: s.color }}>{s.value}</div>
