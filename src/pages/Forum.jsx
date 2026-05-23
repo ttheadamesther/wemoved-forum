@@ -102,18 +102,20 @@ export default function ForumPage() {
   const { user, profile } = useAuth()
   const containerRef = useRef()
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
-  const [members,   setMembers]   = useState([])
-  const [threads,   setThreads]   = useState([])
-  const [replies,   setReplies]   = useState([])
-  const [cat,       setCat]       = useState('Tous')
-  const [openId,    setOpenId]    = useState(null)
-  const [composing, setComposing] = useState(false)
-  const [nTitle,    setNTitle]    = useState('')
-  const [nBody,     setNBody]     = useState('')
-  const [nCat,      setNCat]      = useState('Divers')
-  const [replyText, setReplyText] = useState('')
-  const [posting,   setPosting]   = useState(false)
-  const [likes,     setLikes]     = useState({})
+  const [members,      setMembers]      = useState([])
+  const [threads,      setThreads]      = useState([])
+  const [replies,      setReplies]      = useState([])
+  const [cat,          setCat]          = useState('Tous')
+  const [openId,       setOpenId]       = useState(null)
+  const [composing,    setComposing]    = useState(false)
+  const [nTitle,       setNTitle]       = useState('')
+  const [nBody,        setNBody]        = useState('')
+  const [nCat,         setNCat]         = useState('Divers')
+  const [replyText,    setReplyText]    = useState('')
+  const [posting,      setPosting]      = useState(false)
+  const [likes,        setLikes]        = useState({})
+  const [editingThread, setEditingThread] = useState(null) // { title, body }
+  const [editingReply,  setEditingReply]  = useState(null) // { id, body }
 
   const myRole = profile?.role || 'membre'
   const ROLES_RANK = { admin: 4, manager: 3, moderateur: 2, animateur: 1, membre: 0 }
@@ -176,6 +178,41 @@ export default function ForumPage() {
     await patchThread(thread.id, { likes: thread.likes + (liked ? -1 : 1) })
   }
 
+  // ── Modifier un thread ──
+  const updateThread = async (id, title, body) => {
+    await api(`/rest/v1/threads?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ title, body, edited_at: new Date().toISOString() })
+    })
+    loadThreads()
+  }
+
+  // ── Modifier une réponse ──
+  const updateReply = async (id, body) => {
+    await api(`/rest/v1/replies?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ body, edited_at: new Date().toISOString() })
+    })
+    loadReplies(openId)
+  }
+
+  // ── Supprimer un thread (modération) ──
+  const deleteThread = async (id) => {
+    if (!window.confirm('Supprimer définitivement ce topic et toutes ses réponses ?')) return
+    await api(`/rest/v1/replies?thread_id=eq.${id}`, { method: 'DELETE' })
+    await api(`/rest/v1/threads?id=eq.${id}`, { method: 'DELETE' })
+    setOpenId(null)
+    setReplies([])
+    loadThreads()
+  }
+
+  // ── Supprimer une réponse (modération) ──
+  const deleteReply = async (id) => {
+    if (!window.confirm('Supprimer définitivement cette réponse ?')) return
+    await api(`/rest/v1/replies?id=eq.${id}`, { method: 'DELETE' })
+    loadReplies(openId)
+  }
+
   const currentThread = threads.find(t => t.id === openId)
   const visReplies    = replies.filter(r => !r.hidden || canMod)
   const filtered      = (cat === 'Tous' ? threads : threads.filter(t => t.cat === cat)).filter(t => !t.hidden || canMod)
@@ -185,7 +222,8 @@ export default function ForumPage() {
       <span style={{ fontSize: 10, color: C.accentTxt, fontWeight: 700, alignSelf: 'center' }}>🛡 Modération :</span>
       <Btn onClick={() => patchThread(thread.id, { pinned: !thread.pinned })} variant={thread.pinned ? 'yellow' : 'ghost'} style={{ fontSize: 10 }}>{thread.pinned ? '📌 Désépingler' : '📌 Épingler'}</Btn>
       <Btn onClick={() => patchThread(thread.id, { locked: !thread.locked })} variant={thread.locked ? 'yellow' : 'ghost'} style={{ fontSize: 10 }}>{thread.locked ? '🔓 Déverrouiller' : '🔒 Verrouiller'}</Btn>
-      <Btn onClick={() => patchThread(thread.id, { hidden: !thread.hidden })} variant={thread.hidden ? 'green' : 'red'} style={{ fontSize: 10 }}>{thread.hidden ? '👁 Restaurer' : '🗑 Masquer'}</Btn>
+      <Btn onClick={() => patchThread(thread.id, { hidden: !thread.hidden })} variant={thread.hidden ? 'green' : 'red'} style={{ fontSize: 10 }}>{thread.hidden ? '👁 Restaurer' : '🙈 Masquer'}</Btn>
+      <Btn onClick={() => deleteThread(thread.id)} variant="red" style={{ fontSize: 10 }}>🗑 Supprimer le topic</Btn>
     </div>
   )
 
@@ -194,7 +232,7 @@ export default function ForumPage() {
     const author = getMember(currentThread.author_id)
     return (
       <div ref={containerRef} style={{ maxWidth: 780, margin: '0 auto', padding: isMobile ? '12px' : '20px 16px' }}>
-        <button onClick={() => { setOpenId(null); setReplies([]) }} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: C.textMid, cursor: 'pointer', fontSize: 13, fontWeight: 600, marginBottom: 16, padding: 0 }}>
+        <button onClick={() => { setOpenId(null); setReplies([]); setEditingThread(null); setEditingReply(null) }} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: C.textMid, cursor: 'pointer', fontSize: 13, fontWeight: 600, marginBottom: 16, padding: 0 }}>
           ← Retour au forum
         </button>
 
@@ -207,6 +245,8 @@ export default function ForumPage() {
           <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
             <Avatar member={author} size={isMobile ? 36 : 48} />
             <div style={{ flex: 1, minWidth: 0 }}>
+
+              {/* Infos auteur */}
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
                 <strong style={{ fontSize: 14, color: C.text }}>@{author?.pseudo || 'Inconnu'}</strong>
                 <RoleBadge role={author?.role || 'membre'} />
@@ -214,16 +254,63 @@ export default function ForumPage() {
                 {currentThread.pinned && <span style={{ fontSize: 11, color: C.accentTxt, fontWeight: 700 }}>📌 Épinglé</span>}
                 {currentThread.locked && <span style={{ fontSize: 11, color: C.red, fontWeight: 700 }}>🔒 Verrouillé</span>}
                 <span style={{ fontSize: 11, color: C.textDim, marginLeft: 'auto' }}>{formatDate(currentThread.created_at)}</span>
+                {currentThread.edited_at && (
+                  <span style={{ fontSize: 10, color: C.textDim, fontStyle: 'italic' }}>✏️ modifié</span>
+                )}
               </div>
-              <h2 style={{ fontSize: isMobile ? 16 : 19, fontWeight: 700, color: C.text, lineHeight: 1.3, marginBottom: 12 }}>{currentThread.title}</h2>
-              <p style={{ fontSize: 13, color: C.textMid, lineHeight: 1.8, whiteSpace: 'pre-wrap', margin: 0 }}>
-                <RichText text={currentThread.body} />
-              </p>
-              <div style={{ marginTop: 14, display: 'flex', gap: 8 }}>
+
+              {/* Titre + body — édition inline */}
+              {editingThread ? (
+                <div>
+                  <Input
+                    value={editingThread.title}
+                    onChange={e => setEditingThread(v => ({ ...v, title: e.target.value }))}
+                    placeholder="Titre…"
+                    style={{ width: '100%', marginBottom: 10, borderRadius: 10, padding: '10px 14px' }}
+                  />
+                  <RichInput
+                    value={editingThread.body}
+                    onChange={e => setEditingThread(v => ({ ...v, body: e.target.value }))}
+                    rows={4}
+                  />
+                  <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'flex-end' }}>
+                    <Btn onClick={() => setEditingThread(null)} variant="ghost">Annuler</Btn>
+                    <Btn onClick={async () => {
+                      await updateThread(currentThread.id, editingThread.title, editingThread.body)
+                      setEditingThread(null)
+                    }} variant="yellow">Sauvegarder</Btn>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <h2 style={{ fontSize: isMobile ? 16 : 19, fontWeight: 700, color: C.text, lineHeight: 1.3, marginBottom: 12 }}>
+                    {currentThread.title}
+                  </h2>
+                  <p style={{ fontSize: 13, color: C.textMid, lineHeight: 1.8, whiteSpace: 'pre-wrap', margin: 0 }}>
+                    <RichText text={currentThread.body} />
+                  </p>
+                </>
+              )}
+
+              {/* Like + bouton modifier (auteur) */}
+              <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                 <button onClick={() => toggleLike(currentThread)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: likes[currentThread.id] ? '#fffae6' : '#f5f5f5', border: `1px solid ${likes[currentThread.id] ? C.accentDk : '#ddd'}`, color: likes[currentThread.id] ? C.accentTxt : C.textMid, borderRadius: 20, padding: '6px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', transition: 'all .15s' }}>
                   ♥ {currentThread.likes + (likes[currentThread.id] ? 1 : 0)} J'aime
                 </button>
+
+                {/* Modifier — visible par l'auteur uniquement */}
+                {user?.id === currentThread.author_id && !editingThread && (
+                  <Btn
+                    onClick={() => setEditingThread({ title: currentThread.title, body: currentThread.body })}
+                    variant="ghost"
+                    style={{ fontSize: 11 }}
+                  >
+                    ✏️ Modifier
+                  </Btn>
+                )}
               </div>
+
+              {/* Barre modération (épingler, verrouiller, masquer, supprimer) */}
               {canMod && <ModBar thread={currentThread} />}
             </div>
           </div>
@@ -238,6 +325,7 @@ export default function ForumPage() {
           )}
           {visReplies.map(r => {
             const ru = getMember(r.author_id)
+            const isEditingThis = editingReply?.id === r.id
             return (
               <div key={r.id} style={{ background: r.hidden ? '#fff8f8' : C.white, border: `1px solid ${r.hidden ? '#f5c0c0' : C.border}`, borderRadius: 14, padding: isMobile ? '12px' : '14px 16px', display: 'flex', gap: 12, boxShadow: '0 1px 3px rgba(0,0,0,.03)' }}>
                 <Avatar member={ru} size={34} />
@@ -247,20 +335,59 @@ export default function ForumPage() {
                     <RoleBadge role={ru?.role || 'membre'} />
                     <span style={{ fontSize: 11, color: C.textDim }}>{formatDate(r.created_at)}</span>
                     {r.hidden && <span style={{ fontSize: 10, color: C.red, fontWeight: 700 }}>🗑 Masqué</span>}
+                    {r.edited_at && <span style={{ fontSize: 10, color: C.textDim, fontStyle: 'italic' }}>✏️ modifié</span>}
                   </div>
-                  <p style={{ fontSize: 13, color: C.textMid, lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}>
-                    <RichText text={r.body} />
-                  </p>
-                  {canMod && (
-                    <div style={{ marginTop: 8 }}>
-                      <Btn onClick={async () => {
-                        await api(`/rest/v1/replies?id=eq.${r.id}`, { method: 'PATCH', body: JSON.stringify({ hidden: !r.hidden }) })
-                        loadReplies(openId)
-                      }} variant={r.hidden ? 'green' : 'red'} style={{ fontSize: 10 }}>
-                        {r.hidden ? 'Restaurer' : 'Masquer'}
-                      </Btn>
+
+                  {/* Body réponse — édition inline */}
+                  {isEditingThis ? (
+                    <div>
+                      <RichInput
+                        value={editingReply.body}
+                        onChange={e => setEditingReply(v => ({ ...v, body: e.target.value }))}
+                        rows={3}
+                      />
+                      <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'flex-end' }}>
+                        <Btn onClick={() => setEditingReply(null)} variant="ghost" style={{ fontSize: 11 }}>Annuler</Btn>
+                        <Btn onClick={async () => {
+                          await updateReply(r.id, editingReply.body)
+                          setEditingReply(null)
+                        }} variant="yellow" style={{ fontSize: 11 }}>Sauvegarder</Btn>
+                      </div>
                     </div>
+                  ) : (
+                    <p style={{ fontSize: 13, color: C.textMid, lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}>
+                      <RichText text={r.body} />
+                    </p>
                   )}
+
+                  {/* Actions réponse */}
+                  <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {/* Modifier — auteur uniquement */}
+                    {user?.id === r.author_id && !isEditingThis && (
+                      <Btn
+                        onClick={() => setEditingReply({ id: r.id, body: r.body })}
+                        variant="ghost"
+                        style={{ fontSize: 10 }}
+                      >
+                        ✏️ Modifier
+                      </Btn>
+                    )}
+
+                    {/* Modération */}
+                    {canMod && (
+                      <>
+                        <Btn onClick={async () => {
+                          await api(`/rest/v1/replies?id=eq.${r.id}`, { method: 'PATCH', body: JSON.stringify({ hidden: !r.hidden }) })
+                          loadReplies(openId)
+                        }} variant={r.hidden ? 'green' : 'red'} style={{ fontSize: 10 }}>
+                          {r.hidden ? '👁 Restaurer' : '🙈 Masquer'}
+                        </Btn>
+                        <Btn onClick={() => deleteReply(r.id)} variant="red" style={{ fontSize: 10 }}>
+                          🗑 Supprimer
+                        </Btn>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             )

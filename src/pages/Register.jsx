@@ -6,6 +6,16 @@ import { Logo } from '../components/Logo'
 import { useAuth } from '../hooks/useAuth'
 import { GeoSelects } from '../components/GeoSelects'
 
+// ✅ Défini HORS du composant pour éviter le re-render à chaque frappe
+const Field = ({ label, required, children }) => (
+  <div style={{ marginBottom: 12 }}>
+    <label style={{ fontSize: 12, color: C.textMid, display: 'block', marginBottom: 4 }}>
+      {label} {required && <span style={{ color: C.red }}>*</span>}
+    </label>
+    {children}
+  </div>
+)
+
 export default function Register() {
   const [pseudo,   setPseudo]   = useState('')
   const [email,    setEmail]    = useState('')
@@ -36,15 +46,6 @@ export default function Register() {
     if (err) return setError(err.message)
     navigate('/')
   }
-
-  const Field = ({ label, required, children }) => (
-    <div style={{ marginBottom: 12 }}>
-      <label style={{ fontSize: 12, color: C.textMid, display: 'block', marginBottom: 4 }}>
-        {label} {required && <span style={{ color: C.red }}>*</span>}
-      </label>
-      {children}
-    </div>
-  )
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
