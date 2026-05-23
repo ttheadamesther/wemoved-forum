@@ -147,7 +147,7 @@ export default function MemberProfile() {
       </div>
 
       {/* Bio */}
-      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
+      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderLeft: `4px solid ${C.accentDk}`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
         <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 10 }}>🔥 Bio</div>
         <p style={{ fontSize: 13, color: member.bio ? C.textMid : C.textDim, lineHeight: 1.7, margin: 0, fontStyle: member.bio ? 'normal' : 'italic' }}>
           {member.bio || 'Aucune bio renseignée.'}
@@ -155,7 +155,7 @@ export default function MemberProfile() {
       </div>
 
       {/* Votes */}
-      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
+      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderLeft: `4px solid ${C.accentDk}`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
         <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 14 }}>🏆 Votes reçus</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {VOTES_DEF.map(v => {
@@ -187,7 +187,7 @@ export default function MemberProfile() {
       </div>
 
       {/* Intérêts */}
-      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
+      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderLeft: `4px solid ${C.accentDk}`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
         <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>🎯 Intérêts</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {(member.interests || []).length === 0
@@ -201,7 +201,7 @@ export default function MemberProfile() {
 
       {/* Photos */}
       {(member.photos || []).length > 0 && (
-        <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
+        <div style={{ background: C.white, border: `1px solid ${C.border}`, borderLeft: `4px solid ${C.accentDk}`, borderRadius: 14, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
           <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>📸 Photos</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
             {(member.photos || []).map((url, i) => (
