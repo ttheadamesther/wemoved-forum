@@ -106,12 +106,11 @@ export default function Profile() {
   const onBannerCropComplete = useCallback((_, p) => setBannerCroppedArea(p), [])
 
   useEffect(() => {
-    const observer = new ResizeObserver(entries => {
-      for (const entry of entries) setIsMobile(entry.contentRect.width < 768)
-    })
-    if (containerRef.current) observer.observe(containerRef.current)
-    return () => observer.disconnect()
-  }, [])
+  const check = () => setIsMobile(window.innerWidth < 768)
+  check()
+  window.addEventListener('resize', check)
+  return () => window.removeEventListener('resize', check)
+}, [])
 
   if (loading)  return <div style={{ padding: 40, textAlign: 'center', color: C.textMid }}>Chargement…</div>
   if (!user)    return <div style={{ padding: 40, textAlign: 'center', color: C.textMid }}>Non connecté</div>
