@@ -27,14 +27,14 @@ export const CatBadge = ({ cat }) => (
 )
 
 export const Chip = ({ label }) => (
-  <span className="chip" style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, background: '#f5f5f5', color: C.textMid, border: '1px solid #ddd', display: 'inline-block', transition: 'all .2s' }}>{label}</span>
+  <span className="chip" style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, background: C.surfaceB, color: C.textMid, border: `1px solid ${C.border}`, display: 'inline-block', transition: 'all .2s' }}>{label}</span>
 )
 
 export const Section = ({ title, children, extra = null, style = {} }) => (
   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, marginBottom: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.04)', ...style }}>
     {title && (
-      <div style={{ padding: '10px 16px', borderBottom: `1px solid ${C.border}`, background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8 }}>{title}</span>
+      <div style={{ padding: '10px 16px', borderBottom: `1px solid ${C.border}`, background: C.surfaceB, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>{title}</span>
         {extra}
       </div>
     )}

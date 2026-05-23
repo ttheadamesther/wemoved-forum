@@ -149,7 +149,7 @@ export default function MessagesPage() {
   return (
     <div ref={containerRef} style={{ maxWidth: 960, margin: '0 auto', padding: isMobile ? '0' : '20px 16px' }}>
       {!isMobile && (
-        <h2 style={{ fontWeight: 700, fontSize: 20, color: '#ddd', marginBottom: 16 }}>Messages privés</h2>
+        <h2 style={{ fontWeight: 700, fontSize: 20, color: C.text, marginBottom: 16 }}>Messages privés</h2>
       )}
 
       <div style={{ display: 'flex', background: C.white, border: isMobile ? 'none' : `1px solid ${C.border}`, borderRadius: isMobile ? 0 : 16, overflow: 'hidden', height: isMobile ? 'calc(100vh - 64px)' : 600, boxShadow: isMobile ? 'none' : '0 2px 12px rgba(0,0,0,.06)' }}>
@@ -158,12 +158,12 @@ export default function MessagesPage() {
         {(!isMobile || showSidebar) && (
           <div style={{ width: isMobile ? '100%' : 280, borderRight: isMobile ? 'none' : `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
 
-            <div style={{ padding: '16px', borderBottom: `1px solid ${C.border}`, background: '#fafafa' }}>
+            <div style={{ padding: '16px', borderBottom: `1px solid ${C.border}`, background: C.surfaceB }}>
               <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>💬 Conversations</div>
               <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#aaa', fontSize: 14 }}>🔍</span>
+                <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: C.textDim, fontSize: 14 }}>🔍</span>
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Chercher un membre…"
-                  style={{ width: '100%', padding: '8px 12px 8px 32px', borderRadius: 10, border: `1px solid ${C.borderMid}`, fontSize: 12, fontFamily: 'inherit', outline: 'none', background: '#fff', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 12px 8px 32px', borderRadius: 10, border: `1px solid ${C.borderMid}`, fontSize: 12, fontFamily: 'inherit', outline: 'none', background: C.white, boxSizing: 'border-box' }}
                 />
               </div>
             </div>
@@ -177,7 +177,7 @@ export default function MessagesPage() {
                     const unread = convo?.unread || 0
                     return (
                       <div key={m.id} onClick={() => openConvo(m.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', cursor: 'pointer', background: activeId === m.id ? '#fffae6' : 'transparent', transition: 'background .15s', borderLeft: activeId === m.id ? `3px solid ${C.accentDk}` : '3px solid transparent' }}
-                        onMouseEnter={e => { if (activeId !== m.id) e.currentTarget.style.background = '#f8f8f8' }}
+                        onMouseEnter={e => { if (activeId !== m.id) e.currentTarget.style.background = 'var(--hover-bg)' }}
                         onMouseLeave={e => { if (activeId !== m.id) e.currentTarget.style.background = 'transparent' }}
                       >
                         <Avatar member={m} size={40} showOnline />
@@ -203,10 +203,10 @@ export default function MessagesPage() {
 
               {newMembers.length > 0 && (
                 <div style={{ padding: '8px 0', borderTop: `1px solid ${C.border}` }}>
-                  <div style={{ padding: '8px 16px', fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: .8 }}>Nouveau message</div>
+                  <div style={{ padding: '8px 16px', fontSize: 11, fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>Nouveau message</div>
                   {newMembers.slice(0, 8).map(m => (
                     <div key={m.id} onClick={() => openConvo(m.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', cursor: 'pointer', transition: 'background .15s' }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#f8f8f8'}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
                       <Avatar member={m} size={32} showOnline />
@@ -231,7 +231,7 @@ export default function MessagesPage() {
           activeMember ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
 
-              <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, background: '#fafafa', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, background: C.surfaceB, display: 'flex', alignItems: 'center', gap: 12 }}>
                 {isMobile && (
                   <button onClick={() => setShowSidebar(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: C.textMid, padding: 0, marginRight: 4 }}>←</button>
                 )}
@@ -246,7 +246,7 @@ export default function MessagesPage() {
                 <RoleBadge role={activeMember.role} />
               </div>
 
-              <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 8, background: '#f5f5f7' }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 8, background: C.surfaceB }}>
                 {messages.length === 0 && (
                   <div style={{ textAlign: 'center', color: C.textDim, fontSize: 13, marginTop: 60 }}>
                     <div style={{ fontSize: 32, marginBottom: 8 }}>👋</div>
@@ -277,10 +277,10 @@ export default function MessagesPage() {
                 <div ref={bottomRef} />
               </div>
 
-              <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}`, background: '#fff', display: 'flex', gap: 10, alignItems: 'center' }}>
+              <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}`, background: C.white, display: 'flex', gap: 10, alignItems: 'center' }}>
                 <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
                   placeholder={`Message à @${activeMember.pseudo}…`}
-                  style={{ flex: 1, border: `1px solid ${C.borderMid}`, borderRadius: 24, padding: '10px 18px', fontSize: 13, color: C.text, fontFamily: 'inherit', outline: 'none', background: '#f5f5f7', transition: 'border .2s' }}
+                  style={{ flex: 1, border: `1px solid ${C.borderMid}`, borderRadius: 24, padding: '10px 18px', fontSize: 13, color: C.text, fontFamily: 'inherit', outline: 'none', background: C.surfaceB, transition: 'border .2s' }}
                   onFocus={e => e.target.style.borderColor = '#c8a200'}
                   onBlur={e => e.target.style.borderColor = C.borderMid}
                 />

@@ -66,7 +66,7 @@ function Layout({ children }) {
   return (
     <>
       <Navbar />
-      <div style={{ paddingTop: 80, minHeight: '100vh', background: '#d8d8d8' }}>
+      <div style={{ paddingTop: 80, minHeight: '100vh', background: 'var(--bg)' }}>
         {children}
       </div>
     </>

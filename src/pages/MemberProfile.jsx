@@ -122,12 +122,12 @@ export default function MemberProfile() {
 
           {/* Infos */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {member.joined  && <span style={{ fontSize: 12, color: C.textMid, background: '#f5f5f5', padding: '3px 10px', borderRadius: 20 }}>📅 {member.joined}</span>}
-            {member.age     && <span style={{ fontSize: 12, color: C.textMid, background: '#f5f5f5', padding: '3px 10px', borderRadius: 20 }}>🎂 {member.age} ans</span>}
-            {sexeLabel      && <span style={{ fontSize: 12, color: C.textMid, background: '#f5f5f5', padding: '3px 10px', borderRadius: 20 }}>👤 {sexeLabel}</span>}
-            {member.city    && <span style={{ fontSize: 12, color: C.textMid, background: '#f5f5f5', padding: '3px 10px', borderRadius: 20 }}>📍 {member.city}</span>}
-            {member.dept    && <span style={{ fontSize: 12, color: C.textMid, background: '#f5f5f5', padding: '3px 10px', borderRadius: 20 }}>🗺 {member.dept}</span>}
-            {member.region  && <span style={{ fontSize: 12, color: C.textMid, background: '#f5f5f5', padding: '3px 10px', borderRadius: 20 }}>🌍 {member.region}</span>}
+            {member.joined  && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>📅 {member.joined}</span>}
+            {member.age     && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>🎂 {member.age} ans</span>}
+            {sexeLabel      && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>👤 {sexeLabel}</span>}
+            {member.city    && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>📍 {member.city}</span>}
+            {member.dept    && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>🗺 {member.dept}</span>}
+            {member.region  && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>🌍 {member.region}</span>}
           </div>
         </div>
       </div>
@@ -162,7 +162,7 @@ export default function MemberProfile() {
             const voted = myVotes[v.key]
             const count = votes[v.key] || 0
             return (
-              <div key={v.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: '#fafafa', borderRadius: 10, border: `1px solid ${C.border}` }}>
+              <div key={v.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: C.surfaceB, borderRadius: 10, border: `1px solid ${C.border}` }}>
                 <span style={{ fontSize: 20 }}>{v.emoji}</span>
                 <span style={{ fontSize: 13, color: C.textMid, flex: 1, fontWeight: 500 }}>{v.label}</span>
                 <span style={{ fontWeight: 700, fontSize: 15, color: C.text, minWidth: 28, textAlign: 'right' }}>{count}</span>

@@ -100,12 +100,22 @@ export const monthLabel = () => { const d = new Date(); return `${MONTHS[d.getMo
 
 // ─── COULEURS ────────────────────────────────────────────────────────────────
 export const C = {
-  bg: "#d8d8d8", nav: "#1a1a1a", navBorder: "#c8a200",
-  white: "#fff", surface: "#fff", surfaceB: "#f7f7f7",
-  border: "#ddd", borderMid: "#ccc",
-  accent: "#e6b800", accentDk: "#c8a200", accentTxt: "#7a6200",
-  text: "#333", textMid: "#666", textDim: "#999",
-  online: "#4caf50", red: "#c0392b",
+  bg:        'var(--bg)',
+  nav:       'var(--navBg)',
+  navBorder: 'var(--navBorder)',
+  white:     'var(--white)',
+  surface:   'var(--surface)',
+  surfaceB:  'var(--surfaceB)',
+  border:    'var(--border)',
+  borderMid: 'var(--borderMid)',
+  accent:    'var(--accent)',
+  accentDk:  'var(--accentDk)',
+  accentTxt: 'var(--accentTxt)',
+  text:      'var(--text)',
+  textMid:   'var(--textMid)',
+  textDim:   'var(--textDim)',
+  online:    'var(--online)',
+  red:       'var(--red)',
 }
 
 // ─── CATÉGORIES FORUM ────────────────────────────────────────────────────────

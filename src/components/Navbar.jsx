@@ -4,12 +4,14 @@ import { C } from '../lib/constants'
 import { RoleBadge } from './UI'
 import { Logo } from './Logo'
 import { useAuth } from '../hooks/useAuth'
+import { useTheme } from '../hooks/ThemeContext'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 export default function Navbar() {
   const { user, profile, signOut } = useAuth()
+  const { dark, toggle } = useTheme()
   const location  = useLocation()
   const navigate  = useNavigate()
   const path      = location.pathname
@@ -45,7 +47,6 @@ export default function Navbar() {
     }).then(r => r.json()).then(d => { if (Array.isArray(d)) setNotifs(d) })
   }, [user])
 
-  // Messages non lus — se rafraîchit à chaque changement de page
   useEffect(() => {
     if (!user) return
     fetch(`${SUPABASE_URL}/rest/v1/messages?to_id=eq.${user.id}&read=eq.false&select=id`, {
@@ -100,7 +101,7 @@ export default function Navbar() {
           height: isMobile ? 'auto' : 64,
           color: active ? C.accent : '#ccc',
           fontWeight: active ? 700 : 400, fontSize: 12,
-          borderBottom: isMobile ? `1px solid #222` : active ? `2px solid ${C.accent}` : '2px solid transparent',
+          borderBottom: isMobile ? '1px solid #222' : active ? `2px solid ${C.accent}` : '2px solid transparent',
           background: active && isMobile ? 'rgba(200,162,0,.1)' : 'transparent',
           cursor: 'pointer', transition: 'all .15s', whiteSpace: 'nowrap'
         }}>
@@ -111,7 +112,6 @@ export default function Navbar() {
     )
   }
 
-  // NavLink Messages avec badge
   const MessagesNavLink = () => {
     const active = path === '/messages'
     return (
@@ -122,18 +122,14 @@ export default function Navbar() {
           height: isMobile ? 'auto' : 64,
           color: active ? C.accent : '#ccc',
           fontWeight: active ? 700 : 400, fontSize: 12,
-          borderBottom: isMobile ? `1px solid #222` : active ? `2px solid ${C.accent}` : '2px solid transparent',
+          borderBottom: isMobile ? '1px solid #222' : active ? `2px solid ${C.accent}` : '2px solid transparent',
           background: active && isMobile ? 'rgba(200,162,0,.1)' : 'transparent',
           cursor: 'pointer', transition: 'all .15s', whiteSpace: 'nowrap'
         }}>
           <span style={{ fontSize: 14 }}>✉️</span>
           Messages
           {unreadMessages > 0 && (
-            <span style={{
-              background: C.red, color: '#fff', borderRadius: 10,
-              fontSize: 9, fontWeight: 700, padding: '1px 5px', marginLeft: 2,
-              lineHeight: 1.6
-            }}>
+            <span style={{ background: C.red, color: '#fff', borderRadius: 10, fontSize: 9, fontWeight: 700, padding: '1px 5px', marginLeft: 2, lineHeight: 1.6 }}>
               {unreadMessages > 9 ? '9+' : unreadMessages}
             </span>
           )}
@@ -150,7 +146,6 @@ export default function Navbar() {
           <Logo height={70} />
         </Link>
 
-        {/* Nav links desktop */}
         {!isMobile && (
           <>
             <NavLink to="/"           label="Accueil"   icon="🏠" />
@@ -163,8 +158,12 @@ export default function Navbar() {
           </>
         )}
 
-        {/* Droite */}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+
+          {/* Bouton Dark Mode */}
+          <button onClick={toggle} className="theme-toggle" title={dark ? 'Mode clair' : 'Mode sombre'}>
+            {dark ? '☀️' : '🌙'}
+          </button>
 
           {/* Recherche desktop */}
           {!isMobile && (
@@ -214,8 +213,8 @@ export default function Navbar() {
                 )}
               </button>
               {showNotifs && (
-                <div style={{ position: 'absolute', top: '110%', right: 0, width: 280, background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,.15)', zIndex: 1000, overflow: 'hidden' }}>
-                  <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 12, color: '#555' }}>Notifications</div>
+                <div style={{ position: 'absolute', top: '110%', right: 0, width: 280, background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,.15)', zIndex: 1000, overflow: 'hidden' }}>
+                  <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 12, color: C.textMid }}>Notifications</div>
                   {notifs.length === 0
                     ? <div style={{ padding: 20, textAlign: 'center', color: C.textDim, fontSize: 12 }}>Aucune notification</div>
                     : notifs.map(n => (
@@ -257,7 +256,7 @@ export default function Navbar() {
           {!user && !isMobile && (
             <div style={{ display: 'flex', gap: 8 }}>
               <Link to="/login"><button style={{ padding: '0 12px', height: 34, border: '1px solid #333', borderRadius: 8, cursor: 'pointer', background: 'transparent', color: '#ccc', fontSize: 12 }}>Connexion</button></Link>
-              <Link to="/register"><button style={{ padding: '0 12px', height: 34, border: 'none', borderRadius: 8, cursor: 'pointer', background: `linear-gradient(to bottom,#f0c800,#c8a200)`, color: '#3a2e00', fontWeight: 700, fontSize: 12 }}>S'inscrire</button></Link>
+              <Link to="/register"><button style={{ padding: '0 12px', height: 34, border: 'none', borderRadius: 8, cursor: 'pointer', background: 'linear-gradient(to bottom,#f0c800,#c8a200)', color: '#3a2e00', fontWeight: 700, fontSize: 12 }}>S'inscrire</button></Link>
             </div>
           )}
 
@@ -303,9 +302,15 @@ export default function Navbar() {
           <NavLink to="/members"       label="Membres"     icon="👥" />
           {user && <MessagesNavLink />}
           {user && <NavLink to="/notifications" label="Notifications" icon="🔔" />}
-          {user && <NavLink to="/profile"       label="Mon Profil"  icon="👤" />}
+          {user && <NavLink to="/profile"       label="Mon Profil"   icon="👤" />}
           {user && <NavLink to="/bug-report"    label="Signaler un bug" icon="🐛" />}
           {user && canMod && <NavLink to="/moderation" label="Modération" icon="🛡️" />}
+
+          {/* Dark mode mobile */}
+          <div onClick={toggle} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 20px', borderBottom: '1px solid #222', cursor: 'pointer', color: '#ccc', fontSize: 12 }}>
+            <span style={{ fontSize: 14 }}>{dark ? '☀️' : '🌙'}</span>
+            {dark ? 'Mode clair' : 'Mode sombre'}
+          </div>
 
           {user && (
             <div style={{ padding: '14px 20px', borderTop: '1px solid #222' }}>
@@ -335,7 +340,7 @@ export default function Navbar() {
                 <button style={{ width: '100%', padding: '10px', border: '1px solid #333', borderRadius: 6, cursor: 'pointer', background: 'transparent', color: '#ccc', fontSize: 13 }}>Connexion</button>
               </Link>
               <Link to="/register" onClick={() => setMenuOpen(false)} style={{ flex: 1 }}>
-                <button style={{ width: '100%', padding: '10px', border: 'none', borderRadius: 6, cursor: 'pointer', background: `linear-gradient(to bottom,#f0c800,#c8a200)`, color: '#3a2e00', fontWeight: 700, fontSize: 13 }}>S'inscrire</button>
+                <button style={{ width: '100%', padding: '10px', border: 'none', borderRadius: 6, cursor: 'pointer', background: 'linear-gradient(to bottom,#f0c800,#c8a200)', color: '#3a2e00', fontWeight: 700, fontSize: 13 }}>S'inscrire</button>
               </Link>
             </div>
           )}

@@ -36,7 +36,7 @@ export default function BugReport() {
   return (
     <div style={{ maxWidth: 620, margin: '0 auto', padding: '32px 16px' }}>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontWeight: 700, fontSize: 22, color: '#ddd', marginBottom: 6 }}>🐛 Signaler un bug</h1>
+        <h1 style={{ fontWeight: 700, fontSize: 22, color: C.text, marginBottom: 6 }}>🐛 Signaler un bug</h1>
         <p style={{ fontSize: 13, color: C.textDim }}>Décris le problème rencontré, on le corrigera dès que possible.</p>
       </div>
 
@@ -44,17 +44,17 @@ export default function BugReport() {
         <div style={{ background: '#1a5c30', border: '1px solid #2d7a45', borderRadius: 16, padding: 32, textAlign: 'center' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
           <div style={{ fontWeight: 700, fontSize: 16, color: '#fff', marginBottom: 8 }}>Rapport envoyé !</div>
-          <div style={{ fontSize: 13, color: '#aaa', marginBottom: 20 }}>Merci pour ton retour, on va regarder ça.</div>
+          <div style={{ fontSize: 13, color: C.textDim, marginBottom: 20 }}>Merci pour ton retour, on va regarder ça.</div>
           <Btn onClick={() => setSent(false)} variant="ghost">Signaler un autre bug</Btn>
         </div>
       ) : (
-        <div style={{ background: '#fff', border: '1px solid #e8e0c8', borderTop: '3px solid #c8a200', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,.06)' }}>
+        <div style={{ background: C.white, border: '1px solid #e8e0c8', borderTop: '3px solid #c8a200', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,.06)' }}>
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Titre du bug</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Titre du bug</div>
             <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex: Le bouton Envoyer ne fonctionne pas…" style={{ width: '100%' }} />
           </div>
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Description</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Description</div>
             <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Décris le bug en détail : que s'est-il passé ? Sur quelle page ? Sur quel appareil ?" rows={5} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

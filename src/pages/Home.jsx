@@ -110,8 +110,8 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
               const tot = Object.values(m.votes || {}).reduce((a, b) => a + b, 0)
               return (
                 <div key={m.id} onClick={() => navigate(`/members/${m.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', transition: 'background .15s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#fafafa'}
-                  onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'var(--white)'}
                 >
                   <span style={{ fontWeight: 700, fontSize: 13, color: C.textMid, width: 16 }}>{i + 1}</span>
                   <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
@@ -123,7 +123,7 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
                 </div>
               )
             })}
-            <div onClick={() => navigate('/members')} style={{ padding: '10px 16px', textAlign: 'center', cursor: 'pointer', background: '#fafafa' }}>
+            <div onClick={() => navigate('/members')} style={{ padding: '10px 16px', textAlign: 'center', cursor: 'pointer', background: C.surfaceB }}>
               <span style={{ fontSize: 12, color: C.accentTxt, fontWeight: 700 }}>Voir le classement complet</span>
             </div>
           </div>
@@ -137,8 +137,8 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
             </div>
             {members.filter(m => m.online).slice(0, isMobile ? 3 : 6).map(m => (
               <div key={m.id} onClick={() => navigate(`/members/${m.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', transition: 'background .15s' }}
-                onMouseEnter={e => e.currentTarget.style.background = '#fafafa'}
-                onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'var(--white)'}
               >
                 <div style={{ position: 'relative' }}>
                   <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden' }}>
@@ -152,13 +152,13 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
                 </div>
               </div>
             ))}
-            <div onClick={() => navigate('/members')} style={{ padding: '8px 16px', textAlign: 'center', cursor: 'pointer', background: '#fafafa' }}>
+            <div onClick={() => navigate('/members')} style={{ padding: '8px 16px', textAlign: 'center', cursor: 'pointer', background: C.surfaceB }}>
               <span style={{ fontSize: 11, color: C.accentTxt, fontWeight: 700 }}>Voir tous les membres en ligne →</span>
             </div>
           </div>
 
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
-            <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 12 }}>STATISTIQUES</div>
+            <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 12 }}>STATISTIQUES</div>
             {[
               { icon: '👥', label: 'Membres',         value: stats.members },
               { icon: '💬', label: 'Discussions',      value: stats.threads },
@@ -178,7 +178,7 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 style={{ fontWeight: 700, fontSize: isMobile ? 13 : 15, color: '#242424', textTransform: 'uppercase', letterSpacing: 1 }}>Discussions récentes</h2>
+            <h2 style={{ fontWeight: 700, fontSize: isMobile ? 13 : 15, color: C.text, textTransform: 'uppercase', letterSpacing: 1 }}>Discussions récentes</h2>
             {user && (
               <button onClick={() => setNewThread(t => !t)} style={{ padding: isMobile ? '7px 14px' : '9px 18px', background: 'linear-gradient(135deg,#f0c800,#c8a200)', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: isMobile ? 12 : 13, color: '#3a2e00', boxShadow: '0 2px 8px rgba(200,162,0,.3)' }}>
                 + Nouvelle discussion
@@ -203,7 +203,7 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
           )}
 
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
-            <div style={{ padding: '12px 16px', borderBottom: `2px solid ${C.accent}`, fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8 }}>
+            <div style={{ padding: '12px 16px', borderBottom: `2px solid ${C.accent}`, fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>
               DISCUSSIONS RÉCENTES
             </div>
             {threads.length === 0 && (
@@ -213,8 +213,8 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
               const author = getMember(t.author_id)
               return (
                 <div key={t.id} onClick={() => navigate('/forum')} style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12, padding: isMobile ? '12px' : '14px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', transition: 'background .15s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#fafafa'}
-                  onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'var(--white)'}
                 >
                   {!isMobile && (
                     <div style={{ flexShrink: 0 }}>
@@ -242,13 +242,13 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
                 </div>
               )
             })}
-            <div onClick={() => navigate('/forum')} style={{ padding: '12px 16px', textAlign: 'center', cursor: 'pointer', background: '#fafafa', borderTop: `1px solid ${C.border}` }}>
+            <div onClick={() => navigate('/forum')} style={{ padding: '12px 16px', textAlign: 'center', cursor: 'pointer', background: C.surfaceB, borderTop: `1px solid ${C.border}` }}>
               <span style={{ fontSize: 12, color: C.accentTxt, fontWeight: 700 }}>Voir toutes les discussions →</span>
             </div>
           </div>
 
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
-            <div style={{ padding: '12px 16px', borderBottom: `2px solid ${C.accent}`, fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8 }}>CATÉGORIES</div>
+            <div style={{ padding: '12px 16px', borderBottom: `2px solid ${C.accent}`, fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>CATÉGORIES</div>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 0 }}>
               {[
                 { cat: 'Musique',    icon: '🎵', desc: 'Musique électronique, artistes, labels…' },
@@ -259,8 +259,8 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
                 { cat: 'Divers',     icon: '💬', desc: "Tout ce qui n'entre pas ailleurs !" },
               ].map(c => (
                 <div key={c.cat} onClick={() => navigate('/forum')} style={{ display: 'flex', gap: 12, padding: '14px 16px', borderBottom: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}`, cursor: 'pointer', transition: 'background .15s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#fafafa'}
-                  onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'var(--white)'}
                 >
                   <span style={{ fontSize: 24, flexShrink: 0 }}>{c.icon}</span>
                   <div>
@@ -275,7 +275,7 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
           <div style={{ background: 'linear-gradient(135deg,#1a1a1a,#1a1a2e)', borderRadius: 12, padding: isMobile ? '24px 20px' : '28px 36px', textAlign: 'center', border: '1px solid rgba(200,162,0,.2)' }}>
             <div style={{ fontSize: 36, color: C.accent, lineHeight: 1, marginBottom: 10, opacity: .7 }}>"</div>
             <p style={{ fontSize: isMobile ? 14 : 17, color: '#fff', fontWeight: 700, marginBottom: 8, lineHeight: 1.5 }}>La communauté, c'est ce qui nous fait avancer.</p>
-            <p style={{ fontSize: 13, color: '#888', lineHeight: 1.6 }}>Restons respectueux, ouverts et bienveillants envers tous les membres.</p>
+            <p style={{ fontSize: 13, color: C.textDim, lineHeight: 1.6 }}>Restons respectueux, ouverts et bienveillants envers tous les membres.</p>
             <div style={{ fontSize: 36, color: C.accent, lineHeight: 1, marginTop: 10, opacity: .7 }}>"</div>
           </div>
         </div>
@@ -284,7 +284,7 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
-            <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8 }}>ACTIVITÉ RÉCENTE</div>
+            <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>ACTIVITÉ RÉCENTE</div>
             {activity.length === 0 && (
               <div style={{ padding: 20, textAlign: 'center', color: C.textDim, fontSize: 12 }}>Aucune activité</div>
             )}
@@ -308,7 +308,7 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
 
           {user && profile && (
             <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
-              <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 12 }}>VOS RÉCOMPENSES</div>
+              <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 12 }}>VOS RÉCOMPENSES</div>
               <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
                 {BADGES_DEF.map(b => {
                   const has = (profile.badges || []).includes(b.key)
@@ -323,16 +323,16 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
                 <span style={{ fontWeight: 700 }}>Niveau {profile.level || 1}</span>
                 <span>{(profile.xp || 0) % 1000} / 1000 XP</span>
               </div>
-              <div style={{ height: 8, background: '#eee', borderRadius: 20, overflow: 'hidden' }}>
+              <div style={{ height: 8, background: C.surfaceB, borderRadius: 20, overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: `${xpPercent}%`, background: 'linear-gradient(to right, #f0c800, #c8a200)', borderRadius: 20, transition: 'width .5s' }} />
               </div>
             </div>
           )}
 
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
-            <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8 }}>📢 ANNONCES</div>
+            <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>📢 ANNONCES</div>
             <div style={{ padding: 14 }}>
-              <div style={{ background: '#fffae6', border: `1px solid ${C.accentDk}`, borderRadius: 8, padding: '10px 12px', marginBottom: 10 }}>
+              <div style={{ background: 'var(--hover-bg)', border: `1px solid ${C.accentDk}`, borderRadius: 8, padding: '10px 12px', marginBottom: 10 }}>
                 <div style={{ fontWeight: 700, fontSize: 13, color: C.accentTxt, marginBottom: 4 }}>🎉 Bienvenue sur Wemoved !</div>
                 <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5 }}>La communauté est lancée. Créez votre profil et participez !</div>
               </div>

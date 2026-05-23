@@ -69,7 +69,7 @@ function RichInput({ value, onChange, placeholder, rows = 3 }) {
         onChange={onChange}
         placeholder={placeholder}
         rows={rows}
-        style={{ width: '100%', border: `1px solid ${C.borderMid}`, borderRadius: 10, padding: '10px 44px 10px 14px', fontSize: 13, color: C.text, background: '#fafafa', fontFamily: 'inherit', resize: 'vertical', lineHeight: 1.6, outline: 'none', transition: 'border .2s', boxSizing: 'border-box' }}
+        style={{ width: '100%', border: `1px solid ${C.borderMid}`, borderRadius: 10, padding: '10px 44px 10px 14px', fontSize: 13, color: C.text, background: C.surfaceB, fontFamily: 'inherit', resize: 'vertical', lineHeight: 1.6, outline: 'none', transition: 'border .2s', boxSizing: 'border-box' }}
         onFocus={e => e.target.style.borderColor = '#c8a200'}
         onBlur={e => e.target.style.borderColor = C.borderMid}
       />
@@ -397,7 +397,7 @@ export default function ForumPage() {
         {/* Zone réponse */}
         {user && !currentThread.locked ? (
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: isMobile ? '14px' : '16px', boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
-            <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 10 }}>Votre réponse</div>
+            <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 10 }}>Votre réponse</div>
             <RichInput value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Écris ta réponse… (liens et émojis supportés)" rows={3} />
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
               <Btn onClick={postReply} variant="yellow">{posting ? '…' : 'Publier ma réponse'}</Btn>
@@ -408,7 +408,7 @@ export default function ForumPage() {
             🔒 Discussion verrouillée.
           </div>
         ) : (
-          <div style={{ textAlign: 'center', padding: '14px', background: '#f9f9f9', border: `1px solid ${C.border}`, borderRadius: 12, fontSize: 12, color: C.textDim, marginTop: 10 }}>
+          <div style={{ textAlign: 'center', padding: '14px', background: C.surfaceB, border: `1px solid ${C.border}`, borderRadius: 12, fontSize: 12, color: C.textDim, marginTop: 10 }}>
             Connecte-toi pour répondre.
           </div>
         )}
@@ -422,7 +422,7 @@ export default function ForumPage() {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>
-          <h1 style={{ fontWeight: 700, fontSize: isMobile ? 18 : 22, color: '#242424', marginBottom: 2 }}>Forum</h1>
+          <h1 style={{ fontWeight: 700, fontSize: isMobile ? 18 : 22, color: C.text, marginBottom: 2 }}>Forum</h1>
           <p style={{ fontSize: 12, color: C.textDim }}>{filtered.length} discussion{filtered.length !== 1 ? 's' : ''}</p>
         </div>
         {user && (
@@ -437,7 +437,7 @@ export default function ForumPage() {
         <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 16, boxShadow: '0 2px 12px rgba(0,0,0,.06)', animation: 'fadein .2s ease' }}>
           <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 14 }}>Nouvelle discussion</div>
           <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 11, color: '#888', fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Catégorie</div>
+            <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Catégorie</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {CATS.filter(c => c !== 'Tous').map(c => (
                 <button key={c} onClick={() => setNCat(c)} style={{ padding: '5px 14px', borderRadius: 20, cursor: 'pointer', background: nCat === c ? '#fffae6' : '#f5f5f5', border: `1px solid ${nCat === c ? C.accentDk : '#ddd'}`, color: nCat === c ? C.accentTxt : C.textMid, fontSize: 12, fontFamily: 'inherit', fontWeight: nCat === c ? 700 : 400, transition: 'all .15s' }}>
@@ -446,9 +446,9 @@ export default function ForumPage() {
               ))}
             </div>
           </div>
-          <div style={{ fontSize: 11, color: '#888', fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 6 }}>Titre</div>
+          <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 6 }}>Titre</div>
           <Input value={nTitle} onChange={e => setNTitle(e.target.value)} placeholder="Titre de ta discussion…" style={{ width: '100%', marginBottom: 14, borderRadius: 10, padding: '10px 14px' }} />
-          <div style={{ fontSize: 11, color: '#888', fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 6 }}>Message</div>
+          <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 6 }}>Message</div>
           <RichInput value={nBody} onChange={e => setNBody(e.target.value)} placeholder="Développe ta discussion…" rows={4} />
           <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'flex-end' }}>
             <Btn onClick={() => setComposing(false)} variant="ghost">Annuler</Btn>
@@ -472,7 +472,7 @@ export default function ForumPage() {
           const author = getMember(t.author_id)
           return (
             <div key={t.id} onClick={() => openThread(t.id)} style={{ background: t.hidden ? '#fff8f8' : t.pinned ? '#fffef5' : C.white, border: `1px solid ${t.hidden ? '#f5c0c0' : t.pinned ? C.accentDk : C.border}`, borderRadius: 14, padding: isMobile ? '12px' : '14px 16px', cursor: 'pointer', display: 'flex', gap: 12, transition: 'all .2s', boxShadow: '0 1px 3px rgba(0,0,0,.03)' }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,.08)' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 16px var(--card-shadow)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,.03)' }}
             >
               <Avatar member={author} size={isMobile ? 36 : 42} />

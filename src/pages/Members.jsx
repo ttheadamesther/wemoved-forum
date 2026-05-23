@@ -52,7 +52,7 @@ export default function MembersPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>
-          <h1 style={{ fontWeight: 700, fontSize: isMobile ? 18 : 22, color: '#ddd', marginBottom: 2 }}>Membres</h1>
+          <h1 style={{ fontWeight: 700, fontSize: isMobile ? 18 : 22, color: C.text, marginBottom: 2 }}>Membres</h1>
           <p style={{ fontSize: 12, color: C.textDim }}>
             {filtered.length} membre{filtered.length !== 1 ? 's' : ''} trouvé{filtered.length !== 1 ? 's' : ''}
           </p>
@@ -70,7 +70,7 @@ export default function MembersPage() {
       {/* Filtres avancés */}
       {showFilters && (
         <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 2px 8px rgba(0,0,0,.06)', animation: 'fadein .2s ease' }}>
-          <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 12 }}>Filtrer par localisation</div>
+          <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 12 }}>Filtrer par localisation</div>
           <GeoSelects region={region} dept={dept} city={city} onRegion={setRegion} onDept={setDept} onCity={setCity} />
           {hasFilters && (
             <button onClick={() => { setSearch(''); setRegion(''); setDept(''); setCity('') }} style={{ marginTop: 12, padding: '6px 14px', borderRadius: 8, border: `1px solid ${C.borderMid}`, background: 'transparent', color: C.textMid, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>

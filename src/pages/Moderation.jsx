@@ -104,7 +104,7 @@ export default function Moderation() {
       {/* Modal ban */}
       {banTarget && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
-          <div style={{ background: '#fff', borderRadius: 16, padding: 24, width: '100%', maxWidth: 440, boxShadow: '0 8px 32px rgba(0,0,0,.3)' }}>
+          <div style={{ background: C.white, borderRadius: 16, padding: 24, width: '100%', maxWidth: 440, boxShadow: '0 8px 32px rgba(0,0,0,.3)' }}>
             <div style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 6 }}>🔨 Bannir @{banTarget.pseudo}</div>
             <div style={{ fontSize: 12, color: C.textDim, marginBottom: 20 }}>Choisir la durée du bannissement</div>
 
@@ -117,9 +117,9 @@ export default function Moderation() {
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 6 }}>Raison (optionnel)</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 6 }}>Raison (optionnel)</div>
               <input value={banReason} onChange={e => setBanReason(e.target.value)} placeholder="Ex: Spam, comportement inapproprié…"
-                style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box' }} />
             </div>
 
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -132,12 +132,12 @@ export default function Moderation() {
 
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontWeight: 700, fontSize: 22, color: '#ddd', marginBottom: 4 }}>🛡️ Modération</h1>
+        <h1 style={{ fontWeight: 700, fontSize: 22, color: C.text, marginBottom: 4 }}>🛡️ Modération</h1>
         <p style={{ fontSize: 13, color: C.textDim }}>Gestion des membres et des signalements</p>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: '#f0f0f0', borderRadius: 12, padding: 4 }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: C.surfaceB, borderRadius: 12, padding: 4 }}>
         {[
           { key: 'members', label: `👥 Membres (${members.length})` },
           { key: 'bugs',    label: `🐛 Bugs (${bugs.filter(b => b.status === 'ouvert').length} ouverts)` },
@@ -155,7 +155,7 @@ export default function Moderation() {
           {/* Recherche */}
           <div style={{ marginBottom: 16 }}>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 Rechercher un membre…"
-              style={{ width: '100%', padding: '10px 16px', borderRadius: 12, border: '1px solid #ddd', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff' }} />
+              style={{ width: '100%', padding: '10px 16px', borderRadius: 12, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', background: C.white }} />
           </div>
 
           {/* Liste membres */}
@@ -193,7 +193,7 @@ export default function Moderation() {
               )
             })}
             {filtered.length === 0 && (
-              <div style={{ textAlign: 'center', padding: 30, color: C.textDim, fontSize: 13, background: '#fff', borderRadius: 14, border: '1px solid #e8e0c8' }}>
+              <div style={{ textAlign: 'center', padding: 30, color: C.textDim, fontSize: 13, background: C.white, borderRadius: 14, border: '1px solid #e8e0c8' }}>
                 Aucun membre trouvé.
               </div>
             )}
@@ -203,14 +203,14 @@ export default function Moderation() {
         /* Bug reports */
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {bugs.length === 0 && (
-            <div style={{ textAlign: 'center', padding: 30, color: C.textDim, fontSize: 13, background: '#fff', borderRadius: 14, border: '1px solid #e8e0c8' }}>
+            <div style={{ textAlign: 'center', padding: 30, color: C.textDim, fontSize: 13, background: C.white, borderRadius: 14, border: '1px solid #e8e0c8' }}>
               Aucun rapport de bug.
             </div>
           )}
           {bugs.map(b => {
             const author = getMember(b.author_id)
             return (
-              <div key={b.id} style={{ background: '#fff', border: '1px solid #e8e0c8', borderLeft: `4px solid ${statusColors[b.status] || '#ccc'}`, borderRadius: 14, padding: '16px' }}>
+              <div key={b.id} style={{ background: C.white, border: '1px solid #e8e0c8', borderLeft: `4px solid ${statusColors[b.status] || '#ccc'}`, borderRadius: 14, padding: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 8 }}>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 4 }}>{b.title}</div>
