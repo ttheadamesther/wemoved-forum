@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import Cropper from 'react-easy-crop'
 import { useAuth } from '../hooks/useAuth'
 import { C, VOTES_DEF } from '../lib/constants'
@@ -13,11 +13,10 @@ async function getToken() {
 }
 
 async function apiFetch(path, opts = {}) {
-  const res = await fetch(`${SUPABASE_URL}${path}`, {
+  return fetch(`${SUPABASE_URL}${path}`, {
     ...opts,
     headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, ...opts.headers }
   })
-  return res
 }
 
 function getCroppedBlob(imageSrc, pixelCrop) {
@@ -27,42 +26,28 @@ function getCroppedBlob(imageSrc, pixelCrop) {
       const canvas = document.createElement('canvas')
       canvas.width  = pixelCrop.width
       canvas.height = pixelCrop.height
-      canvas.getContext('2d').drawImage(
-        image,
-        pixelCrop.x,
-        pixelCrop.y,
-        pixelCrop.width,
-        pixelCrop.height,
-        0, 0,
-        pixelCrop.width,
-        pixelCrop.height
-      )
-      canvas.toBlob(blob => {
-        if (blob) resolve(blob)
-        else reject(new Error('toBlob failed'))
-      }, 'image/jpeg', 0.9)
+      canvas.getContext('2d').drawImage(image, pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height, 0, 0, pixelCrop.width, pixelCrop.height)
+      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('toBlob failed')), 'image/jpeg', 0.9)
     }
     image.onerror = reject
     image.src = imageSrc
   })
 }
 
-const resizeImage = (file, maxSize = 1000) => {
-  return new Promise((resolve) => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      const ratio  = Math.min(maxSize / img.width, maxSize / img.height, 1)
-      canvas.width  = img.width  * ratio
-      canvas.height = img.height * ratio
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
-      URL.revokeObjectURL(url)
-      canvas.toBlob(resolve, 'image/jpeg', 0.85)
-    }
-    img.src = url
-  })
-}
+const resizeImage = (file, maxSize = 1000) => new Promise((resolve) => {
+  const img = new Image()
+  const url = URL.createObjectURL(file)
+  img.onload = () => {
+    const canvas = document.createElement('canvas')
+    const ratio  = Math.min(maxSize / img.width, maxSize / img.height, 1)
+    canvas.width  = img.width  * ratio
+    canvas.height = img.height * ratio
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+    URL.revokeObjectURL(url)
+    canvas.toBlob(resolve, 'image/jpeg', 0.85)
+  }
+  img.src = url
+})
 
 const BANNER_GRADIENTS = [
   'linear-gradient(135deg, #1a1a2e, #16213e)',
@@ -75,41 +60,62 @@ const BANNER_GRADIENTS = [
   'linear-gradient(135deg, #0a1628, #1a2a4a)',
 ]
 
+const XP_LEVEL_MAX = 1000
+
+const PANEL = {
+  background: '#fff',
+  border: '1px solid #e8e0c8',
+  borderTop: '3px solid #c8a200',
+  borderRadius: 16,
+  padding: 20,
+  boxShadow: '0 2px 12px rgba(0,0,0,.06)',
+}
+
+const Tag = ({ icon, label }) => (
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#555', background: '#f5f5f5', padding: '3px 10px', borderRadius: 20, border: '1px solid #e8e8e8' }}>
+    {icon} {label}
+  </span>
+)
+
 export default function Profile() {
   const { user, profile, loading, refreshProfile } = useAuth()
-  const [editing, setEditing]               = useState(false)
-  const [bio, setBio]                       = useState('')
-  const [interest, setInterest]             = useState('')
-  const [saving, setSaving]                 = useState(false)
-  const [uploading, setUploading]           = useState(false)
+  const containerRef = useRef()
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [editing, setEditing]         = useState(false)
+  const [bio, setBio]                 = useState('')
+  const [interest, setInterest]       = useState('')
+  const [saving, setSaving]           = useState(false)
+  const [uploading, setUploading]     = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [showBannerPicker, setShowBannerPicker] = useState(false)
-
-  // Crop avatar
-  const [cropSrc,      setCropSrc]      = useState(null)
-  const [crop,         setCrop]         = useState({ x: 0, y: 0 })
-  const [zoom,         setZoom]         = useState(1)
-  const [croppedArea,  setCroppedArea]  = useState(null)
-
-  // Crop bannière
-  const [bannerCropSrc,     setBannerCropSrc]     = useState(null)
-  const [bannerCrop,        setBannerCrop]        = useState({ x: 0, y: 0 })
-  const [bannerZoom,        setBannerZoom]        = useState(1)
+  const [cropSrc, setCropSrc]         = useState(null)
+  const [crop, setCrop]               = useState({ x: 0, y: 0 })
+  const [zoom, setZoom]               = useState(1)
+  const [croppedArea, setCroppedArea] = useState(null)
+  const [bannerCropSrc, setBannerCropSrc]         = useState(null)
+  const [bannerCrop, setBannerCrop]               = useState({ x: 0, y: 0 })
+  const [bannerZoom, setBannerZoom]               = useState(1)
   const [bannerCroppedArea, setBannerCroppedArea] = useState(null)
-  const [uploadingBanner,   setUploadingBanner]   = useState(false)
+  const [uploadingBanner, setUploadingBanner]     = useState(false)
 
   const avatarRef = useRef()
   const photoRef  = useRef()
   const bannerRef = useRef()
 
-  const onCropComplete        = useCallback((_, p) => setCroppedArea(p), [])
-  const onBannerCropComplete  = useCallback((_, p) => setBannerCroppedArea(p), [])
+  const onCropComplete       = useCallback((_, p) => setCroppedArea(p), [])
+  const onBannerCropComplete = useCallback((_, p) => setBannerCroppedArea(p), [])
+
+  useEffect(() => {
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) setIsMobile(entry.contentRect.width < 768)
+    })
+    if (containerRef.current) observer.observe(containerRef.current)
+    return () => observer.disconnect()
+  }, [])
 
   if (loading)  return <div style={{ padding: 40, textAlign: 'center', color: C.textMid }}>Chargement…</div>
   if (!user)    return <div style={{ padding: 40, textAlign: 'center', color: C.textMid }}>Non connecté</div>
   if (!profile) return <div style={{ padding: 40, textAlign: 'center', color: C.textMid }}>Profil introuvable</div>
-
-  const startEdit = () => { setBio(profile.bio || ''); setEditing(true) }
 
   const patchProfile = async (body) => {
     await apiFetch(`/rest/v1/profiles?id=eq.${user.id}`, {
@@ -120,103 +126,50 @@ export default function Profile() {
     await refreshProfile()
   }
 
-  const save = async () => {
-    setSaving(true)
-    await patchProfile({ bio })
-    setSaving(false)
-    setEditing(false)
-  }
+  const save = async () => { setSaving(true); await patchProfile({ bio }); setSaving(false); setEditing(false) }
+  const addInterest = async () => { if (!interest.trim()) return; await patchProfile({ interests: [...(profile.interests || []), interest.trim()] }); setInterest('') }
+  const removeInterest = async (item) => { await patchProfile({ interests: (profile.interests || []).filter(i => i !== item) }) }
 
-  const addInterest = async () => {
-    if (!interest.trim()) return
-    await patchProfile({ interests: [...(profile.interests || []), interest.trim()] })
-    setInterest('')
-  }
-
-  const removeInterest = async (item) => {
-    await patchProfile({ interests: (profile.interests || []).filter(i => i !== item) })
-  }
-
-  // ── AVATAR ──
   const uploadAvatar = (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-    setCropSrc(URL.createObjectURL(file))
-    setCrop({ x: 0, y: 0 }); setZoom(1)
-    e.target.value = ''
+    const file = e.target.files[0]; if (!file) return
+    setCropSrc(URL.createObjectURL(file)); setCrop({ x: 0, y: 0 }); setZoom(1); e.target.value = ''
   }
-
   const confirmAvatarCrop = async () => {
-    if (!cropSrc || !croppedArea) return
-    setUploading(true)
-    const blob  = await getCroppedBlob(cropSrc, croppedArea)
-    const path  = `${user.id}/avatar.jpg`
-    const token = await getToken()
-    await fetch(`${SUPABASE_URL}/storage/v1/object/avatars/${path}`, {
-      method: 'POST',
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' },
-      body: blob
-    })
+    if (!cropSrc || !croppedArea) return; setUploading(true)
+    const blob = await getCroppedBlob(cropSrc, croppedArea)
+    const path = `${user.id}/avatar.jpg`; const token = await getToken()
+    await fetch(`${SUPABASE_URL}/storage/v1/object/avatars/${path}`, { method: 'POST', headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' }, body: blob })
     await patchProfile({ avatar_url: `${SUPABASE_URL}/storage/v1/object/public/avatars/${path}?t=${Date.now()}` })
     URL.revokeObjectURL(cropSrc); setCropSrc(null); setUploading(false)
   }
-
   const cancelAvatarCrop = () => { if (cropSrc) URL.revokeObjectURL(cropSrc); setCropSrc(null) }
 
-  // ── BANNIÈRE ──
   const selectBanner = (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-    setBannerCropSrc(URL.createObjectURL(file))
-    setBannerCrop({ x: 0, y: 0 }); setBannerZoom(1)
-    e.target.value = ''
-    setShowBannerPicker(false)
+    const file = e.target.files[0]; if (!file) return
+    setBannerCropSrc(URL.createObjectURL(file)); setBannerCrop({ x: 0, y: 0 }); setBannerZoom(1); e.target.value = ''; setShowBannerPicker(false)
   }
-
-const confirmBannerCrop = async () => {
-  if (!bannerCropSrc || !bannerCroppedArea) return
-  setUploadingBanner(true)
-  const croppedBlob = await getCroppedBlob(bannerCropSrc, bannerCroppedArea)
-  
-  // Resize à 1200x400 max
-  const croppedFile = new File([croppedBlob], 'banner.jpg', { type: 'image/jpeg' })
-  const resized = await resizeImage(croppedFile, 1200)
-  
-  const path  = `${user.id}/banner.jpg`
-  const token = await getToken()
-  await fetch(`${SUPABASE_URL}/storage/v1/object/avatars/${path}`, {
-    method: 'POST',
-    headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' },
-    body: resized
-  })
-  await patchProfile({ banner_url: `${SUPABASE_URL}/storage/v1/object/public/avatars/${path}?t=${Date.now()}`, banner_gradient: null })
-  URL.revokeObjectURL(bannerCropSrc); setBannerCropSrc(null); setUploadingBanner(false)
-}
-
+  const confirmBannerCrop = async () => {
+    if (!bannerCropSrc || !bannerCroppedArea) return; setUploadingBanner(true)
+    const croppedBlob = await getCroppedBlob(bannerCropSrc, bannerCroppedArea)
+    const resized = await resizeImage(new File([croppedBlob], 'banner.jpg', { type: 'image/jpeg' }), 1200)
+    const path = `${user.id}/banner.jpg`; const token = await getToken()
+    await fetch(`${SUPABASE_URL}/storage/v1/object/avatars/${path}`, { method: 'POST', headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' }, body: resized })
+    await patchProfile({ banner_url: `${SUPABASE_URL}/storage/v1/object/public/avatars/${path}?t=${Date.now()}`, banner_gradient: null })
+    URL.revokeObjectURL(bannerCropSrc); setBannerCropSrc(null); setUploadingBanner(false)
+  }
   const cancelBannerCrop = () => { if (bannerCropSrc) URL.revokeObjectURL(bannerCropSrc); setBannerCropSrc(null) }
 
-  // ── PHOTOS ──
   const uploadPhoto = async (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-    setUploadingPhoto(true)
+    const file = e.target.files[0]; if (!file) return; setUploadingPhoto(true)
     const resized = await resizeImage(file, 1000)
-    const path    = `${user.id}/${Date.now()}.jpg`
-    const token   = await getToken()
-    await fetch(`${SUPABASE_URL}/storage/v1/object/photos/${path}`, {
-      method: 'POST',
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'image/jpeg' },
-      body: resized
-    })
+    const path = `${user.id}/${Date.now()}.jpg`; const token = await getToken()
+    await fetch(`${SUPABASE_URL}/storage/v1/object/photos/${path}`, { method: 'POST', headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'image/jpeg' }, body: resized })
     await patchProfile({ photos: [...(profile.photos || []), `${SUPABASE_URL}/storage/v1/object/public/photos/${path}`] })
     setUploadingPhoto(false)
   }
+  const removePhoto = async (url) => { await patchProfile({ photos: (profile.photos || []).filter(p => p !== url) }) }
 
-  const removePhoto = async (url) => {
-    await patchProfile({ photos: (profile.photos || []).filter(p => p !== url) })
-  }
-
-  const votes      = profile.votes || { mimi: 0, cool: 0, sexy: 0, loose: 0 }
+  const votes      = profile.votes || {}
   const totalVotes = Object.values(votes).reduce((a, b) => a + b, 0)
   const sexeLabel  = profile.sexe ? profile.sexe.charAt(0).toUpperCase() + profile.sexe.slice(1) : null
   const colors     = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
@@ -224,20 +177,23 @@ const confirmBannerCrop = async () => {
   const bannerStyle = profile.banner_url
     ? { backgroundImage: `url(${profile.banner_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : { background: profile.banner_gradient || BANNER_GRADIENTS[0] }
+  const xp = profile.xp || 0
+  const level = profile.level || 1
+  const xpPercent = (xp % XP_LEVEL_MAX) / XP_LEVEL_MAX * 100
+  const topVote = VOTES_DEF.reduce((best, v) => (votes[v.key] || 0) > (votes[best?.key] || 0) ? v : best, null)
 
   return (
-    <div style={{ maxWidth: 860, margin: '0 auto', paddingBottom: 24 }}>
+    <div ref={containerRef} style={{ maxWidth: 860, margin: '0 auto', paddingBottom: 32 }}>
 
       {/* ── MODAL CROP AVATAR ── */}
       {cropSrc && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: C.white, borderRadius: 12, overflow: 'hidden', width: 400, boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
-            <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 14, color: C.text }}>Recadrer la photo de profil</div>
-            <div style={{ position: 'relative', width: 400, height: 400, background: '#222' }}>
+          <div style={{ background: C.white, borderRadius: 12, overflow: 'hidden', width: Math.min(400, window.innerWidth - 32), boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
+            <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 14 }}>Recadrer la photo de profil</div>
+            <div style={{ position: 'relative', width: '100%', height: 300, background: '#222' }}>
               <Cropper image={cropSrc} crop={crop} zoom={zoom} aspect={1} cropShape="round" showGrid={false} onCropChange={setCrop} onZoomChange={setZoom} onCropComplete={onCropComplete} />
             </div>
             <div style={{ padding: '14px 20px', borderTop: `1px solid ${C.border}` }}>
-              <div style={{ fontSize: 11, color: C.textMid, marginBottom: 8 }}>Zoom</div>
               <input type="range" min={1} max={3} step={0.01} value={zoom} onChange={e => setZoom(Number(e.target.value))} style={{ width: '100%', accentColor: C.accentDk }} />
             </div>
             <div style={{ padding: '0 20px 16px', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -250,14 +206,13 @@ const confirmBannerCrop = async () => {
 
       {/* ── MODAL CROP BANNIÈRE ── */}
       {bannerCropSrc && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: C.white, borderRadius: 12, overflow: 'hidden', width: 600, boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
-            <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 14, color: C.text }}>Recadrer la bannière</div>
-            <div style={{ position: 'relative', width: 600, height: 240, background: '#222' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
+          <div style={{ background: C.white, borderRadius: 12, overflow: 'hidden', width: '100%', maxWidth: 600, boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
+            <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 14 }}>Recadrer la bannière</div>
+            <div style={{ position: 'relative', width: '100%', height: isMobile ? 180 : 240, background: '#222' }}>
               <Cropper image={bannerCropSrc} crop={bannerCrop} zoom={bannerZoom} aspect={3} showGrid={false} onCropChange={setBannerCrop} onZoomChange={setBannerZoom} onCropComplete={onBannerCropComplete} />
             </div>
             <div style={{ padding: '14px 20px', borderTop: `1px solid ${C.border}` }}>
-              <div style={{ fontSize: 11, color: C.textMid, marginBottom: 8 }}>Zoom</div>
               <input type="range" min={1} max={3} step={0.01} value={bannerZoom} onChange={e => setBannerZoom(Number(e.target.value))} style={{ width: '100%', accentColor: C.accentDk }} />
             </div>
             <div style={{ padding: '0 20px 16px', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -269,24 +224,22 @@ const confirmBannerCrop = async () => {
       )}
 
       {/* ── BANNIÈRE ── */}
-      <div style={{ position: 'relative', height: 180, ...bannerStyle }}>
-        <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 8 }}>
+      <div style={{ position: 'relative', height: isMobile ? 140 : 200, ...bannerStyle }}>
+        <div style={{ position: 'absolute', top: 12, right: 12 }}>
           <button onClick={() => setShowBannerPicker(p => !p)} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
             🎨 Bannière
           </button>
         </div>
-
-        {/* Picker bannière */}
         {showBannerPicker && (
-          <div style={{ position: 'absolute', top: 44, right: 12, background: '#fff', borderRadius: 12, padding: 14, boxShadow: '0 8px 32px rgba(0,0,0,.2)', zIndex: 100, width: 280 }}>
-            <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 10 }}>Choisir un dégradé</div>
+          <div style={{ position: 'absolute', top: 44, right: 12, background: '#fff', borderRadius: 12, padding: 14, boxShadow: '0 8px 32px rgba(0,0,0,.2)', zIndex: 100, width: isMobile ? 240 : 280 }}>
+            <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 10 }}>Dégradé</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6, marginBottom: 12 }}>
               {BANNER_GRADIENTS.map((g, i) => (
                 <div key={i} onClick={async () => { await patchProfile({ banner_gradient: g, banner_url: null }); setShowBannerPicker(false) }}
-                  style={{ height: 36, borderRadius: 8, background: g, cursor: 'pointer', border: profile.banner_gradient === g ? '2px solid #c8a200' : '2px solid transparent', transition: 'all .15s' }} />
+                  style={{ height: 36, borderRadius: 8, background: g, cursor: 'pointer', border: profile.banner_gradient === g ? '2px solid #c8a200' : '2px solid transparent' }} />
               ))}
             </div>
-            <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Ou une image</div>
+            <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Image</div>
             <button onClick={() => bannerRef.current.click()} style={{ width: '100%', padding: '8px', borderRadius: 8, border: `1px dashed ${C.borderMid}`, background: '#fafafa', color: C.textMid, fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
               📸 Importer et recadrer
             </button>
@@ -295,52 +248,72 @@ const confirmBannerCrop = async () => {
         )}
       </div>
 
-      {/* ── HEADER PROFIL ── */}
-      <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: '0 24px 20px', marginBottom: 16 }}>
-        <div style={{ position: 'relative', display: 'inline-block', marginTop: -48 }}>
-          <div onClick={() => avatarRef.current.click()} style={{ width: 96, height: 96, borderRadius: '50%', background: profile.avatar_url ? '#444' : avatarColor, border: '4px solid #fff', boxShadow: '0 2px 12px rgba(0,0,0,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 32, color: '#fff', cursor: 'pointer', overflow: 'hidden', position: 'relative' }}>
-            {profile.avatar_url
-              ? <img src={profile.avatar_url} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : profile.initials || profile.pseudo?.slice(0, 2).toUpperCase()
-            }
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: '.2s', borderRadius: '50%' }}
-              onMouseEnter={e => e.currentTarget.style.opacity = 1}
-              onMouseLeave={e => e.currentTarget.style.opacity = 0}
-            >
-              <span style={{ color: '#fff', fontSize: 20 }}>{uploading ? '…' : '📷'}</span>
+      {/* ── HEADER ── */}
+      <div style={{ background: C.white, borderBottom: '1px solid #e8e0c8', padding: isMobile ? '0 16px 20px' : '0 24px 24px', marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: isMobile ? -40 : -52 }}>
+          <div style={{ position: 'relative' }}>
+            <div onClick={() => avatarRef.current.click()} style={{ width: isMobile ? 80 : 100, height: isMobile ? 80 : 100, borderRadius: '50%', background: profile.avatar_url ? '#444' : avatarColor, border: '4px solid #fff', boxShadow: '0 4px 16px rgba(0,0,0,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: isMobile ? 26 : 34, color: '#fff', cursor: 'pointer', overflow: 'hidden', position: 'relative' }}>
+              {profile.avatar_url ? <img src={profile.avatar_url} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : profile.initials || profile.pseudo?.slice(0, 2).toUpperCase()}
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: '.2s', borderRadius: '50%' }}
+                onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0}>
+                <span style={{ color: '#fff', fontSize: 22 }}>{uploading ? '…' : '📷'}</span>
+              </div>
             </div>
+            <input ref={avatarRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadAvatar} />
           </div>
-          <input ref={avatarRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadAvatar} />
+          <Btn onClick={() => { setBio(profile.bio || ''); setEditing(true) }} variant="ghost" style={{ marginBottom: 4, fontSize: isMobile ? 11 : 12 }}>✏️ Modifier</Btn>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: 12 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-              <span style={{ fontWeight: 700, fontSize: 20, color: C.text }}>@{profile.pseudo}</span>
-              <RoleBadge role={profile.role} />
-            </div>
-            <div style={{ fontSize: 12, color: C.textMid, marginBottom: 4 }}>
-              Membre depuis {profile.joined}
-              {profile.age && ` · ${profile.age} ans`}
-              {sexeLabel   && ` · ${sexeLabel}`}
-            </div>
-            {profile.city && (
-              <div style={{ fontSize: 12, color: C.textMid }}>
-                📍 {profile.city}{profile.dept ? `, ${profile.dept}` : ''}
-              </div>
+        {/* Pseudo + infos sous l'avatar */}
+        <div style={{ marginTop: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 700, fontSize: isMobile ? 18 : 22, color: C.text }}>@{profile.pseudo}</span>
+            <RoleBadge role={profile.role} />
+            {topVote && totalVotes > 0 && (
+              <span style={{ padding: '2px 10px', borderRadius: 20, fontSize: 11, background: '#fffae6', color: '#7a6200', border: '1px solid #c8a20066', fontWeight: 700 }}>
+                {topVote.emoji} {topVote.label}
+              </span>
             )}
           </div>
-          <Btn onClick={startEdit} variant="ghost" style={{ marginTop: 4 }}>Modifier</Btn>
+          {/* Tags infos */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {profile.joined && <Tag icon="📅" label={profile.joined} />}
+            {profile.age    && <Tag icon="🎂" label={`${profile.age} ans`} />}
+            {sexeLabel      && <Tag icon="👤" label={sexeLabel} />}
+            {profile.city   && <Tag icon="📍" label={profile.city} />}
+            {profile.dept   && <Tag icon="🗺️" label={profile.dept} />}
+            {profile.region && <Tag icon="🏳️" label={profile.region} />}
+          </div>
         </div>
       </div>
 
       {/* ── CONTENU ── */}
-      <div style={{ padding: '0 16px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div style={{ padding: isMobile ? '0 12px' : '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+        {/* Stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+          {[
+            { icon: '👥', label: 'Amis',       value: profile.friends || 0, color: '#3498db' },
+            { icon: '💬', label: 'Posts',       value: profile.posts   || 0, color: '#2ecc71' },
+            { icon: '⭐', label: 'Votes reçus', value: totalVotes,          color: '#c8a200' },
+          ].map(s => (
+            <div key={s.label} style={{ ...PANEL, borderTop: `3px solid ${s.color}`, padding: isMobile ? '14px 10px' : '18px 14px', textAlign: 'center' }}>
+              <div style={{ fontSize: isMobile ? 20 : 24, marginBottom: 4 }}>{s.icon}</div>
+              <div style={{ fontWeight: 700, fontSize: isMobile ? 22 : 26, color: C.text, lineHeight: 1 }}>{s.value}</div>
+              <div style={{ fontSize: 10, color: C.textMid, marginTop: 4, textTransform: 'uppercase', letterSpacing: .5 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Grille 2 colonnes */}
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
 
           {/* Bio */}
-          <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
-            <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 10 }}>Bio</div>
+          <div style={PANEL}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8 }}>✍️ Bio</div>
+              {!editing && <button onClick={() => { setBio(profile.bio || ''); setEditing(true) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.accentTxt, fontWeight: 600 }}>Modifier</button>}
+            </div>
             {editing ? (
               <>
                 <Textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Parle de toi…" rows={4} />
@@ -350,54 +323,46 @@ const confirmBannerCrop = async () => {
                 </div>
               </>
             ) : (
-              <p style={{ fontSize: 13, color: C.text, lineHeight: 1.6, margin: 0 }}>
-                {profile.bio || <span style={{ color: C.textDim, fontStyle: 'italic' }}>Aucune bio</span>}
+              <p style={{ fontSize: 13, color: profile.bio ? C.text : C.textDim, lineHeight: 1.7, margin: 0, fontStyle: profile.bio ? 'normal' : 'italic' }}>
+                {profile.bio || 'Aucune bio — clique sur Modifier pour en ajouter une.'}
               </p>
             )}
           </div>
 
-          {/* Stats */}
-          <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
-            <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 10 }}>Stats</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              {[
-                { label: 'Amis',        value: profile.friends || 0 },
-                { label: 'Posts',       value: profile.posts   || 0 },
-                { label: 'Votes reçus', value: totalVotes },
-              ].map(s => (
-                <div key={s.label} style={{ background: '#f8f8f8', borderRadius: 10, padding: '12px 14px', textAlign: 'center' }}>
-                  <div style={{ fontWeight: 700, fontSize: 22, color: C.text }}>{s.value}</div>
-                  <div style={{ fontSize: 11, color: C.textMid }}>{s.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Votes reçus */}
-          <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
-            <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 10 }}>Votes reçus</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {VOTES_DEF.map(v => (
-                <div key={v.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ width: 24, textAlign: 'center' }}>{v.emoji}</span>
-                  <span style={{ fontSize: 12, color: C.textMid, flex: 1 }}>{v.label}</span>
-                  <span style={{ fontWeight: 700, fontSize: 14, color: C.text }}>{votes[v.key] || 0}</span>
-                </div>
-              ))}
+          <div style={PANEL}>
+            <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>🗳️ Votes reçus</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {VOTES_DEF.map(v => {
+                const val = votes[v.key] || 0
+                const pct = totalVotes > 0 ? (val / totalVotes) * 100 : 0
+                return (
+                  <div key={v.key}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      <span style={{ fontSize: 16 }}>{v.emoji}</span>
+                      <span style={{ fontSize: 12, color: C.textMid, flex: 1 }}>{v.label}</span>
+                      <span style={{ fontWeight: 700, fontSize: 13, color: C.text }}>{val}</span>
+                    </div>
+                    <div style={{ height: 4, background: '#f0f0f0', borderRadius: 4, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(to right, #f0c800, #c8a200)', borderRadius: 4, transition: 'width .5s' }} />
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
 
           {/* Intérêts */}
-          <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
-            <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 10 }}>Intérêts</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+          <div style={{ ...PANEL, gridColumn: isMobile ? '1' : '1 / -1' }}>
+            <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>🎯 Intérêts</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 14, minHeight: 36 }}>
               {(profile.interests || []).length === 0
-                ? <span style={{ fontSize: 12, color: C.textDim, fontStyle: 'italic' }}>Aucun intérêt ajouté</span>
+                ? <span style={{ fontSize: 12, color: C.textDim, fontStyle: 'italic' }}>Aucun intérêt — ajoutes-en ci-dessous</span>
                 : (profile.interests || []).map(i => (
                   <span key={i} onClick={() => removeInterest(i)}
-                    style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, background: '#f5f5f5', color: C.textMid, border: '1px solid #ddd', cursor: 'pointer', transition: 'all .15s' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = '#fffae6'; e.currentTarget.style.borderColor = C.accentDk }}
-                    onMouseLeave={e => { e.currentTarget.style.background = '#f5f5f5'; e.currentTarget.style.borderColor = '#ddd' }}
+                    style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, background: '#fffae6', color: '#7a6200', border: '1px solid #c8a20066', cursor: 'pointer', fontWeight: 600, transition: 'all .15s' }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '.7'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}
                     title="Cliquer pour supprimer"
                   >
                     {i} ✕
@@ -406,30 +371,34 @@ const confirmBannerCrop = async () => {
               }
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <Input value={interest} onChange={e => setInterest(e.target.value)} placeholder="Ajouter…" onKeyDown={e => e.key === 'Enter' && addInterest()} style={{ flex: 1 }} />
+              <Input value={interest} onChange={e => setInterest(e.target.value)} placeholder="Ajouter un intérêt…" onKeyDown={e => e.key === 'Enter' && addInterest()} style={{ flex: 1 }} />
               <Btn onClick={addInterest} variant="yellow">+</Btn>
             </div>
           </div>
-
         </div>
 
         {/* Photos */}
-        <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginTop: 12, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8 }}>Photos</div>
+        <div style={PANEL}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div style={{ fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: .8 }}>🖼️ Photos ({(profile.photos || []).length})</div>
             <Btn onClick={() => photoRef.current.click()} variant="ghost" style={{ fontSize: 11 }}>
-              {uploadingPhoto ? '…' : '+ Ajouter une photo'}
+              {uploadingPhoto ? '…' : '+ Ajouter'}
             </Btn>
             <input ref={photoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadPhoto} />
           </div>
           {(profile.photos || []).length === 0
-            ? <div style={{ textAlign: 'center', padding: '24px', color: C.textDim, fontSize: 12, fontStyle: 'italic' }}>Aucune photo ajoutée</div>
+            ? (
+              <div style={{ textAlign: 'center', padding: '28px', color: C.textDim, fontSize: 13, background: '#fafafa', borderRadius: 12, border: '1px dashed #ddd' }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>📷</div>
+                Aucune photo ajoutée
+              </div>
+            )
             : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${isMobile ? 100 : 130}px, 1fr))`, gap: 10 }}>
                 {(profile.photos || []).map((url, i) => (
-                  <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: 10, overflow: 'hidden', border: `1px solid ${C.border}` }}>
+                  <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', border: '1px solid #e8e0c8' }}>
                     <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    <button onClick={() => removePhoto(url)} style={{ position: 'absolute', top: 6, right: 6, width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.6)', color: '#fff', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                    <button onClick={() => removePhoto(url)} style={{ position: 'absolute', top: 6, right: 6, width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.65)', color: '#fff', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
                   </div>
                 ))}
               </div>

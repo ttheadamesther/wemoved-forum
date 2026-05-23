@@ -19,16 +19,14 @@ export default function Navbar() {
   const [notifs,  setNotifs]        = useState([])
   const [showNotifs, setShowNotifs] = useState(false)
   const [menuOpen, setMenuOpen]     = useState(false)
-const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [isMobile, setIsMobile]     = useState(window.innerWidth < 768)
   const searchRef = useRef()
   const notifRef  = useRef()
   const navRef    = useRef()
 
   useEffect(() => {
     const observer = new ResizeObserver(entries => {
-      for (const entry of entries) {
-        setIsMobile(entry.contentRect.width < 768)
-      }
+      for (const entry of entries) setIsMobile(entry.contentRect.width < 768)
     })
     if (navRef.current) observer.observe(navRef.current)
     return () => observer.disconnect()
@@ -73,7 +71,12 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
 
   const handleSignOut = async () => { await signOut(); navigate('/login') }
 
-  const initials = profile?.initials || profile?.pseudo?.slice(0, 2).toUpperCase() || '??'
+  const initials    = profile?.initials || profile?.pseudo?.slice(0, 2).toUpperCase() || '??'
+  const xp          = profile?.xp || 0
+  const level       = profile?.level || 1
+  const xpPercent   = (xp % 1000) / 10
+  const colors      = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
+  const avatarColor = colors[(profile?.pseudo?.charCodeAt(0) || 0) % colors.length]
 
   const NavLink = ({ to, label, icon }) => {
     const active = path === to
@@ -111,8 +114,8 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
             <NavLink to="/"        label="Accueil"         icon="🏠" />
             <NavLink to="/forum"   label="Forum"           icon="💬" />
             <NavLink to="/members" label="Membres"         icon="👥" />
-            {user && <NavLink to="/messages"  label="Messages privés" icon="✉️" />}
-            {user && <NavLink to="/profile"   label="Mon Profil"      icon="👤" />}
+            {user && <NavLink to="/messages" label="Messages privés" icon="✉️" />}
+            {user && <NavLink to="/profile"  label="Mon Profil"      icon="👤" />}
           </>
         )}
 
@@ -123,18 +126,18 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
               <span style={{ color: '#888', fontSize: 14 }}>🔍</span>
               <input value={search} onChange={e => { setSearch(e.target.value); setShowRes(true) }} onFocus={() => setShowRes(true)}
                 placeholder="Rechercher…"
-                style={{ background: 'none', border: 'none', outline: 'none', color: '#fff', fontSize: 13, width: 160, padding: '8px 0', fontFamily: "'Open Sans',sans-serif" }}
+                style={{ background: 'none', border: 'none', outline: 'none', color: '#fff', fontSize: 13, width: 160, padding: '8px 0', fontFamily: 'inherit' }}
               />
             </div>
             {showRes && results.length > 0 && (
-              <div style={{ position: 'absolute', top: '110%', right: 0, width: 240, background: '#fff', border: `1px solid ${C.border}`, borderRadius: 4, boxShadow: '0 4px 16px rgba(0,0,0,.15)', overflow: 'hidden', zIndex: 1000 }}>
+              <div style={{ position: 'absolute', top: '110%', right: 0, width: 240, background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,.15)', overflow: 'hidden', zIndex: 1000 }}>
                 {results.map(u => (
                   <div key={u.id} onClick={() => { navigate(`/members/${u.id}`); setSearch(''); setShowRes(false) }}
                     style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer', borderBottom: `1px solid ${C.border}` }}
                     onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
                     onMouseLeave={e => e.currentTarget.style.background = '#fff'}
                   >
-                    <div style={{ width: 32, height: 32, borderRadius: 3, background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
                       {u.avatar_url ? <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : u.initials}
                     </div>
                     <div>
@@ -163,7 +166,7 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
                 )}
               </button>
               {showNotifs && (
-                <div style={{ position: 'absolute', top: '110%', right: 0, width: 280, background: '#fff', border: `1px solid ${C.border}`, borderRadius: 4, boxShadow: '0 4px 16px rgba(0,0,0,.15)', zIndex: 1000, overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: '110%', right: 0, width: 280, background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,.15)', zIndex: 1000, overflow: 'hidden' }}>
                   <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 12, color: '#555' }}>Notifications</div>
                   {notifs.length === 0
                     ? <div style={{ padding: 20, textAlign: 'center', color: C.textDim, fontSize: 12 }}>Aucune notification</div>
@@ -179,15 +182,25 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
             </div>
           )}
 
-          {/* Avatar desktop */}
+          {/* Avatar + XP desktop */}
           {user && !isMobile && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', height: 44, background: '#222', borderRadius: 22, border: '1px solid #333' }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', height: 44, background: '#1a1a1a', borderRadius: 22, border: '1px solid #2a2a2a' }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
                 {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
               </div>
               <div style={{ lineHeight: 1.2 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>@{profile?.pseudo || user.email?.split('@')[0]}</div>
-                {profile && <div style={{ fontSize: 10, color: '#888' }}><RoleBadge role={profile.role} /></div>}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>@{profile?.pseudo || user.email?.split('@')[0]}</span>
+                  {profile && <RoleBadge role={profile.role} />}
+                </div>
+                {/* Barre XP mini */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ fontSize: 9, color: '#c8a200', fontWeight: 700 }}>Niv.{level}</span>
+                  <div style={{ width: 60, height: 3, background: '#333', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${xpPercent}%`, background: 'linear-gradient(to right,#f0c800,#c8a200)', borderRadius: 3, transition: 'width .5s' }} />
+                  </div>
+                  <span style={{ fontSize: 9, color: '#666' }}>{xp % 1000}</span>
+                </div>
               </div>
               <button onClick={handleSignOut} style={{ marginLeft: 4, background: 'none', border: 'none', color: '#666', cursor: 'pointer', fontSize: 18, lineHeight: 1 }} title="Déconnexion">⏻</button>
             </div>
@@ -196,8 +209,8 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
           {/* Boutons connexion desktop */}
           {!user && !isMobile && (
             <div style={{ display: 'flex', gap: 8 }}>
-              <Link to="/login"><button style={{ padding: '0 14px', height: 36, border: '1px solid #333', borderRadius: 3, cursor: 'pointer', background: 'transparent', color: '#ccc', fontSize: 12 }}>Connexion</button></Link>
-              <Link to="/register"><button style={{ padding: '0 14px', height: 36, border: 'none', borderRadius: 3, cursor: 'pointer', background: `linear-gradient(to bottom,#f0c800,#c8a200)`, color: '#3a2e00', fontWeight: 700, fontSize: 12 }}>S'inscrire</button></Link>
+              <Link to="/login"><button style={{ padding: '0 14px', height: 36, border: '1px solid #333', borderRadius: 8, cursor: 'pointer', background: 'transparent', color: '#ccc', fontSize: 12 }}>Connexion</button></Link>
+              <Link to="/register"><button style={{ padding: '0 14px', height: 36, border: 'none', borderRadius: 8, cursor: 'pointer', background: `linear-gradient(to bottom,#f0c800,#c8a200)`, color: '#3a2e00', fontWeight: 700, fontSize: 12 }}>S'inscrire</button></Link>
             </div>
           )}
 
@@ -222,15 +235,15 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
               <span style={{ color: '#888' }}>🔍</span>
               <input value={search} onChange={e => { setSearch(e.target.value); setShowRes(true) }}
                 placeholder="Rechercher un membre…"
-                style={{ background: 'none', border: 'none', outline: 'none', color: '#fff', fontSize: 14, width: '100%', padding: '10px 0', fontFamily: "'Open Sans',sans-serif" }}
+                style={{ background: 'none', border: 'none', outline: 'none', color: '#fff', fontSize: 14, width: '100%', padding: '10px 0', fontFamily: 'inherit' }}
               />
             </div>
             {showRes && results.length > 0 && (
-              <div style={{ background: '#fff', borderRadius: 4, marginTop: 8, overflow: 'hidden' }}>
+              <div style={{ background: '#fff', borderRadius: 8, marginTop: 8, overflow: 'hidden' }}>
                 {results.map(u => (
                   <div key={u.id} onClick={() => { navigate(`/members/${u.id}`); setSearch(''); setShowRes(false); setMenuOpen(false) }}
                     style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer', borderBottom: `1px solid ${C.border}` }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 3, background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden' }}>
                       {u.avatar_url ? <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : u.initials}
                     </div>
                     <div>
@@ -242,7 +255,6 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
             )}
           </div>
 
-          {/* Liens navigation */}
           <NavLink to="/"              label="Accueil"         icon="🏠" />
           <NavLink to="/forum"         label="Forum"           icon="💬" />
           <NavLink to="/members"       label="Membres"         icon="👥" />
@@ -250,21 +262,30 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
           {user && <NavLink to="/notifications" label="Notifications"   icon="🔔" />}
           {user && <NavLink to="/profile"       label="Mon Profil"      icon="👤" />}
 
-          {/* Profil mobile */}
+          {/* Profil mobile avec XP */}
           {user && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderTop: '1px solid #222' }}>
-              <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden' }}>
-                {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
+            <div style={{ padding: '14px 20px', borderTop: '1px solid #222' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden' }}>
+                  {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 2 }}>@{profile?.pseudo || user.email?.split('@')[0]}</div>
+                  {profile && <RoleBadge role={profile.role} />}
+                </div>
+                <button onClick={handleSignOut} style={{ background: 'none', border: '1px solid #333', borderRadius: 6, color: '#aaa', cursor: 'pointer', fontSize: 12, padding: '6px 12px' }}>Déco</button>
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>@{profile?.pseudo || user.email?.split('@')[0]}</div>
-                {profile && <RoleBadge role={profile.role} />}
+              {/* Barre XP mobile */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 10, color: '#c8a200', fontWeight: 700 }}>Niv.{level}</span>
+                <div style={{ flex: 1, height: 3, background: '#333', borderRadius: 3, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${xpPercent}%`, background: 'linear-gradient(to right,#f0c800,#c8a200)', borderRadius: 3 }} />
+                </div>
+                <span style={{ fontSize: 10, color: '#666' }}>{xp % 1000}/1000 XP</span>
               </div>
-              <button onClick={handleSignOut} style={{ background: 'none', border: '1px solid #333', borderRadius: 6, color: '#aaa', cursor: 'pointer', fontSize: 12, padding: '6px 12px' }}>Déco</button>
             </div>
           )}
 
-          {/* Connexion mobile */}
           {!user && (
             <div style={{ display: 'flex', gap: 10, padding: '14px 20px', borderTop: '1px solid #222' }}>
               <Link to="/login" onClick={() => setMenuOpen(false)} style={{ flex: 1 }}>
