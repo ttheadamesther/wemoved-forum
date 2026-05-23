@@ -404,7 +404,7 @@ export default function ForumPage() {
             </div>
           </div>
         ) : currentThread.locked ? (
-          <div style={{ textAlign: 'center', padding: '14px', background: '#fff8f8', border: `1px solid ${C.borderMid}`, borderRadius: 12, fontSize: 12, color: C.red, marginTop: 10 }}>
+          <div style={{ textAlign: 'center', padding: '14px', background: C.surfaceB, border: `1px solid ${C.borderMid}`, borderRadius: 12, fontSize: 12, color: C.red, marginTop: 10 }}>
             🔒 Discussion verrouillée.
           </div>
         ) : (

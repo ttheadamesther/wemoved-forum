@@ -110,7 +110,7 @@ export default function Moderation() {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
               {BAN_OPTIONS.map(o => (
-                <button key={o.value} onClick={() => setBanDuration(o.value)} style={{ padding: '10px 8px', borderRadius: 10, border: `2px solid ${banDuration === o.value ? '#c8a200' : '#ddd'}`, background: banDuration === o.value ? '#fffae6' : '#fafafa', color: banDuration === o.value ? '#7a6200' : C.textMid, fontWeight: banDuration === o.value ? 700 : 400, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                <button key={o.value} onClick={() => setBanDuration(o.value)} style={{ padding: '10px 8px', borderRadius: 10, border: `2px solid ${banDuration === o.value ? '#c8a200' : '#ddd'}`, background: banDuration === o.value ? '#fffae6' : C.surfaceB, color: banDuration === o.value ? '#7a6200' : C.textMid, fontWeight: banDuration === o.value ? 700 : 400, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
                   {o.label}
                 </button>
               ))}
@@ -142,7 +142,7 @@ export default function Moderation() {
           { key: 'members', label: `👥 Membres (${members.length})` },
           { key: 'bugs',    label: `🐛 Bugs (${bugs.filter(b => b.status === 'ouvert').length} ouverts)` },
         ].map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: tab === t.key ? '#fff' : 'transparent', color: tab === t.key ? C.text : C.textMid, fontWeight: tab === t.key ? 700 : 400, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', boxShadow: tab === t.key ? '0 1px 4px rgba(0,0,0,.08)' : 'none', transition: 'all .15s' }}>
+          <button key={t.key} onClick={() => setTab(t.key)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: tab === t.key ? C.white : 'transparent', color: tab === t.key ? C.text : C.textMid, fontWeight: tab === t.key ? 700 : 400, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', boxShadow: tab === t.key ? '0 1px 4px rgba(0,0,0,.08)' : 'none', transition: 'all .15s' }}>
             {t.label}
           </button>
         ))}
@@ -163,7 +163,7 @@ export default function Moderation() {
             {filtered.map(m => {
               const avatarColor = colors[(m.pseudo?.charCodeAt(0) || 0) % colors.length]
               return (
-                <div key={m.id} style={{ background: m.banned ? '#fff8f8' : '#fff', border: `1px solid ${m.banned ? '#f5c0c0' : '#e8e0c8'}`, borderLeft: `4px solid ${m.banned ? '#e74c3c' : '#c8a200'}`, borderRadius: 14, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div key={m.id} style={{ background: m.banned ? '#fff8f8' : C.white, border: `1px solid ${m.banned ? '#f5c0c0' : '#e8e0c8'}`, borderLeft: `4px solid ${m.banned ? '#e74c3c' : '#c8a200'}`, borderRadius: 14, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 42, height: 42, borderRadius: '50%', background: m.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
                     {m.avatar_url ? <img src={m.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : m.initials}
                   </div>
@@ -193,7 +193,7 @@ export default function Moderation() {
               )
             })}
             {filtered.length === 0 && (
-              <div style={{ textAlign: 'center', padding: 30, color: C.textDim, fontSize: 13, background: C.white, borderRadius: 14, border: '1px solid #e8e0c8' }}>
+              <div style={{ textAlign: 'center', padding: 30, color: C.textDim, fontSize: 13, background: C.white, borderRadius: 14, border: `1px solid ${C.border}` }}>
                 Aucun membre trouvé.
               </div>
             )}
@@ -203,14 +203,14 @@ export default function Moderation() {
         /* Bug reports */
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {bugs.length === 0 && (
-            <div style={{ textAlign: 'center', padding: 30, color: C.textDim, fontSize: 13, background: C.white, borderRadius: 14, border: '1px solid #e8e0c8' }}>
+            <div style={{ textAlign: 'center', padding: 30, color: C.textDim, fontSize: 13, background: C.white, borderRadius: 14, border: `1px solid ${C.border}` }}>
               Aucun rapport de bug.
             </div>
           )}
           {bugs.map(b => {
             const author = getMember(b.author_id)
             return (
-              <div key={b.id} style={{ background: C.white, border: '1px solid #e8e0c8', borderLeft: `4px solid ${statusColors[b.status] || '#ccc'}`, borderRadius: 14, padding: '16px' }}>
+              <div key={b.id} style={{ background: C.white, border: `1px solid ${C.border}`, borderLeft: `4px solid ${statusColors[b.status] || '#ccc'}`, borderRadius: 14, padding: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 8 }}>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 4 }}>{b.title}</div>
@@ -225,7 +225,7 @@ export default function Moderation() {
                 <p style={{ fontSize: 13, color: C.textMid, lineHeight: 1.6, marginBottom: 12 }}>{b.description}</p>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {['ouvert', 'en cours', 'résolu'].map(s => (
-                    <button key={s} onClick={() => updateBugStatus(b.id, s)} style={{ padding: '5px 12px', borderRadius: 20, border: `1px solid ${b.status === s ? statusColors[s] : '#ddd'}`, background: b.status === s ? `${statusColors[s]}22` : '#fafafa', color: b.status === s ? statusColors[s] : C.textMid, fontSize: 11, fontWeight: b.status === s ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    <button key={s} onClick={() => updateBugStatus(b.id, s)} style={{ padding: '5px 12px', borderRadius: 20, border: `1px solid ${b.status === s ? statusColors[s] : '#ddd'}`, background: b.status === s ? `${statusColors[s]}22` : C.surfaceB, color: b.status === s ? statusColors[s] : C.textMid, fontSize: 11, fontWeight: b.status === s ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit' }}>
                       {s}
                     </button>
                   ))}
