@@ -18,7 +18,7 @@ function formatTime(ts) {
   if (!ts) return ''
   const d = new Date(ts)
   const diff = Math.floor((Date.now() - d) / 1000)
-  if (diff < 60)    return 'À l\'instant'
+  if (diff < 60)    return "À l'instant"
   if (diff < 3600)  return `${Math.floor(diff / 60)} min`
   if (diff < 86400) return `${Math.floor(diff / 3600)} h`
   return d.toLocaleDateString('fr-FR')
@@ -55,6 +55,8 @@ export default function MessagesPage() {
   const [sending,  setSending]  = useState(false)
   const [search,   setSearch]   = useState('')
   const [showSidebar, setShowSidebar] = useState(true)
+  const [blockedIds, setBlockedIds]   = useState([]) // membres que j'ai bloqués
+  const [blockedByIds, setBlockedByIds] = useState([]) // membres qui m'ont bloqué
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -71,6 +73,13 @@ export default function MessagesPage() {
     if (!user) return
     api(`/rest/v1/profiles?id=neq.${user.id}&select=*`)
       .then(r => r.json()).then(d => { if (Array.isArray(d)) setMembers(d) })
+
+    // Charger les blocages
+    api(`/rest/v1/blocks?blocker_id=eq.${user.id}&select=blocked_id`)
+      .then(r => r.json()).then(d => { if (Array.isArray(d)) setBlockedIds(d.map(b => b.blocked_id)) })
+
+    api(`/rest/v1/blocks?blocked_id=eq.${user.id}&select=blocker_id`)
+      .then(r => r.json()).then(d => { if (Array.isArray(d)) setBlockedByIds(d.map(b => b.blocker_id)) })
   }, [user])
 
   useEffect(() => {
@@ -104,23 +113,23 @@ export default function MessagesPage() {
 
   const send = async () => {
     if (!text.trim() || !activeId || !user) return
+    // Vérifier si bloqué
+    if (blockedIds.includes(activeId) || blockedByIds.includes(activeId)) return
     setSending(true)
 
-    // Envoi du message
     await api(`/rest/v1/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ from_id: user.id, to_id: activeId, body: text.trim(), read: false })
     })
 
-    // Notification au destinataire
     await api(`/rest/v1/notifications`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         user_id: activeId,
         type:    'message',
-        content: `💬 @${profile?.pseudo || 'Quelqu\'un'} vous a envoyé un message`,
+        content: `💬 @${profile?.pseudo || "Quelqu'un"} vous a envoyé un message`,
         link:    '/messages',
         read:    false
       })
@@ -134,9 +143,13 @@ export default function MessagesPage() {
 
   const getMember = (id) => members.find(m => m.id === id)
   const activeMember = getMember(activeId)
+  const isActiveBlocked = activeId && (blockedIds.includes(activeId) || blockedByIds.includes(activeId))
+
+  // Filtrer les membres bloqués/qui bloquent de la liste "Nouveau message"
   const convoMembers = convos.map(c => getMember(c.otherId)).filter(Boolean)
   const newMembers   = members
     .filter(m => !convos.find(c => c.otherId === m.id))
+    .filter(m => !blockedByIds.includes(m.id)) // cacher ceux qui m'ont bloqué
     .filter(m => !search || m.pseudo?.toLowerCase().includes(search.toLowerCase()))
 
   const openConvo = (id) => {
@@ -175,8 +188,9 @@ export default function MessagesPage() {
                     const convo  = convos.find(c => c.otherId === m.id)
                     const last   = convo?.messages?.[0]
                     const unread = convo?.unread || 0
+                    const blocked = blockedIds.includes(m.id)
                     return (
-                      <div key={m.id} onClick={() => openConvo(m.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', cursor: 'pointer', background: activeId === m.id ? '#fffae6' : 'transparent', transition: 'background .15s', borderLeft: activeId === m.id ? `3px solid ${C.accentDk}` : '3px solid transparent' }}
+                      <div key={m.id} onClick={() => openConvo(m.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', cursor: 'pointer', background: activeId === m.id ? '#fffae6' : 'transparent', transition: 'background .15s', borderLeft: activeId === m.id ? `3px solid ${C.accentDk}` : '3px solid transparent', opacity: blocked ? 0.5 : 1 }}
                         onMouseEnter={e => { if (activeId !== m.id) e.currentTarget.style.background = 'var(--hover-bg)' }}
                         onMouseLeave={e => { if (activeId !== m.id) e.currentTarget.style.background = 'transparent' }}
                       >
@@ -186,13 +200,16 @@ export default function MessagesPage() {
                             <span style={{ fontWeight: 700, fontSize: 13, color: C.text }}>@{m.pseudo}</span>
                             {last && <span style={{ fontSize: 10, color: C.textDim }}>{formatTime(last.created_at)}</span>}
                           </div>
-                          {last && (
-                            <div style={{ fontSize: 12, color: unread > 0 ? C.text : C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: unread > 0 ? 600 : 400 }}>
-                              {last.from_id === user.id ? 'Vous : ' : ''}{last.body}
-                            </div>
-                          )}
+                          {blocked
+                            ? <div style={{ fontSize: 11, color: C.red, fontStyle: 'italic' }}>🚫 Bloqué</div>
+                            : last && (
+                              <div style={{ fontSize: 12, color: unread > 0 ? C.text : C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: unread > 0 ? 600 : 400 }}>
+                                {last.from_id === user.id ? 'Vous : ' : ''}{last.body}
+                              </div>
+                            )
+                          }
                         </div>
-                        {unread > 0 && (
+                        {unread > 0 && !blocked && (
                           <span style={{ background: C.red, color: '#fff', borderRadius: 10, fontSize: 10, fontWeight: 700, padding: '2px 6px', flexShrink: 0 }}>{unread}</span>
                         )}
                       </div>
@@ -264,7 +281,7 @@ export default function MessagesPage() {
                         </div>
                       )}
                       <div style={{ maxWidth: isMobile ? '80%' : '65%' }}>
-                        <div style={{ background: isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : '#fff', border: isMe ? 'none' : `1px solid ${C.border}`, borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px', padding: '10px 14px', boxShadow: '0 1px 3px rgba(0,0,0,.08)' }}>
+                        <div style={{ background: isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.white, border: isMe ? 'none' : `1px solid ${C.border}`, borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px', padding: '10px 14px', boxShadow: '0 1px 3px rgba(0,0,0,.08)' }}>
                           <div style={{ fontSize: 13, color: isMe ? '#3a2e00' : C.text, lineHeight: 1.5 }}>{m.body}</div>
                         </div>
                         <div style={{ fontSize: 10, color: C.textDim, marginTop: 3, textAlign: isMe ? 'right' : 'left', paddingLeft: isMe ? 0 : 4 }}>
@@ -277,17 +294,24 @@ export default function MessagesPage() {
                 <div ref={bottomRef} />
               </div>
 
-              <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}`, background: C.white, display: 'flex', gap: 10, alignItems: 'center' }}>
-                <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
-                  placeholder={`Message à @${activeMember.pseudo}…`}
-                  style={{ flex: 1, border: `1px solid ${C.borderMid}`, borderRadius: 24, padding: '10px 18px', fontSize: 13, color: C.text, fontFamily: 'inherit', outline: 'none', background: C.surfaceB, transition: 'border .2s' }}
-                  onFocus={e => e.target.style.borderColor = '#c8a200'}
-                  onBlur={e => e.target.style.borderColor = C.borderMid}
-                />
-                <button onClick={send} disabled={sending || !text.trim()} style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: text.trim() ? 'linear-gradient(135deg,#f0c800,#c8a200)' : '#e0e0e0', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, transition: 'all .15s', flexShrink: 0 }}>
-                  {sending ? '…' : '➤'}
-                </button>
-              </div>
+              {/* Zone input — bloquée si bloqué */}
+              {isActiveBlocked ? (
+                <div style={{ padding: '16px', borderTop: `1px solid ${C.border}`, background: C.white, textAlign: 'center', fontSize: 12, color: C.red }}>
+                  🚫 {blockedIds.includes(activeId) ? 'Vous avez bloqué ce membre.' : 'Ce membre vous a bloqué.'} Impossible d'envoyer un message.
+                </div>
+              ) : (
+                <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}`, background: C.white, display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
+                    placeholder={`Message à @${activeMember.pseudo}…`}
+                    style={{ flex: 1, border: `1px solid ${C.borderMid}`, borderRadius: 24, padding: '10px 18px', fontSize: 13, color: C.text, fontFamily: 'inherit', outline: 'none', background: C.surfaceB, transition: 'border .2s' }}
+                    onFocus={e => e.target.style.borderColor = '#c8a200'}
+                    onBlur={e => e.target.style.borderColor = C.borderMid}
+                  />
+                  <button onClick={send} disabled={sending || !text.trim()} style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: text.trim() ? 'linear-gradient(135deg,#f0c800,#c8a200)' : '#e0e0e0', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, transition: 'all .15s', flexShrink: 0 }}>
+                    {sending ? '…' : '➤'}
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: C.textDim, gap: 12 }}>

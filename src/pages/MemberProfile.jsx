@@ -14,21 +14,32 @@ const ROLES_ASSIGNABLES = [
   { value: 'manager',    label: 'Manager',     color: '#5a0080' },
 ]
 
+function api(path, opts = {}) {
+  return fetch(`${SUPABASE_URL}${path}`, {
+    ...opts,
+    headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json', ...opts.headers }
+  })
+}
+
 export default function MemberProfile() {
-  const { id }         = useParams()
+  const { id }            = useParams()
   const { user, profile } = useAuth()
-  const navigate       = useNavigate()
-  const [member, setMember]       = useState(null)
-  const [myVotes, setMyVotes]     = useState({})
-  const [voting, setVoting]       = useState(null)
-  const [loading, setLoading]     = useState(true)
+  const navigate          = useNavigate()
+  const [member, setMember]             = useState(null)
+  const [myVotes, setMyVotes]           = useState({})
+  const [voting, setVoting]             = useState(null)
+  const [loading, setLoading]           = useState(true)
   const [showRolePanel, setShowRolePanel] = useState(false)
   const [updatingRole, setUpdatingRole]   = useState(false)
+  const [isBlocked, setIsBlocked]       = useState(false)
+  const [blocking, setBlocking]         = useState(false)
+  const [blockedByThem, setBlockedByThem] = useState(false)
 
   const isAdmin = profile?.role === 'admin'
   const monthKey = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth()}` }
 
   useEffect(() => {
+    // Charger le profil
     fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${id}&limit=1`, {
       headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
     }).then(r => r.json()).then(data => {
@@ -37,6 +48,7 @@ export default function MemberProfile() {
     })
 
     if (user) {
+      // Charger les votes
       fetch(`${SUPABASE_URL}/rest/v1/votes?from_id=eq.${user.id}&to_id=eq.${id}&month_key=eq.${monthKey()}`, {
         headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
       }).then(r => r.json()).then(data => {
@@ -46,8 +58,40 @@ export default function MemberProfile() {
           setMyVotes(v)
         }
       })
+
+      // Vérifier si je bloque ce membre
+      fetch(`${SUPABASE_URL}/rest/v1/blocks?blocker_id=eq.${user.id}&blocked_id=eq.${id}&limit=1`, {
+        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+      }).then(r => r.json()).then(data => {
+        setIsBlocked(Array.isArray(data) && data.length > 0)
+      })
+
+      // Vérifier si ce membre me bloque
+      fetch(`${SUPABASE_URL}/rest/v1/blocks?blocker_id=eq.${id}&blocked_id=eq.${user.id}&limit=1`, {
+        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+      }).then(r => r.json()).then(data => {
+        setBlockedByThem(Array.isArray(data) && data.length > 0)
+      })
     }
   }, [id, user])
+
+  const toggleBlock = async () => {
+    if (!user || blocking) return
+    setBlocking(true)
+    if (isBlocked) {
+      // Débloquer
+      await api(`/rest/v1/blocks?blocker_id=eq.${user.id}&blocked_id=eq.${id}`, { method: 'DELETE' })
+      setIsBlocked(false)
+    } else {
+      // Bloquer
+      await api(`/rest/v1/blocks`, {
+        method: 'POST',
+        body: JSON.stringify({ blocker_id: user.id, blocked_id: id })
+      })
+      setIsBlocked(true)
+    }
+    setBlocking(false)
+  }
 
   const vote = async (voteType) => {
     if (!user || voting) return
@@ -96,6 +140,19 @@ export default function MemberProfile() {
   }
 
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: C.textMid }}>Chargement…</div>
+
+  // Si ce membre m'a bloqué, afficher un message générique
+  if (blockedByThem) return (
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px' }}>
+      <Btn onClick={() => navigate('/members')} variant="ghost" style={{ marginBottom: 16, fontSize: 12 }}>← Retour</Btn>
+      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 40, textAlign: 'center', boxShadow: '0 2px 12px rgba(0,0,0,.06)' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🚫</div>
+        <div style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 8 }}>Profil indisponible</div>
+        <div style={{ fontSize: 13, color: C.textDim }}>Ce profil n'est pas accessible.</div>
+      </div>
+    </div>
+  )
+
   if (!member) return <div style={{ padding: 40, textAlign: 'center', color: C.textMid }}>Profil introuvable</div>
 
   const votes      = member.votes || { mimi: 0, cool: 0, sexy: 0, loose: 0 }
@@ -113,30 +170,32 @@ export default function MemberProfile() {
 
       {/* Bannière + Avatar */}
       <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, overflow: 'hidden', marginBottom: 16, boxShadow: '0 2px 12px rgba(0,0,0,.06)' }}>
-        <div style={{ height: 160, background: member.banner_url ? `url(${member.banner_url}) center/cover no-repeat` : 'linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)', position: 'relative' }} />
+        <div style={{ height: 160, background: member.banner_url ? `url(${member.banner_url}) center/cover no-repeat` : 'linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)' }} />
 
         <div style={{ padding: '0 24px 24px', position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12 }}>
             <div style={{ width: 90, height: 90, borderRadius: '50%', background: member.avatar_url ? '#444' : avatarColor, border: '4px solid #fff', marginTop: -45, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, boxShadow: '0 2px 12px rgba(0,0,0,.15)' }}>
-              {member.avatar_url
-                ? <img src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                : initials
-              }
+              {member.avatar_url ? <img src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
             </div>
 
-            <div style={{ display: 'flex', gap: 8 }}>
-              {/* Bouton gestion rôle — admin uniquement */}
-              {isAdmin && user.id !== id && (
-                <Btn onClick={() => setShowRolePanel(v => !v)} variant="ghost" style={{ fontSize: 12 }}>
-                  🛡️ Gérer le rôle
-                </Btn>
-              )}
-              {user && user.id !== id && (
-                <Btn onClick={() => navigate('/messages')} variant="yellow" style={{ fontSize: 12 }}>
-                  ✉️ Envoyer un message
-                </Btn>
-              )}
-            </div>
+            {user && user.id !== id && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                {isAdmin && (
+                  <Btn onClick={() => setShowRolePanel(v => !v)} variant="ghost" style={{ fontSize: 12 }}>🛡️ Gérer le rôle</Btn>
+                )}
+                {!isBlocked && (
+                  <Btn onClick={() => navigate('/messages')} variant="yellow" style={{ fontSize: 12 }}>✉️ Message</Btn>
+                )}
+                <button onClick={toggleBlock} disabled={blocking} style={{
+                  padding: '6px 14px', borderRadius: 20, border: `1px solid ${isBlocked ? C.border : C.red}`,
+                  background: isBlocked ? C.surfaceB : 'transparent',
+                  color: isBlocked ? C.textMid : C.red,
+                  fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s'
+                }}>
+                  {blocking ? '…' : isBlocked ? '🔓 Débloquer' : '🚫 Bloquer'}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Panel gestion du rôle */}
@@ -152,14 +211,20 @@ export default function MemberProfile() {
                       color: member.role === r.value ? '#fff' : C.textMid,
                       fontWeight: member.role === r.value ? 700 : 400, fontSize: 12,
                       cursor: member.role === r.value ? 'default' : 'pointer',
-                      fontFamily: 'inherit', transition: 'all .15s',
-                      opacity: updatingRole ? 0.6 : 1
+                      fontFamily: 'inherit', transition: 'all .15s', opacity: updatingRole ? 0.6 : 1
                     }}>
                     {updatingRole && member.role !== r.value ? '…' : r.label}
                     {member.role === r.value && ' ✓'}
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Badge bloqué */}
+          {isBlocked && (
+            <div style={{ background: '#fff3f3', border: `1px solid ${C.red}`, borderRadius: 8, padding: '8px 14px', marginBottom: 12, fontSize: 12, color: C.red, display: 'flex', alignItems: 'center', gap: 8 }}>
+              🚫 Vous avez bloqué ce membre — il ne peut plus vous envoyer de messages ni voir votre profil.
             </div>
           )}
 
@@ -214,7 +279,7 @@ export default function MemberProfile() {
                 <span style={{ fontSize: 20 }}>{v.emoji}</span>
                 <span style={{ fontSize: 13, color: C.textMid, flex: 1, fontWeight: 500 }}>{v.label}</span>
                 <span style={{ fontWeight: 700, fontSize: 15, color: C.text, minWidth: 28, textAlign: 'right' }}>{count}</span>
-                {user && user.id !== id && (
+                {user && user.id !== id && !isBlocked && (
                   <button onClick={() => vote(v.key)} disabled={!!voting} style={{
                     padding: '5px 14px', borderRadius: 20,
                     border: `1px solid ${voted ? C.accentDk : C.borderMid}`,
