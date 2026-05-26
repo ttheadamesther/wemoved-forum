@@ -5,9 +5,12 @@ import { RoleBadge } from './UI'
 import { Logo } from './Logo'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/ThemeContext'
+import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+const supabase = createClient(SUPABASE_URL, ANON_KEY)
 
 export default function Navbar() {
   const { user, profile, signOut } = useAuth()
@@ -40,6 +43,7 @@ export default function Navbar() {
 
   useEffect(() => { setMenuOpen(false) }, [path])
 
+  // ── Chargement initial des notifs ──
   useEffect(() => {
     if (!user) return
     fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false&order=created_at.desc`, {
@@ -47,12 +51,53 @@ export default function Navbar() {
     }).then(r => r.json()).then(d => { if (Array.isArray(d)) setNotifs(d) })
   }, [user])
 
+  // ── Realtime notifications ──
+  useEffect(() => {
+    if (!user) return
+
+    const channel = supabase
+      .channel(`notifs-${user.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${user.id}`
+      }, (payload) => {
+        setNotifs(prev => [payload.new, ...prev])
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [user])
+
+  // ── Messages non lus ──
   useEffect(() => {
     if (!user) return
     fetch(`${SUPABASE_URL}/rest/v1/messages?to_id=eq.${user.id}&read=eq.false&select=id`, {
       headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
     }).then(r => r.json()).then(d => { if (Array.isArray(d)) setUnreadMessages(d.length) })
   }, [user, path])
+
+  // ── Realtime messages non lus ──
+  useEffect(() => {
+    if (!user) return
+
+    const channel = supabase
+      .channel(`messages-${user.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `to_id=eq.${user.id}`
+      }, () => {
+        fetch(`${SUPABASE_URL}/rest/v1/messages?to_id=eq.${user.id}&read=eq.false&select=id`, {
+          headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+        }).then(r => r.json()).then(d => { if (Array.isArray(d)) setUnreadMessages(d.length) })
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [user])
 
   useEffect(() => {
     if (!search.trim()) { setResults([]); return }
@@ -80,6 +125,15 @@ export default function Navbar() {
       body: JSON.stringify({ read: true })
     })
     setNotifs(n => n.filter(x => x.id !== id))
+  }
+
+  const markAllRead = async () => {
+    await fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, {
+      method: 'PATCH',
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ read: true })
+    })
+    setNotifs([])
   }
 
   const handleSignOut = async () => { await signOut(); navigate('/login') }
@@ -213,17 +267,27 @@ export default function Navbar() {
                 )}
               </button>
               {showNotifs && (
-                <div style={{ position: 'absolute', top: '110%', right: 0, width: 280, background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,.15)', zIndex: 1000, overflow: 'hidden' }}>
-                  <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 12, color: C.textMid }}>Notifications</div>
-                  {notifs.length === 0
-                    ? <div style={{ padding: 20, textAlign: 'center', color: C.textDim, fontSize: 12 }}>Aucune notification</div>
-                    : notifs.map(n => (
-                      <div key={n.id} onClick={() => { markRead(n.id); if (n.link) navigate(n.link) }}
-                        style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', background: '#fffae6', fontSize: 12, color: C.text }}>
-                        {n.content}
-                      </div>
-                    ))
-                  }
+                <div style={{ position: 'absolute', top: '110%', right: 0, width: 300, background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,.15)', zIndex: 1000, overflow: 'hidden' }}>
+                  <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 700, fontSize: 12, color: C.textMid }}>Notifications</span>
+                    {notifs.length > 0 && (
+                      <button onClick={markAllRead} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.accentTxt, fontWeight: 600 }}>
+                        Tout marquer lu
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+                    {notifs.length === 0
+                      ? <div style={{ padding: 20, textAlign: 'center', color: C.textDim, fontSize: 12 }}>Aucune notification</div>
+                      : notifs.map(n => (
+                        <div key={n.id} onClick={() => { markRead(n.id); if (n.link) navigate(n.link); setShowNotifs(false) }}
+                          style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', background: '#fffae6', fontSize: 12, color: C.text, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                          <span style={{ flex: 1 }}>{n.content}</span>
+                          <button onClick={e => { e.stopPropagation(); markRead(n.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, fontSize: 14, flexShrink: 0, lineHeight: 1 }}>✕</button>
+                        </div>
+                      ))
+                    }
+                  </div>
                 </div>
               )}
             </div>
@@ -306,7 +370,6 @@ export default function Navbar() {
           {user && <NavLink to="/bug-report"    label="Signaler un bug" icon="🐛" />}
           {user && canMod && <NavLink to="/moderation" label="Modération" icon="🛡️" />}
 
-          {/* Dark mode mobile */}
           <div onClick={toggle} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 20px', borderBottom: '1px solid #222', cursor: 'pointer', color: '#ccc', fontSize: 12 }}>
             <span style={{ fontSize: 14 }}>{dark ? '☀️' : '🌙'}</span>
             {dark ? 'Mode clair' : 'Mode sombre'}
