@@ -5,12 +5,10 @@ import { RoleBadge } from './UI'
 import { Logo } from './Logo'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/ThemeContext'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '../lib/supabase'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-const supabase = createClient(SUPABASE_URL, ANON_KEY)
 
 export default function Navbar() {
   const { user, profile, signOut } = useAuth()
