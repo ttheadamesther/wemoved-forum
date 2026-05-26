@@ -32,15 +32,19 @@ export default function MemberProfile() {
   const { id }            = useParams()
   const { user, profile } = useAuth()
   const navigate          = useNavigate()
-  const [member, setMember]             = useState(null)
-  const [myVotes, setMyVotes]           = useState({})
-  const [voting, setVoting]             = useState(null)
-  const [loading, setLoading]           = useState(true)
+  const [member, setMember]               = useState(null)
+  const [myVotes, setMyVotes]             = useState({})
+  const [voting, setVoting]               = useState(null)
+  const [loading, setLoading]             = useState(true)
   const [showRolePanel, setShowRolePanel] = useState(false)
   const [updatingRole, setUpdatingRole]   = useState(false)
-  const [isBlocked, setIsBlocked]       = useState(false)
-  const [blocking, setBlocking]         = useState(false)
+  const [isBlocked, setIsBlocked]         = useState(false)
+  const [blocking, setBlocking]           = useState(false)
   const [blockedByThem, setBlockedByThem] = useState(false)
+
+  // ── Amis ──
+  const [friendship, setFriendship]   = useState(null) // null | { id, status, user_a, user_b }
+  const [friendLoading, setFriendLoading] = useState(false)
 
   const isAdmin = profile?.role === 'admin'
   const monthKey = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth()}` }
@@ -75,8 +79,79 @@ export default function MemberProfile() {
       }).then(r => r.json()).then(data => {
         setBlockedByThem(Array.isArray(data) && data.length > 0)
       })
+
+      // Charger la relation d'amitié
+      loadFriendship()
     }
   }, [id, user])
+
+  const loadFriendship = async () => {
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/friendships?or=(and(user_a.eq.${user.id},user_b.eq.${id}),and(user_a.eq.${id},user_b.eq.${user.id}))&limit=1`,
+      { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` } }
+    )
+    const data = await r.json()
+    setFriendship(Array.isArray(data) && data.length > 0 ? data[0] : null)
+  }
+
+  const sendFriendRequest = async () => {
+    setFriendLoading(true)
+    await api('/rest/v1/friendships', {
+      method: 'POST',
+      body: JSON.stringify({ user_a: user.id, user_b: id, status: 'pending' })
+    })
+    await loadFriendship()
+    setFriendLoading(false)
+  }
+
+  const acceptFriendRequest = async () => {
+    setFriendLoading(true)
+    await api(`/rest/v1/friendships?id=eq.${friendship.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'accepted' })
+    })
+    await loadFriendship()
+    setFriendLoading(false)
+  }
+
+  const removeFriend = async () => {
+    setFriendLoading(true)
+    await api(`/rest/v1/friendships?id=eq.${friendship.id}`, { method: 'DELETE' })
+    setFriendship(null)
+    setFriendLoading(false)
+  }
+
+  // Bouton ami selon l'état
+  const FriendBtn = () => {
+    if (!user || user.id === id) return null
+    if (friendLoading) return <button disabled style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.surfaceB, color: C.textDim, fontSize: 12, fontWeight: 600, cursor: 'wait', fontFamily: 'inherit' }}>…</button>
+
+    if (!friendship) return (
+      <button onClick={sendFriendRequest} style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid #3498db`, background: 'transparent', color: '#3498db', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
+        👥 Ajouter ami
+      </button>
+    )
+
+    if (friendship.status === 'pending' && friendship.user_a === user.id) return (
+      <button onClick={removeFriend} style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.surfaceB, color: C.textMid, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
+        ⏳ Demande envoyée
+      </button>
+    )
+
+    if (friendship.status === 'pending' && friendship.user_b === user.id) return (
+      <button onClick={acceptFriendRequest} style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid #2ecc71`, background: '#2ecc71', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
+        ✅ Accepter la demande
+      </button>
+    )
+
+    if (friendship.status === 'accepted') return (
+      <button onClick={removeFriend} style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid #3498db`, background: '#3498db', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
+        👥 Amis ✓
+      </button>
+    )
+
+    return null
+  }
 
   const toggleBlock = async () => {
     if (!user || blocking) return
@@ -179,6 +254,7 @@ export default function MemberProfile() {
                 {isAdmin && (
                   <Btn onClick={() => setShowRolePanel(v => !v)} variant="ghost" style={{ fontSize: 12 }}>🛡️ Gérer le rôle</Btn>
                 )}
+                <FriendBtn />
                 {!isBlocked && (
                   <Btn onClick={() => navigate('/messages')} variant="yellow" style={{ fontSize: 12 }}>✉️ Message</Btn>
                 )}
