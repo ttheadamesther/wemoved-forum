@@ -176,10 +176,13 @@ export default function ForumPage() {
   }
 
   const toggleLike = async (thread) => {
-    const liked = likes[thread.id]
-    setLikes(l => ({ ...l, [thread.id]: !liked }))
-    await patchThread(thread.id, { likes: thread.likes + (liked ? -1 : 1) })
-  }
+  const liked = likes[thread.id]
+  const newCount = thread.likes + (liked ? -1 : 1)
+  setLikes(l => ({ ...l, [thread.id]: !liked }))
+  // Mettre à jour localement sans recharger
+  setThreads(prev => prev.map(t => t.id === thread.id ? { ...t, likes: newCount } : t))
+  await api(`/rest/v1/threads?id=eq.${thread.id}`, { method: 'PATCH', body: JSON.stringify({ likes: newCount }) })
+}
 
   const updateThread = async (id, title, body) => {
     await api(`/rest/v1/threads?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ title, body, edited_at: new Date().toISOString() }) })
