@@ -14,11 +14,25 @@ const ROLES_ASSIGNABLES = [
   { value: 'manager',    label: 'Manager',     color: '#5a0080' },
 ]
 
+async function getToken() {
+  try {
+    const keys = Object.keys(localStorage)
+    const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
+    if (authKey) {
+      const data = JSON.parse(localStorage.getItem(authKey))
+      if (data?.access_token) return data.access_token
+    }
+  } catch {}
+  return ANON_KEY
+}
+
 function api(path, opts = {}) {
-  return fetch(`${SUPABASE_URL}${path}`, {
-    ...opts,
-    headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json', ...opts.headers }
-  })
+  return getToken().then(token =>
+    fetch(`${SUPABASE_URL}${path}`, {
+      ...opts,
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', ...opts.headers }
+    })
+  )
 }
 
 const statutLabel = (statut) => {
@@ -95,25 +109,14 @@ export default function MemberProfile() {
   }
 
   const sendFriendRequest = async () => {
-  setFriendLoading(true)
-  await api('/rest/v1/friendships', {
-    method: 'POST',
-    body: JSON.stringify({ user_a: user.id, user_b: id, status: 'pending' })
-  })
-  // Notification au destinataire
-  await api('/rest/v1/notifications', {
-    method: 'POST',
-    body: JSON.stringify({
-      user_id: id,
-      type: 'friend_request',
-      content: `👥 @${profile?.pseudo || 'Quelqu\'un'} vous a envoyé une demande d'ami`,
-      link: `/members/${user.id}`,
-      read: false
+    setFriendLoading(true)
+    await api('/rest/v1/friendships', {
+      method: 'POST',
+      body: JSON.stringify({ user_a: user.id, user_b: id, status: 'pending' })
     })
-  })
-  await loadFriendship()
-  setFriendLoading(false)
-}
+    await loadFriendship()
+    setFriendLoading(false)
+  }
 
   const acceptFriendRequest = async () => {
     setFriendLoading(true)
