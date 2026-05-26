@@ -67,6 +67,31 @@ export const GEO = {
     "Sarthe (72)": ["Le Mans", "La Flèche", "Allonnes"],
     "Vendée (85)": ["La Roche-sur-Yon", "Les Sables-d'Olonne", "Challans"],
   },
+  "🇧🇪 Belgique": {
+    "Bruxelles": ["Bruxelles", "Schaerbeek", "Molenbeek", "Ixelles", "Anderlecht"],
+    "Wallonie": ["Liège", "Namur", "Charleroi", "Mons", "Tournai", "Arlon", "La Louvière"],
+    "Flandre": ["Anvers", "Gand", "Bruges", "Louvain", "Hasselt"],
+  },
+  "🇨🇭 Suisse": {
+    "Genève": ["Genève", "Carouge", "Vernier", "Lancy", "Meyrin"],
+    "Vaud": ["Lausanne", "Montreux", "Yverdon-les-Bains", "Nyon", "Renens"],
+    "Valais": ["Sion", "Martigny", "Monthey", "Sierre", "Brigue"],
+    "Fribourg": ["Fribourg", "Bulle", "Romont"],
+    "Neuchâtel": ["Neuchâtel", "La Chaux-de-Fonds", "Le Locle"],
+    "Jura": ["Delémont", "Porrentruy", "Saignelégier"],
+    "Berne": ["Berne", "Bienne", "Thoune"],
+  },
+  "🇱🇺 Luxembourg": {
+    "Luxembourg": ["Luxembourg-Ville", "Esch-sur-Alzette", "Differdange", "Dudelange", "Ettelbruck", "Diekirch"],
+  },
+  "🇨🇦 Québec": {
+    "Montréal": ["Montréal", "Laval", "Longueuil", "Repentigny", "Brossard"],
+    "Québec": ["Québec", "Lévis", "Saguenay", "Sherbrooke", "Trois-Rivières"],
+    "Laurentides": ["Saint-Jérôme", "Mirabel", "Blainville", "Sainte-Thérèse"],
+    "Montérégie": ["Longueuil", "Saint-Jean-sur-Richelieu", "Brossard", "Granby"],
+    "Estrie": ["Sherbrooke", "Magog", "Granby", "Drummondville"],
+    "Lanaudière": ["Joliette", "Repentigny", "Terrebonne"],
+  },
 }
 
 export const getRegions = () => Object.keys(GEO)
