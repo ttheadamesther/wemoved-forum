@@ -95,14 +95,25 @@ export default function MemberProfile() {
   }
 
   const sendFriendRequest = async () => {
-    setFriendLoading(true)
-    await api('/rest/v1/friendships', {
-      method: 'POST',
-      body: JSON.stringify({ user_a: user.id, user_b: id, status: 'pending' })
+  setFriendLoading(true)
+  await api('/rest/v1/friendships', {
+    method: 'POST',
+    body: JSON.stringify({ user_a: user.id, user_b: id, status: 'pending' })
+  })
+  // Notification au destinataire
+  await api('/rest/v1/notifications', {
+    method: 'POST',
+    body: JSON.stringify({
+      user_id: id,
+      type: 'friend_request',
+      content: `👥 @${profile?.pseudo || 'Quelqu\'un'} vous a envoyé une demande d'ami`,
+      link: `/members/${user.id}`,
+      read: false
     })
-    await loadFriendship()
-    setFriendLoading(false)
-  }
+  })
+  await loadFriendship()
+  setFriendLoading(false)
+}
 
   const acceptFriendRequest = async () => {
     setFriendLoading(true)
