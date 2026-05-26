@@ -169,7 +169,7 @@ export default function Profile() {
       return
     }
     const initials = newPseudo.trim().slice(0, 2).toUpperCase()
-    await patchProfile({ pseudo: newPseudo.trim(), initials })
+    await patchProfile({ pseudo: newPseudo.trim() })
     setSavingPseudo(false)
     setEditingPseudo(false)
     setNewPseudo('')
