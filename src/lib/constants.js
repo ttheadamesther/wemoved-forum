@@ -144,7 +144,7 @@ export const C = {
 }
 
 // ─── CATÉGORIES FORUM ────────────────────────────────────────────────────────
-export const CATS = ["Tous", "Musique", "Culture", "Voyages", "Lifestyle", "Rencontres", "Divers"]
+export const CATS = ["Tous", "Musique", "Culture", "Voyages", "Lifestyle", "Rencontres", "Divers", "+18"]
 
 // ─── MON PROFIL (démo) ────────────────────────────────────────────────────────
 export const ME = {

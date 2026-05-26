@@ -63,19 +63,12 @@ function RichInput({ value, onChange, placeholder, rows = 3 }) {
 
   return (
     <div style={{ position: 'relative' }}>
-      <textarea
-        ref={textareaRef}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        rows={rows}
+      <textarea ref={textareaRef} value={value} onChange={onChange} placeholder={placeholder} rows={rows}
         style={{ width: '100%', border: `1px solid ${C.borderMid}`, borderRadius: 10, padding: '10px 44px 10px 14px', fontSize: 13, color: C.text, background: C.surfaceB, fontFamily: 'inherit', resize: 'vertical', lineHeight: 1.6, outline: 'none', transition: 'border .2s', boxSizing: 'border-box' }}
         onFocus={e => e.target.style.borderColor = '#c8a200'}
         onBlur={e => e.target.style.borderColor = C.borderMid}
       />
-      <button type="button" onClick={() => setShowEmoji(s => !s)} style={{ position: 'absolute', bottom: 10, right: 10, background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, lineHeight: 1, opacity: .6 }}>
-        😊
-      </button>
+      <button type="button" onClick={() => setShowEmoji(s => !s)} style={{ position: 'absolute', bottom: 10, right: 10, background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, lineHeight: 1, opacity: .6 }}>😊</button>
       {showEmoji && (
         <div ref={emojiRef} style={{ position: 'absolute', bottom: '110%', right: 0, zIndex: 1000 }}>
           <EmojiPicker onEmojiClick={insertEmoji} width={300} height={350} />
@@ -90,10 +83,7 @@ function Avatar({ member, size = 36 }) {
   const color = colors[(member?.pseudo?.charCodeAt(0) || 0) % colors.length]
   return (
     <div style={{ width: size, height: size, borderRadius: '50%', background: member?.avatar_url ? '#444' : color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * .32, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, border: '2px solid rgba(255,255,255,.3)' }}>
-      {member?.avatar_url
-        ? <img src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-        : member?.initials || '??'
-      }
+      {member?.avatar_url ? <img src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : member?.initials || '??'}
     </div>
   )
 }
@@ -116,13 +106,21 @@ export default function ForumPage() {
   const [likes,         setLikes]        = useState({})
   const [editingThread, setEditingThread] = useState(null)
   const [editingReply,  setEditingReply]  = useState(null)
+  const [adultWarning,  setAdultWarning]  = useState(false)
 
   const myRole = profile?.role || 'membre'
   const ROLES_RANK = { admin: 4, manager: 3, moderateur: 2, animateur: 1, membre: 0 }
   const myRank = ROLES_RANK[myRole] || 0
   const canMod = myRank >= 2
 
+  // Vérification âge +18
+  const userAge = profile?.age ? parseInt(profile.age) : null
+  const isAdult = userAge !== null && userAge >= 18
+
   const getMember = (id) => members.find(m => m.id === id)
+
+  // Filtrer la catégorie +18 selon l'âge
+  const visibleCats = CATS.filter(c => c !== '+18' || isAdult || canMod)
 
   useEffect(() => {
     const observer = new ResizeObserver(entries => {
@@ -145,10 +143,15 @@ export default function ForumPage() {
     api(`/rest/v1/replies?thread_id=eq.${threadId}&order=created_at.asc`).then(r => r.json()).then(d => { if (Array.isArray(d)) setReplies(d) })
   }
 
-  const openThread = (id) => { setOpenId(id); loadReplies(id) }
+  const openThread = (t) => {
+    // Bloquer accès +18 si pas majeur
+    if (t.cat === '+18' && !isAdult && !canMod) return
+    setOpenId(t.id); loadReplies(t.id)
+  }
 
   const postThread = async () => {
     if (!nTitle.trim() || !nBody.trim() || !user) return
+    if (nCat === '+18' && !isAdult && !canMod) return
     setPosting(true)
     await api('/rest/v1/threads', {
       method: 'POST',
@@ -179,18 +182,12 @@ export default function ForumPage() {
   }
 
   const updateThread = async (id, title, body) => {
-    await api(`/rest/v1/threads?id=eq.${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ title, body, edited_at: new Date().toISOString() })
-    })
+    await api(`/rest/v1/threads?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ title, body, edited_at: new Date().toISOString() }) })
     loadThreads()
   }
 
   const updateReply = async (id, body) => {
-    await api(`/rest/v1/replies?id=eq.${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ body, edited_at: new Date().toISOString() })
-    })
+    await api(`/rest/v1/replies?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ body, edited_at: new Date().toISOString() }) })
     loadReplies(openId)
   }
 
@@ -209,7 +206,11 @@ export default function ForumPage() {
 
   const currentThread = threads.find(t => t.id === openId)
   const visReplies    = replies.filter(r => !r.hidden || canMod)
-  const filtered      = (cat === 'Tous' ? threads : threads.filter(t => t.cat === cat)).filter(t => !t.hidden || canMod)
+
+  // Filtrer les threads : masquer +18 aux mineurs
+  const filtered = (cat === 'Tous' ? threads : threads.filter(t => t.cat === cat))
+    .filter(t => !t.hidden || canMod)
+    .filter(t => t.cat !== '+18' || isAdult || canMod)
 
   const ModBar = ({ thread }) => (
     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '8px 12px', background: '#fffae6', border: `1px solid ${C.accentDk}`, borderRadius: 10, marginTop: 10 }}>
@@ -233,6 +234,10 @@ export default function ForumPage() {
           <div style={{ background: '#ffe0e0', border: '1px solid #c0392b', borderRadius: 10, padding: '8px 14px', marginBottom: 12, fontSize: 12, color: C.red, fontWeight: 600 }}>🗑 Discussion masquée</div>
         )}
 
+        {currentThread.cat === '+18' && (
+          <div style={{ background: '#fff0f0', border: `1px solid ${C.red}`, borderRadius: 10, padding: '8px 14px', marginBottom: 12, fontSize: 12, color: C.red, fontWeight: 600 }}>🔞 Contenu réservé aux +18 ans</div>
+        )}
+
         <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: isMobile ? '14px' : '20px', marginBottom: 12, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
           <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
             <Avatar member={author} size={isMobile ? 36 : 48} />
@@ -240,7 +245,7 @@ export default function ForumPage() {
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
                 <strong style={{ fontSize: 14, color: C.text }}>@{author?.pseudo || 'Inconnu'}</strong>
                 <RoleBadge role={author?.role || 'membre'} />
-                <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: '#fffae6', color: '#7a6200', border: '1px solid #c8a20044' }}>{currentThread.cat}</span>
+                <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: currentThread.cat === '+18' ? '#ffe0e0' : '#fffae6', color: currentThread.cat === '+18' ? C.red : '#7a6200', border: `1px solid ${currentThread.cat === '+18' ? '#f5c0c0' : '#c8a20044'}` }}>{currentThread.cat}</span>
                 {currentThread.pinned && <span style={{ fontSize: 11, color: C.accentTxt, fontWeight: 700 }}>📌 Épinglé</span>}
                 {currentThread.locked && <span style={{ fontSize: 11, color: C.red, fontWeight: 700 }}>🔒 Verrouillé</span>}
                 <span style={{ fontSize: 11, color: C.textDim, marginLeft: 'auto' }}>{formatDate(currentThread.created_at)}</span>
@@ -299,7 +304,6 @@ export default function ForumPage() {
                     {r.hidden && <span style={{ fontSize: 10, color: C.red, fontWeight: 700 }}>🗑 Masqué</span>}
                     {r.edited_at && <span style={{ fontSize: 10, color: C.textDim, fontStyle: 'italic' }}>✏️ modifié</span>}
                   </div>
-
                   {isEditingThis ? (
                     <div>
                       <RichInput value={editingReply.body} onChange={e => setEditingReply(v => ({ ...v, body: e.target.value }))} rows={3} />
@@ -313,7 +317,6 @@ export default function ForumPage() {
                       <RichText text={r.body} />
                     </p>
                   )}
-
                   <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     {user?.id === r.author_id && !isEditingThis && (
                       <Btn onClick={() => setEditingReply({ id: r.id, body: r.body })} variant="ghost" style={{ fontSize: 10 }}>✏️ Modifier</Btn>
@@ -375,9 +378,9 @@ export default function ForumPage() {
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Catégorie</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {CATS.filter(c => c !== 'Tous').map(c => (
-                <button key={c} onClick={() => setNCat(c)} style={{ padding: '5px 14px', borderRadius: 20, cursor: 'pointer', background: nCat === c ? '#fffae6' : C.surfaceB, border: `1px solid ${nCat === c ? C.accentDk : C.border}`, color: nCat === c ? C.accentTxt : C.textMid, fontSize: 12, fontFamily: 'inherit', fontWeight: nCat === c ? 700 : 400, transition: 'all .15s' }}>
-                  {c}
+              {CATS.filter(c => c !== 'Tous' && (c !== '+18' || isAdult || canMod)).map(c => (
+                <button key={c} onClick={() => setNCat(c)} style={{ padding: '5px 14px', borderRadius: 20, cursor: 'pointer', background: nCat === c ? (c === '+18' ? '#ffe0e0' : '#fffae6') : C.surfaceB, border: `1px solid ${nCat === c ? (c === '+18' ? C.red : C.accentDk) : C.border}`, color: nCat === c ? (c === '+18' ? C.red : C.accentTxt) : C.textMid, fontSize: 12, fontFamily: 'inherit', fontWeight: nCat === c ? 700 : 400, transition: 'all .15s' }}>
+                  {c === '+18' ? '🔞 +18' : c}
                 </button>
               ))}
             </div>
@@ -393,10 +396,11 @@ export default function ForumPage() {
         </div>
       )}
 
+      {/* Filtres catégories */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-        {CATS.map(c => (
-          <button key={c} onClick={() => setCat(c)} style={{ padding: '5px 14px', borderRadius: 20, cursor: 'pointer', background: cat === c ? '#fffae6' : C.surfaceB, border: `1px solid ${cat === c ? C.accentDk : C.border}`, color: cat === c ? C.accentTxt : C.textMid, fontSize: 12, fontFamily: 'inherit', fontWeight: cat === c ? 700 : 400, transition: 'all .15s' }}>
-            {c}
+        {visibleCats.map(c => (
+          <button key={c} onClick={() => setCat(c)} style={{ padding: '5px 14px', borderRadius: 20, cursor: 'pointer', background: cat === c ? (c === '+18' ? '#ffe0e0' : '#fffae6') : C.surfaceB, border: `1px solid ${cat === c ? (c === '+18' ? C.red : C.accentDk) : C.border}`, color: cat === c ? (c === '+18' ? C.red : C.accentTxt) : C.textMid, fontSize: 12, fontFamily: 'inherit', fontWeight: cat === c ? 700 : 400, transition: 'all .15s' }}>
+            {c === '+18' ? '🔞 +18' : c}
           </button>
         ))}
       </div>
@@ -404,8 +408,9 @@ export default function ForumPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {filtered.map(t => {
           const author = getMember(t.author_id)
+          const isAdultCat = t.cat === '+18'
           return (
-            <div key={t.id} onClick={() => openThread(t.id)} style={{ background: t.hidden ? '#fff8f8' : C.white, border: `1px solid ${t.hidden ? '#f5c0c0' : t.pinned ? C.accentDk : C.border}`, borderRadius: 14, padding: isMobile ? '12px' : '14px 16px', cursor: 'pointer', display: 'flex', gap: 12, transition: 'all .2s', boxShadow: '0 1px 3px rgba(0,0,0,.03)' }}
+            <div key={t.id} onClick={() => openThread(t)} style={{ background: t.hidden ? '#fff8f8' : C.white, border: `1px solid ${t.hidden ? '#f5c0c0' : t.pinned ? C.accentDk : C.border}`, borderRadius: 14, padding: isMobile ? '12px' : '14px 16px', cursor: 'pointer', display: 'flex', gap: 12, transition: 'all .2s', boxShadow: '0 1px 3px rgba(0,0,0,.03)' }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 16px var(--card-shadow)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,.03)' }}
             >
@@ -414,7 +419,9 @@ export default function ForumPage() {
                 <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 4, flexWrap: 'wrap' }}>
                   <strong style={{ fontSize: 12, color: C.text }}>@{author?.pseudo || 'Inconnu'}</strong>
                   <RoleBadge role={author?.role || 'membre'} />
-                  <span style={{ padding: '1px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: '#fffae6', color: '#7a6200', border: '1px solid #c8a20044' }}>{t.cat}</span>
+                  <span style={{ padding: '1px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: isAdultCat ? '#ffe0e0' : '#fffae6', color: isAdultCat ? C.red : '#7a6200', border: `1px solid ${isAdultCat ? '#f5c0c0' : '#c8a20044'}` }}>
+                    {isAdultCat ? '🔞 +18' : t.cat}
+                  </span>
                   {t.pinned && <span style={{ fontSize: 10, color: C.accentTxt, fontWeight: 700 }}>📌</span>}
                   {t.locked && <span style={{ fontSize: 10, color: C.red, fontWeight: 700 }}>🔒</span>}
                   {t.hidden && canMod && <span style={{ fontSize: 10, color: C.red, fontWeight: 700 }}>🗑</span>}
