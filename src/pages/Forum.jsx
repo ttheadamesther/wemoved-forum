@@ -275,7 +275,7 @@ export default function ForumPage() {
 
               <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                 <button onClick={() => toggleLike(currentThread)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: likes[currentThread.id] ? '#fffae6' : C.surfaceB, border: `1px solid ${likes[currentThread.id] ? C.accentDk : C.border}`, color: likes[currentThread.id] ? C.accentTxt : C.textMid, borderRadius: 20, padding: '6px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', transition: 'all .15s' }}>
-                  ♥ {currentThread.likes + (likes[currentThread.id] ? 1 : 0)} J'aime
+                  ♥ {currentThread.likes} J'aime
                 </button>
                 {user?.id === currentThread.author_id && !editingThread && (
                   <Btn onClick={() => setEditingThread({ title: currentThread.title, body: currentThread.body })} variant="ghost" style={{ fontSize: 11 }}>✏️ Modifier</Btn>
