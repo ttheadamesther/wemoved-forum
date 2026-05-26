@@ -100,12 +100,16 @@ export default function MemberProfile() {
   }, [id, user])
 
   const loadFriendship = async () => {
-    const r = await fetch(
-      `${SUPABASE_URL}/rest/v1/friendships?or=(and(user_a.eq.${user.id},user_b.eq.${id}),and(user_a.eq.${id},user_b.eq.${user.id}))&limit=1`,
-      { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` } }
-    )
-    const data = await r.json()
-    setFriendship(Array.isArray(data) && data.length > 0 ? data[0] : null)
+  const token = await getToken()
+  const headers = { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
+
+  const r1 = await fetch(`${SUPABASE_URL}/rest/v1/friendships?user_a=eq.${user.id}&user_b=eq.${id}&limit=1`, { headers })
+  const d1 = await r1.json()
+  if (Array.isArray(d1) && d1.length > 0) { setFriendship(d1[0]); return }
+
+  const r2 = await fetch(`${SUPABASE_URL}/rest/v1/friendships?user_a=eq.${id}&user_b=eq.${user.id}&limit=1`, { headers })
+  const d2 = await r2.json()
+  setFriendship(Array.isArray(d2) && d2.length > 0 ? d2[0] : null)
   }
 
   const sendFriendRequest = async () => {
