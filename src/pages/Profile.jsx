@@ -9,8 +9,20 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 async function getToken() {
-  const key = Object.keys(localStorage).find(k => k.includes('auth-token')) || ''
-  try { return JSON.parse(localStorage.getItem(key))?.access_token || ANON_KEY } catch { return ANON_KEY }
+  try {
+    const keys = Object.keys(localStorage)
+    const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
+    if (authKey) {
+      const data = JSON.parse(localStorage.getItem(authKey))
+      if (data?.access_token) return data.access_token
+    }
+    const oldKey = keys.find(k => k.includes('auth-token'))
+    if (oldKey) {
+      const data = JSON.parse(localStorage.getItem(oldKey))
+      if (data?.access_token) return data.access_token
+    }
+  } catch {}
+  return ANON_KEY
 }
 
 async function apiFetch(path, opts = {}) {
