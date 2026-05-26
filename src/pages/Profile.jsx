@@ -148,7 +148,7 @@ export default function Profile() {
     if (!/^[a-zA-Z0-9_]+$/.test(newPseudo.trim())) return setPseudoError('Lettres, chiffres et _ uniquement.')
     // Vérifier unicité
     setSavingPseudo(true)
-    const check = await apiFetch(`/rest/v1/profiles?pseudo=eq.${newPseudo.trim()}&id=neq.${user.id}&limit=1`)
+    const check = await apiFetch(`/rest/v1/profiles?pseudo=ilike.${newPseudo.trim()}&id=neq.${user.id}&limit=1`)
     const existing = await check.json()
     if (Array.isArray(existing) && existing.length > 0) {
       setPseudoError('Ce pseudo est déjà pris.')
