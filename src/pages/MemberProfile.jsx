@@ -100,16 +100,12 @@ export default function MemberProfile() {
   }, [id, user])
 
   const loadFriendship = async () => {
-  const token = await getToken()
-  const headers = { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
-
-  const r1 = await fetch(`${SUPABASE_URL}/rest/v1/friendships?user_a=eq.${user.id}&user_b=eq.${id}&limit=1`, { headers })
-  const d1 = await r1.json()
-  if (Array.isArray(d1) && d1.length > 0) { setFriendship(d1[0]); return }
-
-  const r2 = await fetch(`${SUPABASE_URL}/rest/v1/friendships?user_a=eq.${id}&user_b=eq.${user.id}&limit=1`, { headers })
-  const d2 = await r2.json()
-  setFriendship(Array.isArray(d2) && d2.length > 0 ? d2[0] : null)
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/friendships?or=(and(user_a.eq.${user.id},user_b.eq.${id}),and(user_a.eq.${id},user_b.eq.${user.id}))&limit=1`,
+      { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` } }
+    )
+    const data = await r.json()
+    setFriendship(Array.isArray(data) && data.length > 0 ? data[0] : null)
   }
 
   const sendFriendRequest = async () => {
@@ -117,6 +113,16 @@ export default function MemberProfile() {
     await api('/rest/v1/friendships', {
       method: 'POST',
       body: JSON.stringify({ user_a: user.id, user_b: id, status: 'pending' })
+    })
+    await api('/rest/v1/notifications', {
+      method: 'POST',
+      body: JSON.stringify({
+        user_id: id,
+        type: 'friend_request',
+        content: `👥 @${profile?.pseudo || 'Quelqu\'un'} vous a envoyé une demande d'ami`,
+        link: `/members/${user.id}`,
+        read: false
+      })
     })
     await loadFriendship()
     setFriendLoading(false)
@@ -157,9 +163,14 @@ export default function MemberProfile() {
     )
 
     if (friendship.status === 'pending' && friendship.user_b === user.id) return (
-      <button onClick={acceptFriendRequest} style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid #2ecc71`, background: '#2ecc71', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
-        ✅ Accepter la demande
-      </button>
+      <div style={{ display: 'flex', gap: 6 }}>
+        <button onClick={acceptFriendRequest} style={{ padding: '6px 14px', borderRadius: 20, border: '1px solid #2ecc71', background: '#2ecc71', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
+          ✅ Accepter
+        </button>
+        <button onClick={removeFriend} style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${C.red}`, background: 'transparent', color: C.red, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
+          ✕ Refuser
+        </button>
+      </div>
     )
 
     if (friendship.status === 'accepted') return (
