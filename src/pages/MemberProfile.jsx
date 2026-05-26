@@ -21,6 +21,13 @@ function api(path, opts = {}) {
   })
 }
 
+const statutLabel = (statut) => {
+  if (statut === 'celibataire') return '💚 Célibataire'
+  if (statut === 'couple')      return '❤️ En couple'
+  if (statut === 'complique')   return "💛 C'est compliqué"
+  return null
+}
+
 export default function MemberProfile() {
   const { id }            = useParams()
   const { user, profile } = useAuth()
@@ -39,7 +46,6 @@ export default function MemberProfile() {
   const monthKey = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth()}` }
 
   useEffect(() => {
-    // Charger le profil
     fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${id}&limit=1`, {
       headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
     }).then(r => r.json()).then(data => {
@@ -48,7 +54,6 @@ export default function MemberProfile() {
     })
 
     if (user) {
-      // Charger les votes
       fetch(`${SUPABASE_URL}/rest/v1/votes?from_id=eq.${user.id}&to_id=eq.${id}&month_key=eq.${monthKey()}`, {
         headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
       }).then(r => r.json()).then(data => {
@@ -59,14 +64,12 @@ export default function MemberProfile() {
         }
       })
 
-      // Vérifier si je bloque ce membre
       fetch(`${SUPABASE_URL}/rest/v1/blocks?blocker_id=eq.${user.id}&blocked_id=eq.${id}&limit=1`, {
         headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
       }).then(r => r.json()).then(data => {
         setIsBlocked(Array.isArray(data) && data.length > 0)
       })
 
-      // Vérifier si ce membre me bloque
       fetch(`${SUPABASE_URL}/rest/v1/blocks?blocker_id=eq.${id}&blocked_id=eq.${user.id}&limit=1`, {
         headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
       }).then(r => r.json()).then(data => {
@@ -79,15 +82,10 @@ export default function MemberProfile() {
     if (!user || blocking) return
     setBlocking(true)
     if (isBlocked) {
-      // Débloquer
       await api(`/rest/v1/blocks?blocker_id=eq.${user.id}&blocked_id=eq.${id}`, { method: 'DELETE' })
       setIsBlocked(false)
     } else {
-      // Bloquer
-      await api(`/rest/v1/blocks`, {
-        method: 'POST',
-        body: JSON.stringify({ blocker_id: user.id, blocked_id: id })
-      })
+      await api(`/rest/v1/blocks`, { method: 'POST', body: JSON.stringify({ blocker_id: user.id, blocked_id: id }) })
       setIsBlocked(true)
     }
     setBlocking(false)
@@ -98,8 +96,7 @@ export default function MemberProfile() {
     setVoting(voteType)
     if (myVotes[voteType]) {
       await fetch(`${SUPABASE_URL}/rest/v1/votes?from_id=eq.${user.id}&to_id=eq.${id}&vote_type=eq.${voteType}&month_key=eq.${monthKey()}`, {
-        method: 'DELETE',
-        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+        method: 'DELETE', headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
       })
       const newVotes = { ...member.votes, [voteType]: Math.max(0, (member.votes?.[voteType] || 0) - 1) }
       await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${id}`, {
@@ -141,7 +138,6 @@ export default function MemberProfile() {
 
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: C.textMid }}>Chargement…</div>
 
-  // Si ce membre m'a bloqué, afficher un message générique
   if (blockedByThem) return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px' }}>
       <Btn onClick={() => navigate('/members')} variant="ghost" style={{ marginBottom: 16, fontSize: 12 }}>← Retour</Btn>
@@ -158,6 +154,7 @@ export default function MemberProfile() {
   const votes      = member.votes || { mimi: 0, cool: 0, sexy: 0, loose: 0 }
   const totalVotes = Object.values(votes).reduce((a, b) => a + b, 0)
   const sexeLabel  = member.sexe ? member.sexe.charAt(0).toUpperCase() + member.sexe.slice(1) : null
+  const statut     = statutLabel(member.statut)
 
   const colors = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
   const avatarColor = colors[(member.pseudo?.charCodeAt(0) || 0) % colors.length]
@@ -168,7 +165,6 @@ export default function MemberProfile() {
 
       <Btn onClick={() => navigate('/members')} variant="ghost" style={{ marginBottom: 16, fontSize: 12 }}>← Retour</Btn>
 
-      {/* Bannière + Avatar */}
       <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, overflow: 'hidden', marginBottom: 16, boxShadow: '0 2px 12px rgba(0,0,0,.06)' }}>
         <div style={{ height: 160, background: member.banner_url ? `url(${member.banner_url}) center/cover no-repeat` : 'linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)' }} />
 
@@ -198,7 +194,6 @@ export default function MemberProfile() {
             )}
           </div>
 
-          {/* Panel gestion du rôle */}
           {isAdmin && showRolePanel && (
             <div style={{ background: C.surfaceB, border: `1px solid ${C.accentDk}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
               <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>🛡️ Attribuer un rôle à @{member.pseudo}</div>
@@ -221,7 +216,6 @@ export default function MemberProfile() {
             </div>
           )}
 
-          {/* Badge bloqué */}
           {isBlocked && (
             <div style={{ background: '#fff3f3', border: `1px solid ${C.red}`, borderRadius: 8, padding: '8px 14px', marginBottom: 12, fontSize: 12, color: C.red, display: 'flex', alignItems: 'center', gap: 8 }}>
               🚫 Vous avez bloqué ce membre — il ne peut plus vous envoyer de messages ni voir votre profil.
@@ -235,12 +229,13 @@ export default function MemberProfile() {
           </div>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {member.joined  && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>📅 {member.joined}</span>}
-            {member.age     && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>🎂 {member.age} ans</span>}
-            {sexeLabel      && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>👤 {sexeLabel}</span>}
-            {member.city    && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>📍 {member.city}</span>}
-            {member.dept    && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>🗺 {member.dept}</span>}
-            {member.region  && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>🌍 {member.region}</span>}
+            {member.joined && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>📅 {member.joined}</span>}
+            {member.age    && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>🎂 {member.age} ans</span>}
+            {sexeLabel     && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>👤 {sexeLabel}</span>}
+            {member.city   && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>📍 {member.city}</span>}
+            {member.dept   && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>🗺 {member.dept}</span>}
+            {member.region && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>🌍 {member.region}</span>}
+            {statut        && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>{statut}</span>}
           </div>
         </div>
       </div>
