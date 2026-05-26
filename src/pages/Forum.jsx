@@ -26,15 +26,33 @@ function formatDate(ts) {
 
 function RichText({ text }) {
   if (!text) return null
+  const lines = text.split('\n')
   const urlRegex = /(https?:\/\/[^\s]+)/g
-  const parts = text.split(urlRegex)
+
   return (
     <span>
-      {parts.map((part, i) =>
-        urlRegex.test(part)
-          ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: C.accentTxt, textDecoration: 'underline', wordBreak: 'break-all' }}>{part}</a>
-          : <span key={i}>{part}</span>
-      )}
+      {lines.map((line, i) => {
+        if (line.startsWith('> ')) {
+          return (
+            <span key={i}>
+              <span style={{ display: 'block', borderLeft: `3px solid ${C.accentDk}`, paddingLeft: 10, margin: '4px 0', color: C.textDim, fontSize: 12, fontStyle: 'italic', background: 'rgba(200,162,0,.07)', borderRadius: '0 6px 6px 0', padding: '4px 10px' }}>
+                {line.slice(2)}
+              </span>
+            </span>
+          )
+        }
+        const parts = line.split(urlRegex)
+        return (
+          <span key={i}>
+            {parts.map((part, j) =>
+              urlRegex.test(part)
+                ? <a key={j} href={part} target="_blank" rel="noopener noreferrer" style={{ color: C.accentTxt, textDecoration: 'underline', wordBreak: 'break-all' }}>{part}</a>
+                : <span key={j}>{part}</span>
+            )}
+            {i < lines.length - 1 && <br />}
+          </span>
+        )
+      })}
     </span>
   )
 }
@@ -107,6 +125,7 @@ export default function ForumPage() {
   const [editingThread, setEditingThread] = useState(null)
   const [editingReply,  setEditingReply]  = useState(null)
   const [adultWarning,  setAdultWarning]  = useState(false)
+  const [quoting,       setQuoting]       = useState(null) // { pseudo, body }
 
   const myRole = profile?.role || 'membre'
   const ROLES_RANK = { admin: 4, manager: 3, moderateur: 2, animateur: 1, membre: 0 }
@@ -163,11 +182,14 @@ export default function ForumPage() {
   const postReply = async () => {
     if (!replyText.trim() || !openId || !user) return
     setPosting(true)
+    const body = quoting
+      ? `> @${quoting.pseudo} : ${quoting.body.slice(0, 100)}${quoting.body.length > 100 ? '…' : ''}\n\n${replyText.trim()}`
+      : replyText.trim()
     await api('/rest/v1/replies', {
       method: 'POST',
-      body: JSON.stringify({ thread_id: openId, author_id: user.id, body: replyText.trim(), hidden: false })
+      body: JSON.stringify({ thread_id: openId, author_id: user.id, body, hidden: false })
     })
-    setReplyText(''); loadReplies(openId); setPosting(false)
+    setReplyText(''); setQuoting(null); loadReplies(openId); setPosting(false)
   }
 
   const patchThread = async (id, body) => {
@@ -176,13 +198,10 @@ export default function ForumPage() {
   }
 
   const toggleLike = async (thread) => {
-  const liked = likes[thread.id]
-  const newCount = thread.likes + (liked ? -1 : 1)
-  setLikes(l => ({ ...l, [thread.id]: !liked }))
-  // Mettre à jour localement sans recharger
-  setThreads(prev => prev.map(t => t.id === thread.id ? { ...t, likes: newCount } : t))
-  await api(`/rest/v1/threads?id=eq.${thread.id}`, { method: 'PATCH', body: JSON.stringify({ likes: newCount }) })
-}
+    const liked = likes[thread.id]
+    setLikes(l => ({ ...l, [thread.id]: !liked }))
+    await patchThread(thread.id, { likes: thread.likes + (liked ? -1 : 1) })
+  }
 
   const updateThread = async (id, title, body) => {
     await api(`/rest/v1/threads?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ title, body, edited_at: new Date().toISOString() }) })
@@ -277,6 +296,9 @@ export default function ForumPage() {
                 <button onClick={() => toggleLike(currentThread)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: likes[currentThread.id] ? '#fffae6' : C.surfaceB, border: `1px solid ${likes[currentThread.id] ? C.accentDk : C.border}`, color: likes[currentThread.id] ? C.accentTxt : C.textMid, borderRadius: 20, padding: '6px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', transition: 'all .15s' }}>
                   ♥ {currentThread.likes} J'aime
                 </button>
+                {user && user.id !== currentThread.author_id && !currentThread.locked && (
+                  <Btn onClick={() => { setQuoting({ pseudo: author?.pseudo || 'Inconnu', body: currentThread.body }); setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100) }} variant="ghost" style={{ fontSize: 11 }}>💬 Citer</Btn>
+                )}
                 {user?.id === currentThread.author_id && !editingThread && (
                   <Btn onClick={() => setEditingThread({ title: currentThread.title, body: currentThread.body })} variant="ghost" style={{ fontSize: 11 }}>✏️ Modifier</Btn>
                 )}
@@ -321,6 +343,9 @@ export default function ForumPage() {
                     </p>
                   )}
                   <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {user && user.id !== r.author_id && !currentThread.locked && !isEditingThis && (
+                      <Btn onClick={() => { setQuoting({ pseudo: ru?.pseudo || 'Inconnu', body: r.body }); setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100) }} variant="ghost" style={{ fontSize: 10 }}>💬 Citer</Btn>
+                    )}
                     {user?.id === r.author_id && !isEditingThis && (
                       <Btn onClick={() => setEditingReply({ id: r.id, body: r.body })} variant="ghost" style={{ fontSize: 10 }}>✏️ Modifier</Btn>
                     )}
@@ -342,6 +367,15 @@ export default function ForumPage() {
         {user && !currentThread.locked ? (
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: isMobile ? '14px' : '16px', boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 10 }}>Votre réponse</div>
+            {quoting && (
+              <div style={{ background: C.surfaceB, border: `1px solid ${C.border}`, borderLeft: `3px solid ${C.accentDk}`, borderRadius: 8, padding: '8px 12px', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.accentTxt, marginBottom: 3 }}>@{quoting.pseudo}</div>
+                  <div style={{ fontSize: 12, color: C.textMid, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{quoting.body.slice(0, 120)}{quoting.body.length > 120 ? '…' : ''}</div>
+                </div>
+                <button onClick={() => setQuoting(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, fontSize: 14, flexShrink: 0 }}>✕</button>
+              </div>
+            )}
             <RichInput value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Écris ta réponse… (liens et émojis supportés)" rows={3} />
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
               <Btn onClick={postReply} variant="yellow">{posting ? '…' : 'Publier ma réponse'}</Btn>
