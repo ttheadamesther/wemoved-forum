@@ -311,7 +311,7 @@ export default function Navbar() {
                       ? <div style={{ padding: 20, textAlign: 'center', color: C.textDim, fontSize: 12 }}>Aucune notification</div>
                       : notifs.map(n => (
                         <div key={n.id} onClick={() => { markRead(n.id); if (n.link) navigate(n.link); setShowNotifs(false) }}
-                          style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', background: '#fffae6', fontSize: 12, color: C.text, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                          style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', background: C.surfaceB, fontSize: 12, color: C.text, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                           <span style={{ flex: 1 }}>{n.content}</span>
                           <button onClick={e => { e.stopPropagation(); markRead(n.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, fontSize: 14, flexShrink: 0, lineHeight: 1 }}>✕</button>
                         </div>
