@@ -4,6 +4,7 @@ import { C, CATS } from '../lib/constants'
 import { RoleBadge, Btn, Input } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
 import EmojiPicker from 'emoji-picker-react'
+import { awardXP } from '../lib/xp'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -190,6 +191,7 @@ export default function ForumPage() {
     if (nCat === '+18' && !isAdult && !canMod) return
     setPosting(true)
     await api('/rest/v1/threads', { method: 'POST', body: JSON.stringify({ author_id: user.id, cat: nCat, title: nTitle.trim(), body: nBody.trim(), likes: 0, views: 0, pinned: false, locked: false, hidden: false }) })
+    await awardXP(user.id, 10)
     setNTitle(''); setNBody(''); setComposing(false); loadThreads(); setPosting(false)
   }
 
@@ -198,6 +200,7 @@ export default function ForumPage() {
     setPosting(true)
     const body = quoting ? `> @${quoting.pseudo} : ${quoting.body.slice(0, 100)}${quoting.body.length > 100 ? '…' : ''}\n\n${replyText.trim()}` : replyText.trim()
     await api('/rest/v1/replies', { method: 'POST', body: JSON.stringify({ thread_id: openId, author_id: user.id, body, hidden: false }) })
+    await awardXP(user.id, 5)
     setReplyText(''); setQuoting(null); loadReplies(openId)
     setReplyCounts(prev => ({ ...prev, [openId]: (prev[openId] || 0) + 1 }))
     setPosting(false)

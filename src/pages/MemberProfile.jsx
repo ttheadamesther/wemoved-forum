@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { C, VOTES_DEF } from '../lib/constants'
 import { RoleBadge, Btn } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
+import { awardXP, checkAndAwardBadges } from '../lib/xp'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -187,6 +188,9 @@ export default function MemberProfile() {
       method: 'PATCH',
       body: JSON.stringify({ status: 'accepted' })
     })
+    // XP pour les deux membres (+15)
+    await awardXP(user.id, 15)
+    await awardXP(id, 15)
     await loadFriendship()
     setFriendLoading(false)
   }
@@ -241,6 +245,9 @@ export default function MemberProfile() {
       })
       setMember(m => ({ ...m, votes: newVotes }))
       setMyVotes(v => ({ ...v, [voteType]: true }))
+      // XP au membre voté (+2) et vérif badges
+      await awardXP(id, 2)
+      await checkAndAwardBadges(id)
     }
     setVoting(null)
   }
