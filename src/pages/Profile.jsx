@@ -143,12 +143,6 @@ export default function Profile() {
   const [bannerCroppedArea, setBannerCroppedArea] = useState(null)
   const [uploadingBanner, setUploadingBanner]     = useState(false)
 
-  // ── Pseudo ──
-  const [editingPseudo, setEditingPseudo] = useState(false)
-  const [newPseudo,     setNewPseudo]     = useState('')
-  const [pseudoError,   setPseudoError]   = useState('')
-  const [savingPseudo,  setSavingPseudo]  = useState(false)
-
   // ── Infos personnelles ──
   const [editingInfos, setEditingInfos] = useState(false)
   const [infosRegion,  setInfosRegion]  = useState('')
@@ -180,28 +174,6 @@ export default function Profile() {
   const save = async () => { setSaving(true); await patchProfile({ bio }); setSaving(false); setEditing(false) }
   const addInterest = async () => { if (!interest.trim()) return; await patchProfile({ interests: [...(profile.interests || []), interest.trim()] }); setInterest('') }
   const removeInterest = async (item) => { await patchProfile({ interests: (profile.interests || []).filter(i => i !== item) }) }
-
-  const savePseudo = async () => {
-    setPseudoError('')
-    if (!newPseudo.trim()) return setPseudoError('Le pseudo ne peut pas être vide.')
-    if (newPseudo.trim().length < 3) return setPseudoError('3 caractères minimum.')
-    if (newPseudo.trim().length > 20) return setPseudoError('20 caractères maximum.')
-    if (!/^[a-zA-Z0-9_]+$/.test(newPseudo.trim())) return setPseudoError('Lettres, chiffres et _ uniquement.')
-    // Vérifier unicité
-    setSavingPseudo(true)
-    const check = await apiFetch(`/rest/v1/profiles?pseudo=ilike.${newPseudo.trim()}&id=neq.${user.id}&limit=1`)
-    const existing = await check.json()
-    if (Array.isArray(existing) && existing.length > 0) {
-      setPseudoError('Ce pseudo est déjà pris.')
-      setSavingPseudo(false)
-      return
-    }
-    const initials = newPseudo.trim().slice(0, 2).toUpperCase()
-    await patchProfile({ pseudo: newPseudo.trim(), initials })
-    setSavingPseudo(false)
-    setEditingPseudo(false)
-    setNewPseudo('')
-  }
 
   const openEditInfos = () => {
     setInfosRegion(profile.region || '')
@@ -544,40 +516,6 @@ export default function Profile() {
           <div style={{ display: 'flex', gap: 8 }}>
             <Input value={interest} onChange={e => setInterest(e.target.value)} placeholder="Ajouter un intérêt…" onKeyDown={e => e.key === 'Enter' && addInterest()} style={{ flex: 1 }} />
             <Btn onClick={addInterest} variant="yellow">+</Btn>
-          </div>
-        </div>
-
-        {/* ── PARAMÈTRES DU COMPTE ── */}
-        <div style={PANEL}>
-          <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>⚙️ Paramètres du compte</div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: C.surfaceB, borderRadius: 10, marginBottom: 8 }}>
-            <span style={{ fontSize: 16, width: 24, textAlign: 'center' }}>✏️</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 12, color: C.textMid, marginBottom: 2 }}>Pseudo</div>
-              {editingPseudo ? (
-                <div>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                    <Input
-                      value={newPseudo}
-                      onChange={e => { setNewPseudo(e.target.value); setPseudoError('') }}
-                      placeholder={profile.pseudo}
-                      style={{ flex: 1 }}
-                      onKeyDown={e => e.key === 'Enter' && savePseudo()}
-                    />
-                    <Btn onClick={savePseudo} variant="yellow" style={{ fontSize: 12 }}>{savingPseudo ? '…' : 'OK'}</Btn>
-                    <Btn onClick={() => { setEditingPseudo(false); setNewPseudo(''); setPseudoError('') }} variant="ghost" style={{ fontSize: 12 }}>✕</Btn>
-                  </div>
-                  {pseudoError && <div style={{ fontSize: 11, color: C.red, marginTop: 4 }}>{pseudoError}</div>}
-                  <div style={{ fontSize: 10, color: C.textDim, marginTop: 4 }}>Lettres, chiffres et _ uniquement · 3–20 caractères</div>
-                </div>
-              ) : (
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>@{profile.pseudo}</div>
-              )}
-            </div>
-            {!editingPseudo && (
-              <button onClick={() => { setEditingPseudo(true); setNewPseudo(profile.pseudo) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.accentTxt, fontWeight: 600 }}>Modifier</button>
-            )}
           </div>
         </div>
 
