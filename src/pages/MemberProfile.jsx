@@ -26,19 +26,52 @@ async function getToken() {
   return ANON_KEY
 }
 
-function api(path, opts = {}) {
-  return getToken().then(token =>
-    fetch(`${SUPABASE_URL}${path}`, {
-      ...opts,
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', ...opts.headers }
-    })
-  )
+async function api(path, opts = {}) {
+  const token = await getToken()
+  return fetch(`${SUPABASE_URL}${path}`, {
+    ...opts,
+    headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', ...opts.headers }
+  })
 }
 
 const statutLabel = (statut) => {
   if (statut === 'celibataire') return '💚 Célibataire'
   if (statut === 'couple')      return '❤️ En couple'
   if (statut === 'complique')   return "💛 C'est compliqué"
+  return null
+}
+
+// ── FriendBtn défini HORS du composant pour éviter les re-renders ──
+function FriendBtn({ user, id, friendship, friendLoading, onAdd, onAccept, onRemove }) {
+  if (!user || user.id === id) return null
+  if (friendLoading) return (
+    <button disabled style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.surfaceB, color: C.textDim, fontSize: 12, fontWeight: 600, cursor: 'wait', fontFamily: 'inherit' }}>…</button>
+  )
+  if (!friendship) return (
+    <button onClick={onAdd} style={{ padding: '6px 14px', borderRadius: 20, border: '1px solid #3498db', background: 'transparent', color: '#3498db', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
+      👥 Ajouter ami
+    </button>
+  )
+  if (friendship.status === 'pending' && friendship.user_a === user.id) return (
+    <button onClick={onRemove} style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.surfaceB, color: C.textMid, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
+      ⏳ Demande envoyée
+    </button>
+  )
+  if (friendship.status === 'pending' && friendship.user_b === user.id) return (
+    <div style={{ display: 'flex', gap: 6 }}>
+      <button onClick={onAccept} style={{ padding: '6px 14px', borderRadius: 20, border: '1px solid #2ecc71', background: '#2ecc71', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
+        ✅ Accepter
+      </button>
+      <button onClick={onRemove} style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${C.red}`, background: 'transparent', color: C.red, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
+        ✕ Refuser
+      </button>
+    </div>
+  )
+  if (friendship.status === 'accepted') return (
+    <button onClick={onRemove} style={{ padding: '6px 14px', borderRadius: 20, border: '1px solid #3498db', background: '#3498db', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
+      👥 Amis ✓
+    </button>
+  )
   return null
 }
 
@@ -55,9 +88,7 @@ export default function MemberProfile() {
   const [isBlocked, setIsBlocked]         = useState(false)
   const [blocking, setBlocking]           = useState(false)
   const [blockedByThem, setBlockedByThem] = useState(false)
-
-  // ── Amis ──
-  const [friendship, setFriendship]   = useState(null) // null | { id, status, user_a, user_b }
+  const [friendship, setFriendship]       = useState(null)
   const [friendLoading, setFriendLoading] = useState(false)
 
   const isAdmin = profile?.role === 'admin'
@@ -81,34 +112,33 @@ export default function MemberProfile() {
           setMyVotes(v)
         }
       })
-
       fetch(`${SUPABASE_URL}/rest/v1/blocks?blocker_id=eq.${user.id}&blocked_id=eq.${id}&limit=1`, {
         headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
       }).then(r => r.json()).then(data => {
         setIsBlocked(Array.isArray(data) && data.length > 0)
       })
-
       fetch(`${SUPABASE_URL}/rest/v1/blocks?blocker_id=eq.${id}&blocked_id=eq.${user.id}&limit=1`, {
         headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
       }).then(r => r.json()).then(data => {
         setBlockedByThem(Array.isArray(data) && data.length > 0)
       })
-
-      // Charger la relation d'amitié
       loadFriendship()
     }
   }, [id, user])
 
   const loadFriendship = async () => {
-    const r = await fetch(
-      `${SUPABASE_URL}/rest/v1/friendships?or=(and(user_a.eq.${user.id},user_b.eq.${id}),and(user_a.eq.${id},user_b.eq.${user.id}))&limit=1`,
-      { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` } }
-    )
-    const data = await r.json()
-    setFriendship(Array.isArray(data) && data.length > 0 ? data[0] : null)
+    const token = await getToken()
+    const headers = { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
+    const r1 = await fetch(`${SUPABASE_URL}/rest/v1/friendships?user_a=eq.${user.id}&user_b=eq.${id}&limit=1`, { headers })
+    const d1 = await r1.json()
+    if (Array.isArray(d1) && d1.length > 0) { setFriendship(d1[0]); return }
+    const r2 = await fetch(`${SUPABASE_URL}/rest/v1/friendships?user_a=eq.${id}&user_b=eq.${user.id}&limit=1`, { headers })
+    const d2 = await r2.json()
+    setFriendship(Array.isArray(d2) && d2.length > 0 ? d2[0] : null)
   }
 
   const sendFriendRequest = async () => {
+    if (friendLoading) return
     setFriendLoading(true)
     await api('/rest/v1/friendships', {
       method: 'POST',
@@ -129,6 +159,7 @@ export default function MemberProfile() {
   }
 
   const acceptFriendRequest = async () => {
+    if (friendLoading) return
     setFriendLoading(true)
     await api(`/rest/v1/friendships?id=eq.${friendship.id}`, {
       method: 'PATCH',
@@ -139,47 +170,11 @@ export default function MemberProfile() {
   }
 
   const removeFriend = async () => {
+    if (friendLoading) return
     setFriendLoading(true)
     await api(`/rest/v1/friendships?id=eq.${friendship.id}`, { method: 'DELETE' })
     setFriendship(null)
     setFriendLoading(false)
-  }
-
-  // Bouton ami selon l'état
-  const FriendBtn = () => {
-    if (!user || user.id === id) return null
-    if (friendLoading) return <button disabled style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.surfaceB, color: C.textDim, fontSize: 12, fontWeight: 600, cursor: 'wait', fontFamily: 'inherit' }}>…</button>
-
-    if (!friendship) return (
-      <button onClick={sendFriendRequest} style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid #3498db`, background: 'transparent', color: '#3498db', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
-        👥 Ajouter ami
-      </button>
-    )
-
-    if (friendship.status === 'pending' && friendship.user_a === user.id) return (
-      <button onClick={removeFriend} style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.surfaceB, color: C.textMid, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
-        ⏳ Demande envoyée
-      </button>
-    )
-
-    if (friendship.status === 'pending' && friendship.user_b === user.id) return (
-      <div style={{ display: 'flex', gap: 6 }}>
-        <button onClick={acceptFriendRequest} style={{ padding: '6px 14px', borderRadius: 20, border: '1px solid #2ecc71', background: '#2ecc71', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
-          ✅ Accepter
-        </button>
-        <button onClick={removeFriend} style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${C.red}`, background: 'transparent', color: C.red, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
-          ✕ Refuser
-        </button>
-      </div>
-    )
-
-    if (friendship.status === 'accepted') return (
-      <button onClick={removeFriend} style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid #3498db`, background: '#3498db', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
-        👥 Amis ✓
-      </button>
-    )
-
-    return null
   }
 
   const toggleBlock = async () => {
@@ -189,7 +184,7 @@ export default function MemberProfile() {
       await api(`/rest/v1/blocks?blocker_id=eq.${user.id}&blocked_id=eq.${id}`, { method: 'DELETE' })
       setIsBlocked(false)
     } else {
-      await api(`/rest/v1/blocks`, { method: 'POST', body: JSON.stringify({ blocker_id: user.id, blocked_id: id }) })
+      await api('/rest/v1/blocks', { method: 'POST', body: JSON.stringify({ blocker_id: user.id, blocked_id: id }) })
       setIsBlocked(true)
     }
     setBlocking(false)
@@ -259,10 +254,9 @@ export default function MemberProfile() {
   const totalVotes = Object.values(votes).reduce((a, b) => a + b, 0)
   const sexeLabel  = member.sexe ? member.sexe.charAt(0).toUpperCase() + member.sexe.slice(1) : null
   const statut     = statutLabel(member.statut)
-
-  const colors = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
+  const colors     = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
   const avatarColor = colors[(member.pseudo?.charCodeAt(0) || 0) % colors.length]
-  const initials = member.initials || member.pseudo?.slice(0, 2).toUpperCase() || '??'
+  const initials   = member.initials || member.pseudo?.slice(0, 2).toUpperCase() || '??'
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px' }}>
@@ -283,7 +277,14 @@ export default function MemberProfile() {
                 {isAdmin && (
                   <Btn onClick={() => setShowRolePanel(v => !v)} variant="ghost" style={{ fontSize: 12 }}>🛡️ Gérer le rôle</Btn>
                 )}
-                <FriendBtn />
+                <FriendBtn
+                  user={user} id={id}
+                  friendship={friendship}
+                  friendLoading={friendLoading}
+                  onAdd={sendFriendRequest}
+                  onAccept={acceptFriendRequest}
+                  onRemove={removeFriend}
+                />
                 {!isBlocked && (
                   <Btn onClick={() => navigate('/messages')} variant="yellow" style={{ fontSize: 12 }}>✉️ Message</Btn>
                 )}
@@ -345,7 +346,6 @@ export default function MemberProfile() {
         </div>
       </div>
 
-      {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
         {[
           { label: 'AMIS',        value: member.friends || 0, color: '#3498db' },
@@ -359,7 +359,6 @@ export default function MemberProfile() {
         ))}
       </div>
 
-      {/* Bio */}
       <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.accentDk}`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
         <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 10 }}>🔥 Bio</div>
         <p style={{ fontSize: 13, color: member.bio ? C.textMid : C.textDim, lineHeight: 1.7, margin: 0, fontStyle: member.bio ? 'normal' : 'italic' }}>
@@ -367,7 +366,6 @@ export default function MemberProfile() {
         </p>
       </div>
 
-      {/* Votes */}
       <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.accentDk}`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
         <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 14 }}>🏆 Votes reçus</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -399,7 +397,6 @@ export default function MemberProfile() {
         {!user && <p style={{ fontSize: 12, color: C.textDim, marginTop: 12, fontStyle: 'italic', textAlign: 'center' }}>Connecte-toi pour voter</p>}
       </div>
 
-      {/* Intérêts */}
       <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.accentDk}`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
         <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>🎯 Intérêts</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -412,7 +409,6 @@ export default function MemberProfile() {
         </div>
       </div>
 
-      {/* Photos */}
       {(member.photos || []).length > 0 && (
         <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.accentDk}`, borderRadius: 14, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
           <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>📸 Photos</div>
