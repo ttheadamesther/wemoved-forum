@@ -90,6 +90,8 @@ export default function MemberProfile() {
   const [blockedByThem, setBlockedByThem] = useState(false)
   const [friendship, setFriendship]       = useState(null)
   const [friendLoading, setFriendLoading] = useState(false)
+  const [friendsList, setFriendsList]     = useState([])
+  const [friendsLoading, setFriendsLoading] = useState(false)
 
   const isAdmin = profile?.role === 'admin'
   const monthKey = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth()}` }
@@ -124,7 +126,27 @@ export default function MemberProfile() {
       })
       loadFriendship()
     }
+    // Charger la liste d'amis (public, pas besoin de token)
+    loadFriendsList()
   }, [id, user])
+
+  const loadFriendsList = async () => {
+    setFriendsLoading(true)
+    const r1 = await fetch(`${SUPABASE_URL}/rest/v1/friendships?user_a=eq.${id}&status=eq.accepted&select=user_b`, { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` } })
+    const d1 = await r1.json()
+    const r2 = await fetch(`${SUPABASE_URL}/rest/v1/friendships?user_b=eq.${id}&status=eq.accepted&select=user_a`, { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` } })
+    const d2 = await r2.json()
+    const friendIds = [
+      ...(Array.isArray(d1) ? d1.map(f => f.user_b) : []),
+      ...(Array.isArray(d2) ? d2.map(f => f.user_a) : [])
+    ]
+    if (friendIds.length === 0) { setFriendsList([]); setFriendsLoading(false); return }
+    const ids = friendIds.map(i => `id=eq.${i}`).join(',')
+    const rp = await fetch(`${SUPABASE_URL}/rest/v1/profiles?or=(${ids})&select=id,pseudo,initials,avatar_url,online`, { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` } })
+    const dp = await rp.json()
+    setFriendsList(Array.isArray(dp) ? dp : [])
+    setFriendsLoading(false)
+  }
 
   const loadFriendship = async () => {
     const token = await getToken()
@@ -357,6 +379,33 @@ export default function MemberProfile() {
             <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, letterSpacing: .8, textTransform: 'uppercase', marginTop: 4 }}>{s.label}</div>
           </div>
         ))}
+      </div>
+
+      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid #3498db`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
+        <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 14 }}>👥 Amis ({friendsList.length})</div>
+        {friendsLoading
+          ? <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', padding: 12 }}>Chargement…</div>
+          : friendsList.length === 0
+            ? <div style={{ fontSize: 13, color: C.textDim, fontStyle: 'italic', textAlign: 'center', padding: 12 }}>Aucun ami pour l'instant.</div>
+            : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
+                {friendsList.map(f => {
+                  const fColors = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
+                  const fColor = fColors[(f.pseudo?.charCodeAt(0) || 0) % fColors.length]
+                  return (
+                    <div key={f.id} onClick={() => navigate(`/members/${f.id}`)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 8px', background: C.surfaceB, borderRadius: 12, border: `1px solid ${C.border}`, cursor: 'pointer', transition: 'all .15s' }}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = '#3498db'}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = C.border}
+                    >
+                      <div style={{ width: 48, height: 48, borderRadius: '50%', background: f.avatar_url ? '#444' : fColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: '#fff', overflow: 'hidden', border: '2px solid #fff', boxShadow: '0 2px 6px rgba(0,0,0,.1)' }}>
+                        {f.avatar_url ? <img src={f.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : f.initials || f.pseudo?.slice(0,2).toUpperCase()}
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.text, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>@{f.pseudo}</div>
+                      {f.online && <span style={{ fontSize: 9, color: '#2ecc71', fontWeight: 700 }}>● En ligne</span>}
+                    </div>
+                  )
+                })}
+              </div>
+        }
       </div>
 
       <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.accentDk}`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>

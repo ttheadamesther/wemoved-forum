@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Cropper from 'react-easy-crop'
 import { useAuth } from '../hooks/useAuth'
 import { C, VOTES_DEF } from '../lib/constants'
@@ -98,6 +99,33 @@ const Tag = ({ icon, label }) => (
 
 export default function Profile() {
   const { user, profile, loading, refreshProfile } = useAuth()
+  const navigate = useNavigate()
+  const [friendsList, setFriendsList]       = useState([])
+  const [friendsLoading, setFriendsLoading] = useState(false)
+
+  useEffect(() => {
+    if (!user) return
+    const loadFriends = async () => {
+      setFriendsLoading(true)
+      const h = { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+      const r1 = await fetch(`${SUPABASE_URL}/rest/v1/friendships?user_a=eq.${user.id}&status=eq.accepted&select=user_b`, { headers: h })
+      const d1 = await r1.json()
+      const r2 = await fetch(`${SUPABASE_URL}/rest/v1/friendships?user_b=eq.${user.id}&status=eq.accepted&select=user_a`, { headers: h })
+      const d2 = await r2.json()
+      const friendIds = [
+        ...(Array.isArray(d1) ? d1.map(f => f.user_b) : []),
+        ...(Array.isArray(d2) ? d2.map(f => f.user_a) : [])
+      ]
+      if (friendIds.length === 0) { setFriendsList([]); setFriendsLoading(false); return }
+      const ids = friendIds.map(i => `id=eq.${i}`).join(',')
+      const rp = await fetch(`${SUPABASE_URL}/rest/v1/profiles?or=(${ids})&select=id,pseudo,initials,avatar_url,online`, { headers: h })
+      const dp = await rp.json()
+      setFriendsList(Array.isArray(dp) ? dp : [])
+      setFriendsLoading(false)
+    }
+    loadFriends()
+  }, [user])
+
   const [editing, setEditing]         = useState(false)
   const [bio, setBio]                 = useState('')
   const [interest, setInterest]       = useState('')
@@ -169,7 +197,7 @@ export default function Profile() {
       return
     }
     const initials = newPseudo.trim().slice(0, 2).toUpperCase()
-    await patchProfile({ pseudo: newPseudo.trim() })
+    await patchProfile({ pseudo: newPseudo.trim(), initials })
     setSavingPseudo(false)
     setEditingPseudo(false)
     setNewPseudo('')
@@ -360,6 +388,34 @@ export default function Profile() {
               <div style={{ fontSize: 10, color: C.textMid, marginTop: 4, textTransform: 'uppercase', letterSpacing: .5 }}>{s.label}</div>
             </div>
           ))}
+        </div>
+
+        {/* ── AMIS ── */}
+        <div style={{ ...PANEL, borderTop: '3px solid #3498db' }}>
+          <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>👥 Amis ({friendsList.length})</div>
+          {friendsLoading
+            ? <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', padding: 12 }}>Chargement…</div>
+            : friendsList.length === 0
+              ? <div style={{ fontSize: 13, color: C.textDim, fontStyle: 'italic', textAlign: 'center', padding: 12 }}>Aucun ami pour l'instant.</div>
+              : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10 }}>
+                  {friendsList.map(f => {
+                    const fColors = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
+                    const fColor = fColors[(f.pseudo?.charCodeAt(0) || 0) % fColors.length]
+                    return (
+                      <div key={f.id} onClick={() => navigate(`/members/${f.id}`)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 8px', background: C.surfaceB, borderRadius: 12, border: `1px solid ${C.border}`, cursor: 'pointer', transition: 'all .15s' }}
+                        onMouseEnter={e => e.currentTarget.style.borderColor = '#3498db'}
+                        onMouseLeave={e => e.currentTarget.style.borderColor = C.border}
+                      >
+                        <div style={{ width: 44, height: 44, borderRadius: '50%', background: f.avatar_url ? '#444' : fColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', overflow: 'hidden', border: '2px solid #fff', boxShadow: '0 2px 6px rgba(0,0,0,.1)' }}>
+                          {f.avatar_url ? <img src={f.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : f.initials || f.pseudo?.slice(0,2).toUpperCase()}
+                        </div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: C.text, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>@{f.pseudo}</div>
+                        {f.online && <span style={{ fontSize: 9, color: '#2ecc71', fontWeight: 700 }}>● En ligne</span>}
+                      </div>
+                    )
+                  })}
+                </div>
+          }
         </div>
 
         {/* ── INFOS PERSONNELLES ── */}
