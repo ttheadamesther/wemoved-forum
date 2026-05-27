@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { C, CATS } from '../lib/constants'
 import { RoleBadge, Btn, Input } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
@@ -108,6 +109,7 @@ function Avatar({ member, size = 36 }) {
 
 export default function ForumPage() {
   const { user, profile } = useAuth()
+  const navigate = useNavigate()
   const containerRef = useRef()
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const [members,       setMembers]      = useState([])
@@ -262,10 +264,12 @@ export default function ForumPage() {
 
         <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: isMobile ? '14px' : '20px', marginBottom: 12, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
           <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-            <Avatar member={author} size={isMobile ? 36 : 48} />
+            <div onClick={() => author?.id && navigate(`/members/${author.id}`)} style={{ cursor: author?.id ? 'pointer' : 'default' }}>
+              <Avatar member={author} size={isMobile ? 36 : 48} />
+            </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
-                <strong style={{ fontSize: 14, color: C.text }}>@{author?.pseudo || 'Inconnu'}</strong>
+                <strong onClick={() => author?.id && navigate(`/members/${author.id}`)} style={{ fontSize: 14, color: C.text, cursor: author?.id ? 'pointer' : 'default' }}>@{author?.pseudo || 'Inconnu'}</strong>
                 <RoleBadge role={author?.role || 'membre'} />
                 <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: currentThread.cat === '+18' ? '#ffe0e0' : '#fffae6', color: currentThread.cat === '+18' ? C.red : '#7a6200', border: `1px solid ${currentThread.cat === '+18' ? '#f5c0c0' : '#c8a20044'}` }}>{currentThread.cat}</span>
                 {currentThread.pinned && <span style={{ fontSize: 11, color: C.accentTxt, fontWeight: 700 }}>📌 Épinglé</span>}
