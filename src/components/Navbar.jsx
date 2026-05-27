@@ -51,21 +51,41 @@ export default function Navbar() {
 
   // ── Realtime notifications ──
   useEffect(() => {
-    if (!user) return
+    if (!user || !supabase) return
 
-    const channel = supabase
-      .channel(`notifs-${user.id}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notifications',
-        filter: `user_id=eq.${user.id}`
-      }, (payload) => {
-        setNotifs(prev => [payload.new, ...prev])
-      })
-      .subscribe()
+    const setupChannel = async () => {
+      const token = await (async () => {
+        try {
+          const keys = Object.keys(localStorage)
+          const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
+          if (authKey) {
+            const data = JSON.parse(localStorage.getItem(authKey))
+            if (data?.access_token) return data.access_token
+          }
+        } catch {}
+        return null
+      })()
 
-    return () => { supabase.removeChannel(channel) }
+      if (token) await supabase.realtime.setAuth(token)
+
+      const channel = supabase
+        .channel(`notifs-${user.id}`)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        }, (payload) => {
+          setNotifs(prev => [payload.new, ...prev])
+        })
+        .subscribe()
+
+      return channel
+    }
+
+    let channelRef = null
+    setupChannel().then(ch => { channelRef = ch })
+    return () => { if (channelRef) supabase.removeChannel(channelRef) }
   }, [user])
 
   // ── Messages non lus ──
@@ -78,7 +98,7 @@ export default function Navbar() {
 
   // ── Realtime messages non lus ──
   useEffect(() => {
-    if (!user) return
+    if (!user || !supabase) return
 
     const channel = supabase
       .channel(`messages-${user.id}`)
