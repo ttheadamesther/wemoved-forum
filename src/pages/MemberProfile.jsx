@@ -141,8 +141,8 @@ export default function MemberProfile() {
       ...(Array.isArray(d2) ? d2.map(f => f.user_a) : [])
     ]
     if (friendIds.length === 0) { setFriendsList([]); setFriendsLoading(false); return }
-    const ids = friendIds.map(i => `id=eq.${i}`).join(',')
-    const rp = await fetch(`${SUPABASE_URL}/rest/v1/profiles?or=(${ids})&select=id,pseudo,initials,avatar_url,online`, { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` } })
+    const ids = friendIds.join(',')
+    const rp = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=in.(${ids})&select=id,pseudo,initials,avatar_url,online`, { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` } })
     const dp = await rp.json()
     setFriendsList(Array.isArray(dp) ? dp : [])
     setFriendsLoading(false)
