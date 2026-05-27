@@ -149,18 +149,34 @@ export default function Navbar() {
   }, [])
 
   const markRead = async (id) => {
+    const token = await (async () => {
+      try {
+        const keys = Object.keys(localStorage)
+        const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
+        if (authKey) { const data = JSON.parse(localStorage.getItem(authKey)); if (data?.access_token) return data.access_token }
+      } catch {}
+      return ANON_KEY
+    })()
     await fetch(`${SUPABASE_URL}/rest/v1/notifications?id=eq.${id}`, {
       method: 'PATCH',
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json' },
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ read: true })
     })
     setNotifs(n => n.filter(x => x.id !== id))
   }
 
   const markAllRead = async () => {
+    const token = await (async () => {
+      try {
+        const keys = Object.keys(localStorage)
+        const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
+        if (authKey) { const data = JSON.parse(localStorage.getItem(authKey)); if (data?.access_token) return data.access_token }
+      } catch {}
+      return ANON_KEY
+    })()
     await fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, {
       method: 'PATCH',
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json' },
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ read: true })
     })
     setNotifs([])
