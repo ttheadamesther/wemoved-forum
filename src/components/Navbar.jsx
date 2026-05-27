@@ -256,7 +256,6 @@ export default function Navbar() {
             <NavLink to="/members"    label="Membres"   icon="👥" />
             {user && <MessagesNavLink />}
             {user && <NavLink to="/profile"    label="Profil"    icon="👤" />}
-            {user && <NavLink to="/bug-report" label="Bug"       icon="🐛" />}
             {user && canMod && <NavLink to="/moderation" label="Modération" icon="🛡️" />}
           </>
         )}
