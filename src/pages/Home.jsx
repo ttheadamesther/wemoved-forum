@@ -4,6 +4,7 @@ import { C, VOTES_DEF, CATS } from '../lib/constants'
 import { RoleBadge } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
 import { BADGES_DEF } from '../lib/xp'
+import { supabase } from '../lib/supabase'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -58,6 +59,28 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
     apiFetch('/rest/v1/threads?select=id,title,author_id,created_at&order=created_at.desc&limit=5').then(d => {
       if (Array.isArray(d)) setActivity(d)
     })
+  }, [])
+
+  // ── Realtime : statut en ligne des membres ──
+  useEffect(() => {
+    if (!supabase) return
+    const channel = supabase
+      .channel('profiles-online')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'profiles',
+      }, (payload) => {
+        if (payload.new && 'online' in payload.new) {
+          setMembers(prev => {
+            const updated = prev.map(m => m.id === payload.new.id ? { ...m, online: payload.new.online } : m)
+            setStats(s => ({ ...s, online: updated.filter(m => m.online).length }))
+            return updated
+          })
+        }
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
   }, [])
 
   const postThread = async () => {
