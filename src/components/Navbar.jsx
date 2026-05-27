@@ -54,7 +54,7 @@ export default function Navbar() {
           if (data?.access_token) token = data.access_token
         }
       } catch {}
-      fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false&order=created_at.desc`, {
+      fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false&order=created_at.desc&limit=20`, {
         headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
       }).then(r => r.json()).then(d => { if (Array.isArray(d)) setNotifs(d) })
     }
