@@ -9,12 +9,13 @@ import Messages from './pages/Messages'
 import Login    from './pages/Login'
 import Register from './pages/Register'
 import Profile  from './pages/Profile'
+import Settings from './pages/Settings'
 import React    from 'react'
 import MemberProfile from './pages/MemberProfile'
 import Notifications from './pages/Notifications'
 import BugReport   from './pages/BugReport'
 import Moderation  from './pages/Moderation'
-// ── Error Boundary pour attraper les crashs silencieux ───────────────────────
+
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props)
@@ -75,7 +76,7 @@ function Layout({ children }) {
 
 export default function App() {
   return (
- <ErrorBoundary>
+    <ErrorBoundary>
       <AuthProvider>
         <BrowserRouter>
           <Routes>
@@ -90,6 +91,7 @@ export default function App() {
             <Route path="/moderation" element={<PrivateRoute><Layout><Moderation /></Layout></PrivateRoute>} />
             <Route path="/notifications" element={<PrivateRoute><Layout><Notifications /></Layout></PrivateRoute>} />
             <Route path="/profile" element={<PrivateRoute><Layout><ErrorBoundary><Profile /></ErrorBoundary></Layout></PrivateRoute>} />
+            <Route path="/settings" element={<PrivateRoute><Layout><Settings /></Layout></PrivateRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>

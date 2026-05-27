@@ -25,6 +25,8 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen]           = useState(false)
   const [isMobile, setIsMobile]           = useState(window.innerWidth < 768)
   const [unreadMessages, setUnreadMessages] = useState(0)
+  const [showUserMenu, setShowUserMenu]   = useState(false)
+  const userMenuRef = useRef()
   const searchRef = useRef()
   const notifRef  = useRef()
   const navRef    = useRef()
@@ -143,6 +145,7 @@ export default function Navbar() {
     const handler = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) { setShowRes(false); setShowSearch(false) }
       if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifs(false)
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) setShowUserMenu(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -339,26 +342,59 @@ export default function Navbar() {
             </div>
           )}
 
-          {/* Avatar + XP desktop */}
+          {/* Avatar + XP desktop avec menu déroulant */}
           {user && !isMobile && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px', height: 42, background: '#1a1a1a', borderRadius: 22, border: '1px solid #2a2a2a' }}>
-              <div style={{ width: 26, height: 26, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
-                {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
-              </div>
-              <div style={{ lineHeight: 1.2 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>@{profile?.pseudo || user.email?.split('@')[0]}</span>
-                  {profile && <RoleBadge role={profile.role} />}
+            <div ref={userMenuRef} style={{ position: 'relative' }}>
+              <div onClick={() => setShowUserMenu(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px', height: 42, background: '#1a1a1a', borderRadius: 22, border: `1px solid ${showUserMenu ? '#c8a200' : '#2a2a2a'}`, cursor: 'pointer', transition: 'all .15s' }}>
+                <div style={{ width: 26, height: 26, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
+                  {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ fontSize: 9, color: '#c8a200', fontWeight: 700 }}>Niv.{level}</span>
-                  <div style={{ width: 50, height: 3, background: '#333', borderRadius: 3, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${xpPercent}%`, background: 'linear-gradient(to right,#f0c800,#c8a200)', borderRadius: 3 }} />
+                <div style={{ lineHeight: 1.2 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>@{profile?.pseudo || user.email?.split('@')[0]}</span>
+                    {profile && <RoleBadge role={profile.role} />}
                   </div>
-                  <span style={{ fontSize: 9, color: '#666' }}>{xp % 1000}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ fontSize: 9, color: '#c8a200', fontWeight: 700 }}>Niv.{level}</span>
+                    <div style={{ width: 50, height: 3, background: '#333', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${xpPercent}%`, background: 'linear-gradient(to right,#f0c800,#c8a200)', borderRadius: 3 }} />
+                    </div>
+                    <span style={{ fontSize: 9, color: '#666' }}>{xp % 1000}</span>
+                  </div>
                 </div>
+                <span style={{ fontSize: 10, color: '#666', marginLeft: 2 }}>{showUserMenu ? '▲' : '▼'}</span>
               </div>
-              <button onClick={handleSignOut} style={{ marginLeft: 2, background: 'none', border: 'none', color: '#666', cursor: 'pointer', fontSize: 16, lineHeight: 1 }} title="Déconnexion">⏻</button>
+
+              {showUserMenu && (
+                <div style={{ position: 'absolute', top: '110%', right: 0, width: 200, background: '#1a1a1a', border: '1px solid #333', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,.4)', zIndex: 1000, overflow: 'hidden' }}>
+                  <div style={{ padding: '12px 16px', borderBottom: '1px solid #2a2a2a' }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>@{profile?.pseudo}</div>
+                    <div style={{ fontSize: 10, color: '#888', marginTop: 2 }}>{user.email}</div>
+                  </div>
+                  {[
+                    { icon: '👤', label: 'Mon profil',    to: '/profile' },
+                    { icon: '⚙️', label: 'Paramètres',    to: '/settings' },
+                    { icon: '🐛', label: 'Signaler un bug', to: '/bug-report' },
+                  ].map(item => (
+                    <div key={item.to} onClick={() => { navigate(item.to); setShowUserMenu(false) }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', cursor: 'pointer', fontSize: 12, color: '#ccc', transition: 'all .15s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#222'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <span>{item.icon}</span>{item.label}
+                    </div>
+                  ))}
+                  <div style={{ borderTop: '1px solid #2a2a2a' }}>
+                    <div onClick={handleSignOut}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', cursor: 'pointer', fontSize: 12, color: '#e74c3c', transition: 'all .15s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#2a1a1a'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <span>⏻</span> Déconnexion
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -413,6 +449,7 @@ export default function Navbar() {
           {user && <MessagesNavLink />}
           {user && <NavLink to="/notifications" label="Notifications" icon="🔔" />}
           {user && <NavLink to="/profile"       label="Mon Profil"   icon="👤" />}
+          {user && <NavLink to="/settings"      label="Paramètres"   icon="⚙️" />}
           {user && <NavLink to="/bug-report"    label="Signaler un bug" icon="🐛" />}
           {user && canMod && <NavLink to="/moderation" label="Modération" icon="🛡️" />}
 
