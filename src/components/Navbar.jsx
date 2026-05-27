@@ -44,9 +44,21 @@ export default function Navbar() {
   // ── Chargement initial des notifs ──
   useEffect(() => {
     if (!user) return
-    fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false&order=created_at.desc`, {
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
-    }).then(r => r.json()).then(d => { if (Array.isArray(d)) setNotifs(d) })
+    const loadNotifs = async () => {
+      const keys = Object.keys(localStorage)
+      const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
+      let token = ANON_KEY
+      try {
+        if (authKey) {
+          const data = JSON.parse(localStorage.getItem(authKey))
+          if (data?.access_token) token = data.access_token
+        }
+      } catch {}
+      fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false&order=created_at.desc`, {
+        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
+      }).then(r => r.json()).then(d => { if (Array.isArray(d)) setNotifs(d) })
+    }
+    loadNotifs()
   }, [user])
 
   // ── Realtime notifications ──
