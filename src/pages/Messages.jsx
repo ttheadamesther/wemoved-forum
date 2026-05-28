@@ -7,6 +7,18 @@ import { useAuth } from '../hooks/useAuth'
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
 
+async function getToken() {
+  try {
+    const keys = Object.keys(localStorage)
+    const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
+    if (authKey) {
+      const data = JSON.parse(localStorage.getItem(authKey))
+      if (data?.access_token) return data.access_token
+    }
+  } catch {}
+  return ANON_KEY
+}
+
 function api(path, opts = {}) {
   return fetch(`${SUPABASE_URL}${path}`, {
     ...opts,
@@ -42,10 +54,25 @@ function Avatar({ member, size = 38, showOnline = false }) {
   )
 }
 
+// Affiche le contenu d'une bulle : texte ou image
+function MessageBody({ body, isMe }) {
+  const isImage = body?.startsWith('__IMG__')
+  if (isImage) {
+    const url = body.replace('__IMG__', '')
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer">
+        <img src={url} alt="photo" style={{ maxWidth: '100%', maxHeight: 220, borderRadius: 12, display: 'block', cursor: 'pointer', objectFit: 'cover' }} />
+      </a>
+    )
+  }
+  return <div style={{ fontSize: 13, color: isMe ? '#3a2e00' : C.text, lineHeight: 1.5 }}>{body}</div>
+}
+
 export default function MessagesPage() {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
   const containerRef = useRef()
+  const fileInputRef = useRef()
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const [members,  setMembers]  = useState([])
   const [convos,   setConvos]   = useState([])
@@ -53,10 +80,11 @@ export default function MessagesPage() {
   const [messages, setMessages] = useState([])
   const [text,     setText]     = useState('')
   const [sending,  setSending]  = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [search,   setSearch]   = useState('')
   const [showSidebar, setShowSidebar] = useState(true)
-  const [blockedIds, setBlockedIds]   = useState([]) // membres que j'ai bloqués
-  const [blockedByIds, setBlockedByIds] = useState([]) // membres qui m'ont bloqué
+  const [blockedIds, setBlockedIds]   = useState([])
+  const [blockedByIds, setBlockedByIds] = useState([])
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -73,11 +101,8 @@ export default function MessagesPage() {
     if (!user) return
     api(`/rest/v1/profiles?id=neq.${user.id}&select=*`)
       .then(r => r.json()).then(d => { if (Array.isArray(d)) setMembers(d) })
-
-    // Charger les blocages
     api(`/rest/v1/blocks?blocker_id=eq.${user.id}&select=blocked_id`)
       .then(r => r.json()).then(d => { if (Array.isArray(d)) setBlockedIds(d.map(b => b.blocked_id)) })
-
     api(`/rest/v1/blocks?blocked_id=eq.${user.id}&select=blocker_id`)
       .then(r => r.json()).then(d => { if (Array.isArray(d)) setBlockedByIds(d.map(b => b.blocker_id)) })
   }, [user])
@@ -111,18 +136,15 @@ export default function MessagesPage() {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
-  const send = async () => {
-    if (!text.trim() || !activeId || !user) return
-    // Vérifier si bloqué
+  const sendMessage = async (body) => {
+    if (!body || !activeId || !user) return
     if (blockedIds.includes(activeId) || blockedByIds.includes(activeId)) return
     setSending(true)
-
     await api(`/rest/v1/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from_id: user.id, to_id: activeId, body: text.trim(), read: false })
+      body: JSON.stringify({ from_id: user.id, to_id: activeId, body, read: false })
     })
-
     await api(`/rest/v1/notifications`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -134,22 +156,60 @@ export default function MessagesPage() {
         read:    false
       })
     })
-
-    setText('')
     api(`/rest/v1/messages?or=(and(from_id.eq.${user.id},to_id.eq.${activeId}),and(from_id.eq.${activeId},to_id.eq.${user.id}))&order=created_at.asc`)
       .then(r => r.json()).then(d => { if (Array.isArray(d)) setMessages(d) })
     setSending(false)
+  }
+
+  const send = async () => {
+    if (!text.trim()) return
+    await sendMessage(text.trim())
+    setText('')
+  }
+
+  // ── Upload photo vers Supabase Storage ──
+  const uploadPhoto = async (file) => {
+    if (!file || !user) return
+    const MAX = 5 * 1024 * 1024 // 5 Mo
+    if (file.size > MAX) { alert('Image trop lourde (max 5 Mo)'); return }
+    if (!file.type.startsWith('image/')) { alert('Fichier non supporté, choisissez une image'); return }
+
+    setUploading(true)
+    const token = await getToken()
+    const ext   = file.name.split('.').pop()
+    const path  = `${user.id}/${Date.now()}.${ext}`
+
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/message-photos/${path}`, {
+      method: 'POST',
+      headers: {
+        'apikey': ANON_KEY,
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': file.type,
+        'x-upsert': 'true'
+      },
+      body: file
+    })
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      alert(`Erreur upload : ${err.message || res.status}`)
+      setUploading(false)
+      return
+    }
+
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/message-photos/${path}`
+    await sendMessage(`__IMG__${publicUrl}`)
+    setUploading(false)
   }
 
   const getMember = (id) => members.find(m => m.id === id)
   const activeMember = getMember(activeId)
   const isActiveBlocked = activeId && (blockedIds.includes(activeId) || blockedByIds.includes(activeId))
 
-  // Filtrer les membres bloqués/qui bloquent de la liste "Nouveau message"
   const convoMembers = convos.map(c => getMember(c.otherId)).filter(Boolean)
   const newMembers   = members
     .filter(m => !convos.find(c => c.otherId === m.id))
-    .filter(m => !blockedByIds.includes(m.id)) // cacher ceux qui m'ont bloqué
+    .filter(m => !blockedByIds.includes(m.id))
     .filter(m => !search || m.pseudo?.toLowerCase().includes(search.toLowerCase()))
 
   const openConvo = (id) => {
@@ -170,7 +230,6 @@ export default function MessagesPage() {
         {/* ── SIDEBAR ── */}
         {(!isMobile || showSidebar) && (
           <div style={{ width: isMobile ? '100%' : 280, borderRight: isMobile ? 'none' : `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-
             <div style={{ padding: '16px', borderBottom: `1px solid ${C.border}`, background: C.surfaceB }}>
               <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>💬 Conversations</div>
               <div style={{ position: 'relative' }}>
@@ -189,11 +248,10 @@ export default function MessagesPage() {
                     const last   = convo?.messages?.[0]
                     const unread = convo?.unread || 0
                     const blocked = blockedIds.includes(m.id)
+                    // Aperçu du dernier message
+                    const lastPreview = last?.body?.startsWith('__IMG__') ? '📷 Photo' : last?.body
                     return (
-                      <div key={m.id} onClick={() => openConvo(m.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', cursor: 'pointer', background: activeId === m.id ? '#fffae6' : 'transparent', transition: 'background .15s', borderLeft: activeId === m.id ? `3px solid ${C.accentDk}` : '3px solid transparent', opacity: blocked ? 0.5 : 1 }}
-                        onMouseEnter={e => { if (activeId !== m.id) e.currentTarget.style.background = 'var(--hover-bg)' }}
-                        onMouseLeave={e => { if (activeId !== m.id) e.currentTarget.style.background = 'transparent' }}
-                      >
+                      <div key={m.id} onClick={() => openConvo(m.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', cursor: 'pointer', background: activeId === m.id ? '#fffae6' : 'transparent', transition: 'background .15s', borderLeft: activeId === m.id ? `3px solid ${C.accentDk}` : '3px solid transparent', opacity: blocked ? 0.5 : 1 }}>
                         <Avatar member={m} size={40} showOnline />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
@@ -204,7 +262,7 @@ export default function MessagesPage() {
                             ? <div style={{ fontSize: 11, color: C.red, fontStyle: 'italic' }}>🚫 Bloqué</div>
                             : last && (
                               <div style={{ fontSize: 12, color: unread > 0 ? C.text : C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: unread > 0 ? 600 : 400 }}>
-                                {last.from_id === user.id ? 'Vous : ' : ''}{last.body}
+                                {last.from_id === user.id ? 'Vous : ' : ''}{lastPreview}
                               </div>
                             )
                           }
@@ -272,6 +330,7 @@ export default function MessagesPage() {
                 )}
                 {messages.map((m, i) => {
                   const isMe = m.from_id === user.id
+                  const isImg = m.body?.startsWith('__IMG__')
                   const showAvatar = !isMe && (i === 0 || messages[i - 1]?.from_id !== m.from_id)
                   return (
                     <div key={i} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: 8 }}>
@@ -281,8 +340,14 @@ export default function MessagesPage() {
                         </div>
                       )}
                       <div style={{ maxWidth: isMobile ? '80%' : '65%' }}>
-                        <div style={{ background: isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.white, border: isMe ? 'none' : `1px solid ${C.border}`, borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px', padding: '10px 14px', boxShadow: '0 1px 3px rgba(0,0,0,.08)' }}>
-                          <div style={{ fontSize: 13, color: isMe ? '#3a2e00' : C.text, lineHeight: 1.5 }}>{m.body}</div>
+                        <div style={{
+                          background: isImg ? 'transparent' : isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.white,
+                          border: isImg ? 'none' : isMe ? 'none' : `1px solid ${C.border}`,
+                          borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                          padding: isImg ? 0 : '10px 14px',
+                          boxShadow: isImg ? 'none' : '0 1px 3px rgba(0,0,0,.08)'
+                        }}>
+                          <MessageBody body={m.body} isMe={isMe} />
                         </div>
                         <div style={{ fontSize: 10, color: C.textDim, marginTop: 3, textAlign: isMe ? 'right' : 'left', paddingLeft: isMe ? 0 : 4 }}>
                           {new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
@@ -294,13 +359,27 @@ export default function MessagesPage() {
                 <div ref={bottomRef} />
               </div>
 
-              {/* Zone input — bloquée si bloqué */}
+              {/* Zone input */}
               {isActiveBlocked ? (
                 <div style={{ padding: '16px', borderTop: `1px solid ${C.border}`, background: C.white, textAlign: 'center', fontSize: 12, color: C.red }}>
                   🚫 {blockedIds.includes(activeId) ? 'Vous avez bloqué ce membre.' : 'Ce membre vous a bloqué.'} Impossible d'envoyer un message.
                 </div>
               ) : (
-                <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}`, background: C.white, display: 'flex', gap: 10, alignItems: 'center' }}>
+                <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}`, background: C.white, display: 'flex', gap: 8, alignItems: 'center' }}>
+
+                  {/* Bouton 📎 */}
+                  <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.target.value = '' }}
+                  />
+                  <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
+                    title="Envoyer une photo"
+                    style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${C.borderMid}`, background: C.surfaceB, cursor: uploading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0, transition: 'all .15s' }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = '#c8a200'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = C.borderMid}
+                  >
+                    {uploading ? '⏳' : '📎'}
+                  </button>
+
                   <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
                     placeholder={`Message à @${activeMember.pseudo}…`}
                     style={{ flex: 1, border: `1px solid ${C.borderMid}`, borderRadius: 24, padding: '10px 18px', fontSize: 13, color: C.text, fontFamily: 'inherit', outline: 'none', background: C.surfaceB, transition: 'border .2s' }}
