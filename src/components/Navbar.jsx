@@ -66,7 +66,6 @@ export default function Navbar() {
   // ── Realtime notifications ──
   useEffect(() => {
     if (!user || !supabase) return
-
     const setupChannel = async () => {
       const token = await (async () => {
         try {
@@ -79,24 +78,16 @@ export default function Navbar() {
         } catch {}
         return null
       })()
-
       if (token) await supabase.realtime.setAuth(token)
-
       const channel = supabase
         .channel(`notifs-${user.id}`)
         .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
+          event: 'INSERT', schema: 'public', table: 'notifications',
           filter: `user_id=eq.${user.id}`
-        }, (payload) => {
-          setNotifs(prev => [payload.new, ...prev])
-        })
+        }, (payload) => { setNotifs(prev => [payload.new, ...prev]) })
         .subscribe()
-
       return channel
     }
-
     let channelRef = null
     setupChannel().then(ch => { channelRef = ch })
     return () => { if (channelRef) supabase.removeChannel(channelRef) }
@@ -113,13 +104,10 @@ export default function Navbar() {
   // ── Realtime messages non lus ──
   useEffect(() => {
     if (!user || !supabase) return
-
     const channel = supabase
       .channel(`messages-${user.id}`)
       .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
+        event: 'INSERT', schema: 'public', table: 'messages',
         filter: `to_id=eq.${user.id}`
       }, () => {
         fetch(`${SUPABASE_URL}/rest/v1/messages?to_id=eq.${user.id}&read=eq.false&select=id`, {
@@ -127,7 +115,6 @@ export default function Navbar() {
         }).then(r => r.json()).then(d => { if (Array.isArray(d)) setUnreadMessages(d.length) })
       })
       .subscribe()
-
     return () => { supabase.removeChannel(channel) }
   }, [user])
 
@@ -151,15 +138,17 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
+  const getToken = async () => {
+    try {
+      const keys = Object.keys(localStorage)
+      const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
+      if (authKey) { const data = JSON.parse(localStorage.getItem(authKey)); if (data?.access_token) return data.access_token }
+    } catch {}
+    return ANON_KEY
+  }
+
   const markRead = async (id) => {
-    const token = await (async () => {
-      try {
-        const keys = Object.keys(localStorage)
-        const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
-        if (authKey) { const data = JSON.parse(localStorage.getItem(authKey)); if (data?.access_token) return data.access_token }
-      } catch {}
-      return ANON_KEY
-    })()
+    const token = await getToken()
     await fetch(`${SUPABASE_URL}/rest/v1/notifications?id=eq.${id}`, {
       method: 'PATCH',
       headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -169,14 +158,7 @@ export default function Navbar() {
   }
 
   const markAllRead = async () => {
-    const token = await (async () => {
-      try {
-        const keys = Object.keys(localStorage)
-        const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
-        if (authKey) { const data = JSON.parse(localStorage.getItem(authKey)); if (data?.access_token) return data.access_token }
-      } catch {}
-      return ANON_KEY
-    })()
+    const token = await getToken()
     await fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, {
       method: 'PATCH',
       headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -193,6 +175,14 @@ export default function Navbar() {
   const xpPercent   = (xp % 1000) / 10
   const colors      = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
   const avatarColor = colors[(profile?.pseudo?.charCodeAt(0) || 0) % colors.length]
+
+  // ── Couleurs adaptatives dark/light pour les dropdowns ──
+  const dropBg      = dark ? '#1a1a1a' : '#fff'
+  const dropBorder  = dark ? '#333'    : C.border
+  const dropText    = dark ? '#eee'    : C.text
+  const dropTextDim = dark ? '#888'    : C.textDim
+  const dropHover   = dark ? '#2a2a2a' : '#f5f5f5'
+  const dropSurface = dark ? '#222'    : C.surfaceB
 
   const NavLink = ({ to, label, icon }) => {
     const active = path === to
@@ -277,22 +267,22 @@ export default function Navbar() {
                 <div style={{ position: 'absolute', top: '110%', right: 0, background: '#1a1a1a', border: '1px solid #333', borderRadius: 12, padding: 12, width: 260, zIndex: 1000 }}>
                   <input value={search} onChange={e => { setSearch(e.target.value); setShowRes(true) }} autoFocus
                     placeholder="Rechercher un membre…"
-                    style={{ width: '100%', background: '#222', border: '1px solid #333', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', background: '#222', border: '1px solid #444', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
                   />
                   {showRes && results.length > 0 && (
-                    <div style={{ marginTop: 8, background: '#fff', borderRadius: 8, overflow: 'hidden' }}>
+                    <div style={{ marginTop: 8, background: '#1a1a1a', border: '1px solid #333', borderRadius: 8, overflow: 'hidden' }}>
                       {results.map(u => (
                         <div key={u.id} onClick={() => { navigate(`/members/${u.id}`); setSearch(''); setShowRes(false); setShowSearch(false) }}
-                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer', borderBottom: `1px solid ${C.border}` }}
-                          onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
-                          onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #2a2a2a', transition: 'background .15s' }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#2a2a2a'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >
                           <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
-                            {u.avatar_url ? <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : u.initials}
+                            {u.avatar_url ? <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : u.initials}
                           </div>
                           <div>
-                            <div style={{ fontWeight: 700, fontSize: 13, color: C.text }}>@{u.pseudo}</div>
-                            <div style={{ fontSize: 11, color: C.textMid }}>{u.city || ''}</div>
+                            <div style={{ fontWeight: 700, fontSize: 13, color: '#eee' }}>@{u.pseudo}</div>
+                            <div style={{ fontSize: 11, color: '#888' }}>{u.city || ''}</div>
                           </div>
                         </div>
                       ))}
@@ -315,9 +305,9 @@ export default function Navbar() {
                 )}
               </button>
               {showNotifs && (
-                <div style={{ position: 'absolute', top: '110%', right: 0, width: 300, background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,.15)', zIndex: 1000, overflow: 'hidden' }}>
-                  <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 700, fontSize: 12, color: C.textMid }}>Notifications</span>
+                <div style={{ position: 'absolute', top: '110%', right: 0, width: 300, background: dropBg, border: `1px solid ${dropBorder}`, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,.3)', zIndex: 1000, overflow: 'hidden' }}>
+                  <div style={{ padding: '10px 14px', borderBottom: `1px solid ${dropBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 700, fontSize: 12, color: dropTextDim }}>Notifications</span>
                     {notifs.length > 0 && (
                       <button onClick={markAllRead} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.accentTxt, fontWeight: 600 }}>
                         Tout marquer lu
@@ -326,12 +316,15 @@ export default function Navbar() {
                   </div>
                   <div style={{ maxHeight: 360, overflowY: 'auto' }}>
                     {notifs.length === 0
-                      ? <div style={{ padding: 20, textAlign: 'center', color: C.textDim, fontSize: 12 }}>Aucune notification</div>
+                      ? <div style={{ padding: 20, textAlign: 'center', color: dropTextDim, fontSize: 12 }}>Aucune notification</div>
                       : notifs.map(n => (
                         <div key={n.id} onClick={() => { markRead(n.id); if (n.link) navigate(n.link); setShowNotifs(false) }}
-                          style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', background: C.surfaceB, fontSize: 12, color: C.text, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                          style={{ padding: '10px 14px', borderBottom: `1px solid ${dropBorder}`, cursor: 'pointer', background: dropSurface, fontSize: 12, color: dropText, display: 'flex', alignItems: 'flex-start', gap: 8, transition: 'background .15s' }}
+                          onMouseEnter={e => e.currentTarget.style.background = dropHover}
+                          onMouseLeave={e => e.currentTarget.style.background = dropSurface}
+                        >
                           <span style={{ flex: 1 }}>{n.content}</span>
-                          <button onClick={e => { e.stopPropagation(); markRead(n.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, fontSize: 14, flexShrink: 0, lineHeight: 1 }}>✕</button>
+                          <button onClick={e => { e.stopPropagation(); markRead(n.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: dropTextDim, fontSize: 14, flexShrink: 0, lineHeight: 1 }}>✕</button>
                         </div>
                       ))
                     }
@@ -341,12 +334,12 @@ export default function Navbar() {
             </div>
           )}
 
-          {/* Avatar + XP desktop avec menu déroulant */}
+          {/* Avatar + XP desktop */}
           {user && !isMobile && (
             <div ref={userMenuRef} style={{ position: 'relative' }}>
               <div onClick={() => setShowUserMenu(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px', height: 42, background: '#1a1a1a', borderRadius: 22, border: `1px solid ${showUserMenu ? '#c8a200' : '#2a2a2a'}`, cursor: 'pointer', transition: 'all .15s' }}>
                 <div style={{ width: 26, height: 26, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
-                  {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
+                  {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
                 </div>
                 <div style={{ lineHeight: 1.2 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
@@ -371,8 +364,8 @@ export default function Navbar() {
                     <div style={{ fontSize: 10, color: '#888', marginTop: 2 }}>{user.email}</div>
                   </div>
                   {[
-                    { icon: '👤', label: 'Mon profil',    to: '/profile' },
-                    { icon: '⚙️', label: 'Paramètres',    to: '/settings' },
+                    { icon: '👤', label: 'Mon profil',      to: '/profile' },
+                    { icon: '⚙️', label: 'Paramètres',      to: '/settings' },
                     { icon: '🐛', label: 'Signaler un bug', to: '/bug-report' },
                   ].map(item => (
                     <div key={item.to} onClick={() => { navigate(item.to); setShowUserMenu(false) }}
@@ -428,23 +421,26 @@ export default function Navbar() {
               />
             </div>
             {showRes && results.length > 0 && (
-              <div style={{ background: '#fff', borderRadius: 8, marginTop: 8, overflow: 'hidden' }}>
+              <div style={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 8, marginTop: 8, overflow: 'hidden' }}>
                 {results.map(u => (
                   <div key={u.id} onClick={() => { navigate(`/members/${u.id}`); setSearch(''); setShowRes(false); setMenuOpen(false) }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer', borderBottom: `1px solid ${C.border}` }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #2a2a2a', transition: 'background .15s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#2a2a2a'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
                     <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden' }}>
-                      {u.avatar_url ? <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : u.initials}
+                      {u.avatar_url ? <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : u.initials}
                     </div>
-                    <div><div style={{ fontWeight: 700, fontSize: 13, color: C.text }}>@{u.pseudo}</div></div>
+                    <div><div style={{ fontWeight: 700, fontSize: 13, color: '#eee' }}>@{u.pseudo}</div></div>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          <NavLink to="/"              label="Accueil"     icon="🏠" />
-          <NavLink to="/forum"         label="Forum"       icon="💬" />
-          <NavLink to="/members"       label="Membres"     icon="👥" />
+          <NavLink to="/"              label="Accueil"        icon="🏠" />
+          <NavLink to="/forum"         label="Forum"          icon="💬" />
+          <NavLink to="/members"       label="Membres"        icon="👥" />
           {user && <MessagesNavLink />}
           {user && <NavLink to="/notifications" label="Notifications" icon="🔔" />}
           {user && <NavLink to="/profile"       label="Mon Profil"   icon="👤" />}
@@ -461,7 +457,7 @@ export default function Navbar() {
             <div style={{ padding: '14px 20px', borderTop: '1px solid #222' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
                 <div style={{ width: 36, height: 36, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden' }}>
-                  {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
+                  {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 2 }}>@{profile?.pseudo || user.email?.split('@')[0]}</div>

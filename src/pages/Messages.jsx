@@ -251,7 +251,7 @@ export default function MessagesPage() {
                     // Aperçu du dernier message
                     const lastPreview = last?.body?.startsWith('__IMG__') ? '📷 Photo' : last?.body
                     return (
-                      <div key={m.id} onClick={() => openConvo(m.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', cursor: 'pointer', background: activeId === m.id ? '#fffae6' : 'transparent', transition: 'background .15s', borderLeft: activeId === m.id ? `3px solid ${C.accentDk}` : '3px solid transparent', opacity: blocked ? 0.5 : 1 }}>
+                      <div key={m.id} onClick={() => openConvo(m.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', cursor: 'pointer', background: activeId === m.id ? 'rgba(200,162,0,0.15)' : 'transparent', transition: 'background .15s', borderLeft: activeId === m.id ? `3px solid ${C.accentDk}` : '3px solid transparent', opacity: blocked ? 0.5 : 1 }}>
                         <Avatar member={m} size={40} showOnline />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
