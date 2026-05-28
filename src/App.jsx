@@ -19,22 +19,15 @@ import Moderation    from './pages/Moderation'
 import Legal         from './pages/Legal'
 
 class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props)
-    this.state = { error: null }
-  }
-  static getDerivedStateFromError(error) {
-    return { error }
-  }
+  constructor(props) { super(props); this.state = { error: null } }
+  static getDerivedStateFromError(error) { return { error } }
   render() {
     if (this.state.error) {
       return (
         <div style={{ padding: 40, fontFamily: 'monospace', fontSize: 13, color: 'red' }}>
           <h2>💥 ERREUR CAPTURÉE</h2>
           <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-            {this.state.error.toString()}
-            {'\n\n'}
-            {this.state.error.stack}
+            {this.state.error.toString()}{'\n\n'}{this.state.error.stack}
           </pre>
         </div>
       )
@@ -66,14 +59,20 @@ function PublicOnlyRoute({ children }) {
 }
 
 function Layout({ children }) {
+  const isMobile = window.innerWidth < 768
   return (
     <>
       <Navbar />
-      <div style={{ paddingTop: 80, minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ flex: 1 }}>
-          {children}
-        </div>
-        <Footer />
+      <div style={{
+        paddingTop: isMobile ? 56 : 80,
+        paddingBottom: isMobile ? 72 : 0,
+        minHeight: '100vh',
+        background: 'var(--bg)',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        <div style={{ flex: 1 }}>{children}</div>
+        {!isMobile && <Footer />}
       </div>
     </>
   )
