@@ -42,6 +42,21 @@ export function AuthProvider({ children }) {
     } catch (e) {}
   }
 
+  const setOnlineStatus = async (uid, token, status) => {
+    try {
+      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/profiles?id=eq.${uid}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ online: status })
+      })
+    } catch {}
+  }
+
   useEffect(() => {
     if (!supabase) { setUser(null); setLoading(false); return }
 
@@ -51,6 +66,7 @@ export function AuthProvider({ children }) {
       if (u) {
         const p = await fetchProfile(u.id, session.access_token)
         setProfile(p)
+        await setOnlineStatus(u.id, session.access_token, true)
       }
       setLoading(false)
     }).catch(() => { setUser(null); setLoading(false) })
@@ -61,12 +77,20 @@ export function AuthProvider({ children }) {
       if (u) {
         const p = await fetchProfile(u.id, session.access_token)
         setProfile(p)
+        await setOnlineStatus(u.id, session.access_token, true)
       } else {
         setProfile(null)
       }
     })
 
-    return () => subscription.unsubscribe()
+    // Mettre offline à la fermeture de l'onglet
+    const handleUnload = async () => {
+      const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }))
+      if (session?.user) await setOnlineStatus(session.user.id, session.access_token, false)
+    }
+    window.addEventListener('beforeunload', handleUnload)
+
+    return () => { subscription.unsubscribe(); window.removeEventListener('beforeunload', handleUnload) }
   }, [])
 
   const signIn = async (email, password) => {
@@ -130,7 +154,11 @@ export function AuthProvider({ children }) {
   }
 
   const signOut = async () => {
-    if (supabase) await supabase.auth.signOut()
+    if (supabase && user) {
+      const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }))
+      if (session) await setOnlineStatus(user.id, session.access_token, false)
+      await supabase.auth.signOut()
+    }
     setUser(null)
     setProfile(null)
   }
