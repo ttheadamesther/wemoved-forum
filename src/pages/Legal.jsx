@@ -17,7 +17,7 @@ export default function LegalPage() {
 
       {/* ── MENTIONS LÉGALES ── */}
       <Section title="1. Mentions légales">
-        <P><strong>Éditeur du site :</strong> Anthony Bocquez</P>
+        <P><strong>Éditeur du site :</strong> WeMoved (projet communautaire indépendant)</P>
         <P><strong>Site :</strong> wemoved-forum.vercel.app</P>
         <P><strong>Hébergeur :</strong> Vercel Inc. — 340 Pine Street, Suite 701, San Francisco, CA 94104, États-Unis — <a href="https://vercel.com" target="_blank" rel="noopener noreferrer" style={{ color: C.accentTxt }}>vercel.com</a></P>
         <P><strong>Contact :</strong> Via le formulaire de signalement disponible sur le site (page "Signaler un bug").</P>
