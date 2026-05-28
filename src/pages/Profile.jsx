@@ -350,7 +350,7 @@ export default function Profile() {
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
           {[
-            { icon: '👥', label: 'Amis',       value: profile.friends || 0, color: '#3498db' },
+            { icon: '👥', label: 'Amis', value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
             { icon: '💬', label: 'Posts',       value: profile.posts   || 0, color: '#2ecc71' },
             { icon: '⭐', label: 'Votes reçus', value: totalVotes,          color: '#c8a200' },
           ].map(s => (
