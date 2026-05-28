@@ -35,6 +35,15 @@ async function api(path, opts = {}) {
   })
 }
 
+const sendNotif = async (userId, type, content, link) => {
+  try {
+    await api('/rest/v1/notifications', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: userId, type, content, link, read: false })
+    })
+  } catch {}
+}
+
 const statutLabel = (statut) => {
   if (statut === 'celibataire') return '💚 Célibataire'
   if (statut === 'couple')      return '❤️ En couple'
@@ -42,7 +51,6 @@ const statutLabel = (statut) => {
   return null
 }
 
-// ── FriendBtn défini HORS du composant pour éviter les re-renders ──
 function FriendBtn({ user, id, friendship, friendLoading, onAdd, onAccept, onRemove }) {
   if (!user || user.id === id) return null
   if (friendLoading) return (
@@ -127,7 +135,6 @@ export default function MemberProfile() {
       })
       loadFriendship()
     }
-    // Charger la liste d'amis (public, pas besoin de token)
     loadFriendsList()
   }, [id, user])
 
@@ -167,16 +174,12 @@ export default function MemberProfile() {
       method: 'POST',
       body: JSON.stringify({ user_a: user.id, user_b: id, status: 'pending' })
     })
-    await api('/rest/v1/notifications', {
-      method: 'POST',
-      body: JSON.stringify({
-        user_id: id,
-        type: 'friend_request',
-        content: `👥 @${profile?.pseudo || 'Quelqu\'un'} vous a envoyé une demande d'ami`,
-        link: `/members/${user.id}`,
-        read: false
-      })
-    })
+    await sendNotif(
+      id,
+      'friend_request',
+      `👥 @${profile?.pseudo || 'Quelqu\'un'} vous a envoyé une demande d'ami`,
+      `/members/${user.id}`
+    )
     await loadFriendship()
     setFriendLoading(false)
   }
@@ -188,9 +191,15 @@ export default function MemberProfile() {
       method: 'PATCH',
       body: JSON.stringify({ status: 'accepted' })
     })
-    // XP pour les deux membres (+15)
     await awardXP(user.id, 15)
     await awardXP(id, 15)
+    // Notif à celui qui avait envoyé la demande
+    await sendNotif(
+      id,
+      'friend_accepted',
+      `✅ @${profile?.pseudo || 'Quelqu\'un'} a accepté votre demande d'ami`,
+      `/members/${user.id}`
+    )
     await loadFriendship()
     setFriendLoading(false)
   }
@@ -220,6 +229,7 @@ export default function MemberProfile() {
     if (!user || voting) return
     setVoting(voteType)
     if (myVotes[voteType]) {
+      // Retrait du vote — pas de notif
       await fetch(`${SUPABASE_URL}/rest/v1/votes?from_id=eq.${user.id}&to_id=eq.${id}&vote_type=eq.${voteType}&month_key=eq.${monthKey()}`, {
         method: 'DELETE', headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
       })
@@ -245,9 +255,17 @@ export default function MemberProfile() {
       })
       setMember(m => ({ ...m, votes: newVotes }))
       setMyVotes(v => ({ ...v, [voteType]: true }))
-      // XP au membre voté (+2) et vérif badges
       await awardXP(id, 2)
       await checkAndAwardBadges(id)
+      // ── NOTIF vote ──
+      const vDef = (typeof VOTES_DEF !== 'undefined' ? VOTES_DEF : []).find(v => v.key === voteType)
+      const emoji = vDef?.emoji || '🏆'
+      await sendNotif(
+        id,
+        'vote',
+        `${emoji} @${profile?.pseudo || 'Quelqu\'un'} vous a voté "${vDef?.label || voteType}"`,
+        `/members/${user.id}`
+      )
     }
     setVoting(null)
   }
