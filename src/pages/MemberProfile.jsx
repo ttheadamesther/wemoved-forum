@@ -395,7 +395,7 @@ export default function MemberProfile() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
         {[
-          { label: 'AMIS',        value: member.friends || 0, color: '#3498db' },
+          { label: 'AMIS',        value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
           { label: 'POSTS',       value: member.posts   || 0, color: '#2ecc71' },
           { label: 'VOTES REÇUS', value: totalVotes,          color: C.accentTxt },
         ].map(s => (
