@@ -15,22 +15,58 @@ function apiFetch(path) {
   }).then(r => r.json())
 }
 
+// Skeleton pour les discussions
+function SkeletonThread() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
+      <div className="skeleton" style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0 }} />
+      <div style={{ flex: 1 }}>
+        <div className="skeleton" style={{ height: 11, width: '30%', marginBottom: 6 }} />
+        <div className="skeleton" style={{ height: 14, width: '80%', marginBottom: 4 }} />
+        <div className="skeleton" style={{ height: 11, width: '40%' }} />
+      </div>
+    </div>
+  )
+}
+
+// Skeleton pour activité
+function SkeletonActivity() {
+  return (
+    <div style={{ display: 'flex', gap: 10, padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
+      <div className="skeleton" style={{ width: 34, height: 34, borderRadius: '50%', flexShrink: 0 }} />
+      <div style={{ flex: 1 }}>
+        <div className="skeleton" style={{ height: 12, width: '90%', marginBottom: 6 }} />
+        <div className="skeleton" style={{ height: 10, width: '40%' }} />
+      </div>
+    </div>
+  )
+}
+
+function formatTimeAgo(ts) {
+  const diff = Math.floor((Date.now() - new Date(ts)) / 1000)
+  if (diff < 60)    return "à l'instant"
+  if (diff < 3600)  return `il y a ${Math.floor(diff / 60)} min`
+  if (diff < 86400) return `il y a ${Math.floor(diff / 3600)} h`
+  return new Date(ts).toLocaleDateString('fr-FR')
+}
 
 export default function Home() {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
   const containerRef = useRef()
-const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
-  const [members,   setMembers]   = useState([])
-  const [threads,   setThreads]   = useState([])
-  const [stats,     setStats]     = useState({ members: 0, threads: 0, messages: 0, online: 0 })
-  const [topMembers,setTopMembers] = useState([])
-  const [activity,  setActivity]  = useState([])
-  const [newThread, setNewThread] = useState(false)
-  const [title,     setTitle]     = useState('')
-  const [body,      setBody]      = useState('')
-  const [cat,       setCat]       = useState('Divers')
-  const [posting,   setPosting]   = useState(false)
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [members,    setMembers]    = useState([])
+  const [threads,    setThreads]    = useState([])
+  const [loadingT,   setLoadingT]   = useState(true)
+  const [loadingA,   setLoadingA]   = useState(true)
+  const [stats,      setStats]      = useState({ members: 0, threads: 0, messages: 0, online: 0 })
+  const [topMembers, setTopMembers] = useState([])
+  const [activity,   setActivity]   = useState([])
+  const [newThread,  setNewThread]  = useState(false)
+  const [title,      setTitle]      = useState('')
+  const [body,       setBody]       = useState('')
+  const [cat,        setCat]        = useState('Divers')
+  const [posting,    setPosting]    = useState(false)
 
   useEffect(() => {
     const observer = new ResizeObserver(entries => {
@@ -55,28 +91,41 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
     })
     apiFetch('/rest/v1/threads?select=*,replies(count)&hidden=eq.false&order=created_at.desc&limit=6').then(d => {
       if (Array.isArray(d)) { setThreads(d); setStats(s => ({ ...s, threads: d.length })) }
+      setLoadingT(false)
     })
-    apiFetch('/rest/v1/threads?select=id,title,author_id,created_at&order=created_at.desc&limit=5').then(d => {
+    apiFetch('/rest/v1/threads?select=id,title,author_id,created_at&order=created_at.desc&limit=8').then(d => {
       if (Array.isArray(d)) setActivity(d)
+      setLoadingA(false)
     })
   }, [])
 
-  // ── Realtime : statut en ligne des membres ──
+  // Realtime statut en ligne
   useEffect(() => {
     if (!supabase) return
     const channel = supabase
       .channel('profiles-online')
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'profiles',
-      }, (payload) => {
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
         if (payload.new && 'online' in payload.new) {
           setMembers(prev => {
             const updated = prev.map(m => m.id === payload.new.id ? { ...m, online: payload.new.online } : m)
             setStats(s => ({ ...s, online: updated.filter(m => m.online).length }))
             return updated
           })
+        }
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [])
+
+  // Realtime nouveaux threads dans l'activité
+  useEffect(() => {
+    if (!supabase) return
+    const channel = supabase
+      .channel('threads-activity')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'threads' }, (payload) => {
+        if (payload.new) {
+          setActivity(prev => [payload.new, ...prev].slice(0, 8))
+          setThreads(prev => [payload.new, ...prev].slice(0, 6))
         }
       })
       .subscribe()
@@ -106,81 +155,84 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
     ? { display: 'flex', flexDirection: 'column', gap: 12 }
     : { display: 'grid', gridTemplateColumns: '260px 1fr 280px', gap: 16 }
 
+  const colors = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
+
   return (
     <div ref={containerRef}>
-
-   
-
-      {/* ── GRILLE PRINCIPALE ── */}
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: isMobile ? '16px 12px' : '24px 16px', ...gridStyle }}>
 
         {/* ── SIDEBAR GAUCHE ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
+          {/* Top du mois */}
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
             <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontWeight: 700, fontSize: 13, color: C.text }}>🏆 TOP DU MOIS</span>
               <Link to="/members" style={{ fontSize: 11, color: C.accentTxt, fontWeight: 700 }}>Voir tout →</Link>
             </div>
             {topMembers.map((m, i) => {
-              const tv = getTopVoteType(m.votes)
+              const tv  = getTopVoteType(m.votes)
               const tot = Object.values(m.votes || {}).reduce((a, b) => a + b, 0)
+              const ac  = colors[(m.pseudo?.charCodeAt(0) || 0) % colors.length]
+              const medals = ['🥇','🥈','🥉']
               return (
-                <div key={m.id} onClick={() => navigate(`/members/${m.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', transition: 'background .15s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'var(--white)'}
-                >
-                  <span style={{ fontWeight: 700, fontSize: 13, color: C.textMid, width: 16 }}>{i + 1}</span>
-                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
-                    {m.avatar_url ? <img src={m.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : m.initials}
+                <div key={m.id} onClick={() => navigate(`/members/${m.id}`)} className="row" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer' }}>
+                  <span style={{ fontWeight: 700, fontSize: 14, width: 20, textAlign: 'center' }}>{medals[i] || i + 1}</span>
+                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: m.avatar_url ? '#444' : ac, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
+                    {m.avatar_url ? <img src={m.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : m.initials}
                   </div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: C.text, flex: 1 }}>{m.pseudo}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: C.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.pseudo}</span>
                   <span style={{ fontWeight: 700, fontSize: 13, color: C.accentTxt }}>{tot}</span>
-                  {tv && <span>{tv.emoji}</span>}
+                  {tv && <span title={tv.label}>{tv.emoji}</span>}
                 </div>
               )
             })}
-            <div onClick={() => navigate('/members')} style={{ padding: '10px 16px', textAlign: 'center', cursor: 'pointer', background: C.surfaceB }}>
+            <div onClick={() => navigate('/members')} className="row" style={{ padding: '10px 16px', textAlign: 'center', cursor: 'pointer', background: C.surfaceB }}>
               <span style={{ fontSize: 12, color: C.accentTxt, fontWeight: 700 }}>Voir le classement complet</span>
             </div>
           </div>
 
+          {/* Membres en ligne */}
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
             <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}` }}>
               <span style={{ fontWeight: 700, fontSize: 13, color: C.text }}>
-                <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: C.online, marginRight: 6 }} />
+                <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: C.online, marginRight: 6, animation: 'pulse 2s infinite' }} />
                 MEMBRES EN LIGNE
               </span>
             </div>
-            {members.filter(m => m.online).slice(0, isMobile ? 3 : 6).map(m => (
-              <div key={m.id} onClick={() => navigate(`/members/${m.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', transition: 'background .15s' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'var(--white)'}
-              >
-                <div style={{ position: 'relative' }}>
-                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden' }}>
-                    {m.avatar_url ? <img src={m.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : m.initials}
-                  </div>
-                  <div style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: C.online, border: '2px solid #fff' }} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{m.pseudo}</div>
-                  <div style={{ fontSize: 10, color: C.textMid }}><RoleBadge role={m.role} /></div>
-                </div>
-              </div>
-            ))}
-            <div onClick={() => navigate('/members')} style={{ padding: '8px 16px', textAlign: 'center', cursor: 'pointer', background: C.surfaceB }}>
-              <span style={{ fontSize: 11, color: C.accentTxt, fontWeight: 700 }}>Voir tous les membres en ligne →</span>
+            {members.filter(m => m.online).length === 0
+              ? <div style={{ padding: '14px 16px', fontSize: 12, color: C.textDim, textAlign: 'center', fontStyle: 'italic' }}>Aucun membre en ligne</div>
+              : members.filter(m => m.online).slice(0, isMobile ? 3 : 6).map(m => {
+                  const ac = colors[(m.pseudo?.charCodeAt(0) || 0) % colors.length]
+                  return (
+                    <div key={m.id} onClick={() => navigate(`/members/${m.id}`)} className="row" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer' }}>
+                      <div style={{ position: 'relative' }}>
+                        <div style={{ width: 34, height: 34, borderRadius: '50%', background: m.avatar_url ? '#444' : ac, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden' }}>
+                          {m.avatar_url ? <img src={m.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : m.initials}
+                        </div>
+                        <div style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: C.online, border: '2px solid #fff' }} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{m.pseudo}</div>
+                        <div style={{ fontSize: 10 }}><RoleBadge role={m.role} /></div>
+                      </div>
+                    </div>
+                  )
+                })
+            }
+            <div onClick={() => navigate('/members')} className="row" style={{ padding: '8px 16px', textAlign: 'center', cursor: 'pointer', background: C.surfaceB }}>
+              <span style={{ fontSize: 11, color: C.accentTxt, fontWeight: 700 }}>Voir tous les membres →</span>
             </div>
           </div>
 
+          {/* Stats */}
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 12 }}>STATISTIQUES</div>
             {[
-              { icon: '👥', label: 'Membres',         value: stats.members },
-              { icon: '💬', label: 'Discussions',      value: stats.threads },
-              { icon: '✉️', label: 'Messages',         value: 0 },
-              { icon: '🟢', label: 'Membres en ligne', value: stats.online },
+              { icon: '👥', label: 'Membres',          value: stats.members },
+              { icon: '💬', label: 'Discussions',       value: stats.threads },
+              { icon: '✉️', label: 'Messages',          value: 0 },
+              { icon: '🟢', label: 'Membres en ligne',  value: stats.online },
             ].map(s => (
               <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: `1px solid ${C.border}` }}>
                 <span>{s.icon}</span>
@@ -204,14 +256,14 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
           </div>
 
           {newThread && (
-            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
+            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)', animation: 'fadein .2s ease' }}>
               <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 8, marginBottom: 10 }}>
                 <select value={cat} onChange={e => setCat(e.target.value)} style={{ padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.borderMid}`, fontSize: 12, color: C.text, background: C.white }}>
                   {CATS.filter(c => c !== 'Tous').map(c => <option key={c}>{c}</option>)}
                 </select>
-                <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titre de la discussion…" style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.borderMid}`, fontSize: 13, color: C.text, fontFamily: 'inherit' }} />
+                <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titre de la discussion…" style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.borderMid}`, fontSize: 13, color: C.text, fontFamily: 'inherit', background: C.white }} />
               </div>
-              <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Contenu…" rows={3} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.borderMid}`, fontSize: 13, color: C.text, fontFamily: 'inherit', resize: 'vertical', marginBottom: 10, boxSizing: 'border-box' }} />
+              <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Contenu…" rows={3} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.borderMid}`, fontSize: 13, color: C.text, fontFamily: 'inherit', resize: 'vertical', marginBottom: 10, boxSizing: 'border-box', background: C.surfaceB }} />
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button onClick={() => setNewThread(false)} style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${C.borderMid}`, background: C.white, cursor: 'pointer', fontSize: 12, color: C.textMid }}>Annuler</button>
                 <button onClick={postThread} disabled={posting} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#f0c800,#c8a200)', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#3a2e00' }}>{posting ? '…' : 'Publier'}</button>
@@ -219,51 +271,49 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
             </div>
           )}
 
+          {/* Threads */}
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
-            <div style={{ padding: '12px 16px', borderBottom: `2px solid ${C.accent}`, fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>
-              DISCUSSIONS RÉCENTES
-            </div>
-            {threads.length === 0 && (
-              <div style={{ padding: 30, textAlign: 'center', color: C.textDim, fontSize: 13 }}>Aucune discussion pour l'instant</div>
-            )}
-            {threads.map(t => {
-              const author = getMember(t.author_id)
-              return (
-                <div key={t.id} onClick={() => navigate('/forum')} style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12, padding: isMobile ? '12px' : '14px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', transition: 'background .15s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'var(--white)'}
-                >
-                  {!isMobile && (
-                    <div style={{ flexShrink: 0 }}>
-                      {t.pinned ? <span style={{ fontSize: 16 }}>📌</span> : t.locked ? <span style={{ fontSize: 16 }}>🔒</span> : <span style={{ fontSize: 16 }}>💬</span>}
-                    </div>
-                  )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: '#fffae6', color: '#7a6200', border: '1px solid #c8a20044' }}>{t.cat}</span>
-                    </div>
-                    <div style={{ fontWeight: 700, fontSize: isMobile ? 13 : 14, color: C.text, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</div>
-                    <div style={{ fontSize: 11, color: C.textMid }}>
-                      {author ? `@${author.pseudo}` : 'Inconnu'} • {new Date(t.created_at).toLocaleDateString('fr-FR')}
-                    </div>
-                  </div>
-                  {!isMobile && (
-                    <div style={{ display: 'flex', gap: 16, flexShrink: 0, color: C.textMid, fontSize: 12 }}>
-                      <span>💬 {t.replies?.[0]?.count || 0}</span>
-                      <span>❤️ {t.likes || 0}</span>
-                    </div>
-                  )}
-                  <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
-                    {author?.avatar_url ? <img src={author.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : author?.initials || '?'}
-                  </div>
-                </div>
-              )
-            })}
-            <div onClick={() => navigate('/forum')} style={{ padding: '12px 16px', textAlign: 'center', cursor: 'pointer', background: C.surfaceB, borderTop: `1px solid ${C.border}` }}>
+            <div style={{ padding: '12px 16px', borderBottom: `2px solid ${C.accent}`, fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>DISCUSSIONS RÉCENTES</div>
+            {loadingT
+              ? Array.from({ length: 5 }).map((_, i) => <SkeletonThread key={i} />)
+              : threads.length === 0
+                ? <div style={{ padding: 30, textAlign: 'center', color: C.textDim, fontSize: 13 }}>Aucune discussion pour l'instant</div>
+                : threads.map(t => {
+                    const author = getMember(t.author_id)
+                    const ac = author ? colors[(author.pseudo?.charCodeAt(0) || 0) % colors.length] : '#888'
+                    return (
+                      <div key={t.id} onClick={() => navigate('/forum')} className="row" style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12, padding: isMobile ? '12px' : '14px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer' }}>
+                        {!isMobile && <div style={{ flexShrink: 0 }}>
+                          {t.pinned ? <span style={{ fontSize: 16 }}>📌</span> : t.locked ? <span style={{ fontSize: 16 }}>🔒</span> : <span style={{ fontSize: 16 }}>💬</span>}
+                        </div>}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                            <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: '#fffae6', color: '#7a6200', border: '1px solid #c8a20044' }}>{t.cat}</span>
+                          </div>
+                          <div style={{ fontWeight: 700, fontSize: isMobile ? 13 : 14, color: C.text, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</div>
+                          <div style={{ fontSize: 11, color: C.textMid }}>
+                            {author ? `@${author.pseudo}` : 'Inconnu'} · {formatTimeAgo(t.created_at)}
+                          </div>
+                        </div>
+                        {!isMobile && (
+                          <div style={{ display: 'flex', gap: 16, flexShrink: 0, color: C.textMid, fontSize: 12 }}>
+                            <span>💬 {t.replies?.[0]?.count || 0}</span>
+                            <span>❤️ {t.likes || 0}</span>
+                          </div>
+                        )}
+                        <div style={{ width: 30, height: 30, borderRadius: '50%', background: author?.avatar_url ? '#444' : ac, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
+                          {author?.avatar_url ? <img src={author.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : author?.initials || '?'}
+                        </div>
+                      </div>
+                    )
+                  })
+            }
+            <div onClick={() => navigate('/forum')} className="row" style={{ padding: '12px 16px', textAlign: 'center', cursor: 'pointer', background: C.surfaceB, borderTop: `1px solid ${C.border}` }}>
               <span style={{ fontSize: 12, color: C.accentTxt, fontWeight: 700 }}>Voir toutes les discussions →</span>
             </div>
           </div>
 
+          {/* Catégories */}
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
             <div style={{ padding: '12px 16px', borderBottom: `2px solid ${C.accent}`, fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>CATÉGORIES</div>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 0 }}>
@@ -275,10 +325,7 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
                 { cat: 'Voyages',    icon: '✈️', desc: 'Destinations, bons plans…' },
                 { cat: 'Divers',     icon: '💬', desc: "Tout ce qui n'entre pas ailleurs !" },
               ].map(c => (
-                <div key={c.cat} onClick={() => navigate('/forum')} style={{ display: 'flex', gap: 12, padding: '14px 16px', borderBottom: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}`, cursor: 'pointer', transition: 'background .15s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'var(--white)'}
-                >
+                <div key={c.cat} onClick={() => navigate('/forum')} className="row" style={{ display: 'flex', gap: 12, padding: '14px 16px', borderBottom: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}`, cursor: 'pointer' }}>
                   <span style={{ fontSize: 24, flexShrink: 0 }}>{c.icon}</span>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 13, color: C.accentTxt, marginBottom: 2 }}>{c.cat}</div>
@@ -289,6 +336,7 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
             </div>
           </div>
 
+          {/* Citation */}
           <div style={{ background: 'linear-gradient(135deg,#1a1a1a,#1a1a2e)', borderRadius: 12, padding: isMobile ? '24px 20px' : '28px 36px', textAlign: 'center', border: '1px solid rgba(200,162,0,.2)' }}>
             <div style={{ fontSize: 36, color: C.accent, lineHeight: 1, marginBottom: 10, opacity: .7 }}>"</div>
             <p style={{ fontSize: isMobile ? 14 : 17, color: '#fff', fontWeight: 700, marginBottom: 8, lineHeight: 1.5 }}>La communauté, c'est ce qui nous fait avancer.</p>
@@ -300,29 +348,37 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
         {/* ── SIDEBAR DROITE ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
+          {/* Activité en temps réel */}
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
-            <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>ACTIVITÉ RÉCENTE</div>
-            {activity.length === 0 && (
-              <div style={{ padding: 20, textAlign: 'center', color: C.textDim, fontSize: 12 }}>Aucune activité</div>
-            )}
-            {activity.map(t => {
-              const author = getMember(t.author_id)
-              return (
-                <div key={t.id} style={{ display: 'flex', gap: 10, padding: '10px 14px', borderBottom: `1px solid ${C.border}` }}>
-                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
-                    {author?.avatar_url ? <img src={author.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : author?.initials || '?'}
-                  </div>
-                  <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5 }}>
-                    <span style={{ fontWeight: 700, color: C.accentTxt }}>@{author?.pseudo || 'Inconnu'}</span>
-                    {' '}a créé le sujet{' '}
-                    <span style={{ fontWeight: 600 }}>"{t.title}"</span>
-                    <div style={{ fontSize: 10, color: C.textDim, marginTop: 3 }}>{new Date(t.created_at).toLocaleDateString('fr-FR')}</div>
-                  </div>
-                </div>
-              )
-            })}
+            <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>ACTIVITÉ RÉCENTE</span>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#2ecc71', display: 'inline-block', animation: 'pulse 2s infinite' }} />
+            </div>
+            {loadingA
+              ? Array.from({ length: 4 }).map((_, i) => <SkeletonActivity key={i} />)
+              : activity.length === 0
+                ? <div style={{ padding: 20, textAlign: 'center', color: C.textDim, fontSize: 12 }}>Aucune activité</div>
+                : activity.map((t, i) => {
+                    const author = getMember(t.author_id)
+                    const ac = author ? colors[(author.pseudo?.charCodeAt(0) || 0) % colors.length] : '#888'
+                    return (
+                      <div key={t.id} onClick={() => navigate('/forum')} className="row" style={{ display: 'flex', gap: 10, padding: '10px 14px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', animation: `fadein .${2 + i}s ease` }}>
+                        <div style={{ width: 34, height: 34, borderRadius: '50%', background: author?.avatar_url ? '#444' : ac, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
+                          {author?.avatar_url ? <img src={author.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : author?.initials || '?'}
+                        </div>
+                        <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5 }}>
+                          <span style={{ fontWeight: 700, color: C.accentTxt }}>@{author?.pseudo || 'Inconnu'}</span>
+                          {' '}a créé{' '}
+                          <span style={{ fontWeight: 600 }}>"{t.title?.slice(0, 30)}{t.title?.length > 30 ? '…' : ''}"</span>
+                          <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{formatTimeAgo(t.created_at)}</div>
+                        </div>
+                      </div>
+                    )
+                  })
+            }
           </div>
 
+          {/* Récompenses */}
           {user && profile && (
             <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
               <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 12 }}>VOS RÉCOMPENSES</div>
@@ -330,7 +386,7 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
                 {BADGES_DEF.map(b => {
                   const has = (profile.badges || []).includes(b.key)
                   return (
-                    <div key={b.key} title={b.label} style={{ width: 40, height: 40, borderRadius: '50%', background: has ? '#fffae6' : '#f5f5f5', border: `2px solid ${has ? C.accentDk : '#ddd'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, opacity: has ? 1 : 0.3, transition: 'all .2s' }}>
+                    <div key={b.key} title={b.label} style={{ width: 40, height: 40, borderRadius: '50%', background: has ? '#fffae6' : '#f5f5f5', border: `2px solid ${has ? C.accentDk : '#ddd'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, opacity: has ? 1 : 0.3, transition: 'all .2s', cursor: has ? 'help' : 'default' }}>
                       {b.emoji}
                     </div>
                   )
@@ -346,6 +402,7 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
             </div>
           )}
 
+          {/* Annonces */}
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
             <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>📢 ANNONCES</div>
             <div style={{ padding: 14 }}>
@@ -360,7 +417,6 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
             </div>
           </div>
         </div>
-
       </div>
     </div>
   )
