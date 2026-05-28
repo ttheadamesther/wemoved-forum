@@ -195,17 +195,20 @@ export default function Navbar() {
   }
 
   // ── BOTTOM BAR MOBILE ──
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
+
   const BottomBar = () => {
+    // Accueil / Forum / Profil(centre) / Messages / Membres
     const tabs = [
-      { to: '/',        icon: '🏠', label: 'Accueil' },
-      { to: '/forum',   icon: '💬', label: 'Forum' },
-      { to: '/members', icon: '👥', label: 'Membres' },
-      { to: '/messages',icon: '✉️', label: 'Messages', badge: unreadMessages },
+      { to: '/',         icon: '🏠', label: 'Accueil' },
+      { to: '/forum',    icon: '💬', label: 'Forum' },
       { to: user ? '/profile' : '/login', icon: user ? (
-        <div style={{ width: 26, height: 26, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff' }}>
+        <div style={{ width: 30, height: 30, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', border: '2px solid #c8a200' }}>
           {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
         </div>
-      ) : '👤', label: user ? 'Profil' : 'Connexion' },
+      ) : '👤', label: user ? 'Profil' : 'Connexion', isCenter: true },
+      { to: '/messages', icon: '✉️', label: 'Messages', badge: unreadMessages },
+      { to: '/members',  icon: '👥', label: 'Membres' },
     ]
 
     return (
@@ -218,20 +221,20 @@ export default function Navbar() {
         boxShadow: '0 -4px 20px rgba(0,0,0,.3)'
       }}>
         {tabs.map((tab, i) => {
-          const active = path === tab.to || (tab.to === '/profile' && path === '/profile')
-          const isCenter = i === 2
+          const active = path === tab.to
+          const isCenter = tab.isCenter
           return (
             <Link key={tab.to} to={tab.to}
               onClick={() => { if (tab.to === '/messages') setUnreadMessages(0) }}
               style={{ flex: 1, textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, position: 'relative', transition: 'all .15s' }}
             >
               {isCenter ? (
-                <div style={{ width: 48, height: 48, borderRadius: '50%', background: active ? 'linear-gradient(135deg,#f0c800,#c8a200)' : '#222', border: `2px solid ${active ? '#c8a200' : '#333'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, marginBottom: 2, boxShadow: active ? '0 4px 16px rgba(200,162,0,.4)' : 'none', transition: 'all .2s' }}>
-                  {tab.icon}
+                <div style={{ width: 50, height: 50, borderRadius: '50%', background: 'linear-gradient(135deg,#f0c800,#c8a200)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 2, boxShadow: '0 4px 16px rgba(200,162,0,.4)', transition: 'all .2s', transform: 'translateY(-10px)', border: '3px solid #111' }}>
+                  {typeof tab.icon === 'string' ? <span style={{ fontSize: 22 }}>{tab.icon}</span> : tab.icon}
                 </div>
               ) : (
                 <div style={{ position: 'relative' }}>
-                  <div style={{ fontSize: typeof tab.icon === 'string' ? 22 : 14, lineHeight: 1, filter: active ? 'none' : 'grayscale(30%)', transition: 'all .2s', transform: active ? 'translateY(-2px)' : 'none' }}>
+                  <div style={{ fontSize: typeof tab.icon === 'string' ? 22 : 14, lineHeight: 1, transition: 'all .2s', transform: active ? 'translateY(-2px)' : 'none', opacity: active ? 1 : 0.7 }}>
                     {tab.icon}
                   </div>
                   {tab.badge > 0 && (
@@ -241,9 +244,11 @@ export default function Navbar() {
                   )}
                 </div>
               )}
-              <span style={{ fontSize: 10, color: active ? C.accent : '#888', fontWeight: active ? 700 : 400, transition: 'all .15s' }}>
-                {tab.label}
-              </span>
+              {!isCenter && (
+                <span style={{ fontSize: 10, color: active ? C.accent : '#888', fontWeight: active ? 700 : 400, transition: 'all .15s' }}>
+                  {tab.label}
+                </span>
+              )}
               {active && !isCenter && (
                 <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 24, height: 2, background: C.accentDk, borderRadius: '0 0 4px 4px' }} />
               )}
@@ -257,11 +262,22 @@ export default function Navbar() {
   if (isMobile) {
     return (
       <>
-        {/* Top bar mobile — logo + notifs + dark mode + search */}
-        <nav ref={navRef} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999, height: 56, display: 'flex', alignItems: 'center', padding: '0 12px', background: '#111', borderBottom: `1px solid ${C.navBorder}`, gap: 4 }}>
-          <Link to="/" style={{ flexShrink: 0, marginTop: 4 }}>
-            <Logo height={52} />
-          </Link>
+        {/* Top bar mobile — hamburger | logo centré | notifs+search */}
+        <nav ref={navRef} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999, height: 56, display: 'flex', alignItems: 'center', padding: '0 12px', background: '#111', borderBottom: `1px solid ${C.navBorder}` }}>
+
+          {/* Hamburger gauche */}
+          <button onClick={() => setShowMobileMenu(m => !m)} style={{ width: 36, height: 36, borderRadius: 8, border: 'none', background: '#222', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5, flexShrink: 0 }}>
+            <span style={{ width: 18, height: 2, background: showMobileMenu ? C.accent : '#ccc', display: 'block', transition: 'all .2s', transform: showMobileMenu ? 'rotate(45deg) translateY(7px)' : 'none' }} />
+            <span style={{ width: 18, height: 2, background: showMobileMenu ? 'transparent' : '#ccc', display: 'block', transition: 'all .2s' }} />
+            <span style={{ width: 18, height: 2, background: showMobileMenu ? C.accent : '#ccc', display: 'block', transition: 'all .2s', transform: showMobileMenu ? 'rotate(-45deg) translateY(-7px)' : 'none' }} />
+          </button>
+
+          {/* Logo centré */}
+          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', marginTop: 4 }}>
+            <Link to="/"><Logo height={52} /></Link>
+          </div>
+
+          {/* Droite — dark mode + search + notifs */}
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
             <button onClick={toggle} className="theme-toggle" title={dark ? 'Mode clair' : 'Mode sombre'} style={{ width: 32, height: 32, fontSize: 14 }}>
               {dark ? '☀️' : '🌙'}
@@ -332,8 +348,61 @@ export default function Navbar() {
                 )}
               </div>
             )}
+            {/* Dark mode */}
+            <button onClick={toggle} className="theme-toggle" style={{ width: 32, height: 32, fontSize: 14 }}>
+              {dark ? '☀️' : '🌙'}
+            </button>
           </div>
         </nav>
+
+        {/* Menu déroulant hamburger */}
+        {showMobileMenu && (
+          <div style={{ position: 'fixed', top: 56, left: 0, right: 0, background: '#111', zIndex: 998, borderBottom: `1px solid ${C.navBorder}`, boxShadow: '0 8px 24px rgba(0,0,0,.5)', animation: 'slidedown .2s ease' }}>
+            {user && (
+              <div style={{ padding: '14px 20px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', overflow: 'hidden', border: `2px solid ${C.accentDk}` }}>
+                  {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>@{profile?.pseudo}</div>
+                  <div style={{ fontSize: 10, color: '#888', marginBottom: 4 }}>Niveau {level} · {xp % 1000}/1000 XP</div>
+                  <div style={{ height: 3, background: '#333', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${xpPercent}%`, background: 'linear-gradient(to right,#f0c800,#c8a200)', borderRadius: 4 }} />
+                  </div>
+                </div>
+              </div>
+            )}
+            {[
+              { icon: '⚙️', label: 'Paramètres',      to: '/settings',      show: !!user },
+              { icon: '🐛', label: 'Signaler un bug',  to: '/bug-report',    show: !!user },
+              { icon: '🔔', label: 'Notifications',    to: '/notifications', show: !!user },
+              { icon: '🛡️', label: 'Modération',       to: '/moderation',    show: !!user && canMod },
+              { icon: '📜', label: 'Mentions légales', to: '/legal',         show: true },
+            ].filter(i => i.show).map(item => (
+              <div key={item.to} onClick={() => { navigate(item.to); setShowMobileMenu(false) }}
+                style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: '1px solid #1a1a1a', cursor: 'pointer', fontSize: 13, color: '#ccc' }}>
+                <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{item.icon}</span>
+                {item.label}
+              </div>
+            ))}
+            {user ? (
+              <div onClick={async () => { await handleSignOut(); setShowMobileMenu(false) }}
+                style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', cursor: 'pointer', fontSize: 13, color: '#e74c3c' }}>
+                <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>⏻</span>
+                Déconnexion
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 10, padding: '14px 20px' }}>
+                <Link to="/login" onClick={() => setShowMobileMenu(false)} style={{ flex: 1 }}>
+                  <button style={{ width: '100%', padding: '10px', border: '1px solid #333', borderRadius: 8, cursor: 'pointer', background: 'transparent', color: '#ccc', fontSize: 13 }}>Connexion</button>
+                </Link>
+                <Link to="/register" onClick={() => setShowMobileMenu(false)} style={{ flex: 1 }}>
+                  <button style={{ width: '100%', padding: '10px', border: 'none', borderRadius: 8, cursor: 'pointer', background: 'linear-gradient(to bottom,#f0c800,#c8a200)', color: '#3a2e00', fontWeight: 700, fontSize: 13 }}>S'inscrire</button>
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Bottom bar */}
         <BottomBar />
