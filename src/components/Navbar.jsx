@@ -203,10 +203,10 @@ export default function Navbar() {
       { to: '/',         icon: '🏠', label: 'Accueil' },
       { to: '/forum',    icon: '💬', label: 'Forum' },
       { to: user ? '/profile' : '/login', icon: user ? (
-        <div style={{ width: 30, height: 30, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', border: '2px solid #c8a200' }}>
+        <div style={{ width: 26, height: 26, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', border: `2px solid ${path === '/profile' ? C.accentDk : '#444'}` }}>
           {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
         </div>
-      ) : '👤', label: user ? 'Profil' : 'Connexion', isCenter: true },
+      ) : '👤', label: user ? 'Mon profil' : 'Connexion', isCenter: false },
       { to: '/messages', icon: '✉️', label: 'Messages', badge: unreadMessages },
       { to: '/members',  icon: '👥', label: 'Membres' },
     ]
@@ -228,28 +228,20 @@ export default function Navbar() {
               onClick={() => { if (tab.to === '/messages') setUnreadMessages(0) }}
               style={{ flex: 1, textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, position: 'relative', transition: 'all .15s' }}
             >
-              {isCenter ? (
-                <div style={{ width: 50, height: 50, borderRadius: '50%', background: 'linear-gradient(135deg,#f0c800,#c8a200)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 2, boxShadow: '0 4px 16px rgba(200,162,0,.4)', transition: 'all .2s', transform: 'translateY(-10px)', border: '3px solid #111' }}>
-                  {typeof tab.icon === 'string' ? <span style={{ fontSize: 22 }}>{tab.icon}</span> : tab.icon}
+              <div style={{ position: 'relative' }}>
+                <div style={{ fontSize: typeof tab.icon === 'string' ? 22 : 14, lineHeight: 1, transition: 'all .2s', transform: active ? 'translateY(-2px)' : 'none', opacity: active ? 1 : 0.7 }}>
+                  {tab.icon}
                 </div>
-              ) : (
-                <div style={{ position: 'relative' }}>
-                  <div style={{ fontSize: typeof tab.icon === 'string' ? 22 : 14, lineHeight: 1, transition: 'all .2s', transform: active ? 'translateY(-2px)' : 'none', opacity: active ? 1 : 0.7 }}>
-                    {tab.icon}
-                  </div>
-                  {tab.badge > 0 && (
-                    <span style={{ position: 'absolute', top: -4, right: -6, background: C.red, color: '#fff', borderRadius: 10, fontSize: 9, fontWeight: 700, padding: '1px 4px', lineHeight: 1.4 }}>
-                      {tab.badge > 9 ? '9+' : tab.badge}
-                    </span>
-                  )}
-                </div>
-              )}
-              {!isCenter && (
-                <span style={{ fontSize: 10, color: active ? C.accent : '#888', fontWeight: active ? 700 : 400, transition: 'all .15s' }}>
-                  {tab.label}
-                </span>
-              )}
-              {active && !isCenter && (
+                {tab.badge > 0 && (
+                  <span style={{ position: 'absolute', top: -4, right: -6, background: C.red, color: '#fff', borderRadius: 10, fontSize: 9, fontWeight: 700, padding: '1px 4px', lineHeight: 1.4 }}>
+                    {tab.badge > 9 ? '9+' : tab.badge}
+                  </span>
+                )}
+              </div>
+              <span style={{ fontSize: 10, color: active ? C.accent : '#888', fontWeight: active ? 700 : 400, transition: 'all .15s' }}>
+                {tab.label}
+              </span>
+              {active && (
                 <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 24, height: 2, background: C.accentDk, borderRadius: '0 0 4px 4px' }} />
               )}
             </Link>
@@ -277,11 +269,8 @@ export default function Navbar() {
             <Link to="/"><Logo height={52} /></Link>
           </div>
 
-          {/* Droite — dark mode + search + notifs */}
+          {/* Droite — search + notifs */}
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <button onClick={toggle} className="theme-toggle" title={dark ? 'Mode clair' : 'Mode sombre'} style={{ width: 32, height: 32, fontSize: 14 }}>
-              {dark ? '☀️' : '🌙'}
-            </button>
 
             {/* Recherche mobile */}
             <div ref={searchRef} style={{ position: 'relative' }}>
