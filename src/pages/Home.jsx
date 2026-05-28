@@ -349,7 +349,7 @@ const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
             <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>📢 ANNONCES</div>
             <div style={{ padding: 14 }}>
-              <div style={{ background: '#fffae6', border: `1px solid ${C.accentDk}`, borderRadius: 8, padding: '10px 12px', marginBottom: 10 }}>
+              <div style={{ background: C.surfaceB, border: `1px solid ${C.accentDk}`, borderRadius: 8, padding: '10px 12px', marginBottom: 10 }}>
                 <div style={{ fontWeight: 700, fontSize: 13, color: C.accentTxt, marginBottom: 4 }}>🎉 Bienvenue sur Wemoved !</div>
                 <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5 }}>La communauté est lancée. Créez votre profil et participez !</div>
               </div>
