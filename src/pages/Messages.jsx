@@ -280,6 +280,19 @@ export default function MessagesPage() {
                         {unread > 0 && !blocked && (
                           <span style={{ background: C.red, color: '#fff', borderRadius: 10, fontSize: 10, fontWeight: 700, padding: '2px 6px', flexShrink: 0 }}>{unread}</span>
                         )}
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            if (!window.confirm('Supprimer cette conversation ?')) return
+                            await api(`/rest/v1/messages?or=(and(from_id.eq.${user.id},to_id.eq.${m.id}),and(from_id.eq.${m.id},to_id.eq.${user.id}))`, { method: 'DELETE' })
+                            setConvos(prev => prev.filter(c => c.otherId !== m.id))
+                            if (activeId === m.id) { setActiveId(null); setMessages([]) }
+                          }}
+                          title="Supprimer la conversation"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: C.red, opacity: 0, padding: '2px 4px', flexShrink: 0, transition: 'opacity .15s' }}
+                          onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                          onMouseLeave={e => e.currentTarget.style.opacity = '0'}
+                        >🗑</button>
                       </div>
                     )
                   })}
