@@ -117,8 +117,7 @@ export default function Profile() {
         ...(Array.isArray(d2) ? d2.map(f => f.user_a) : [])
       ]
       if (friendIds.length === 0) { setFriendsList([]); setFriendsLoading(false); return }
-      const ids = friendIds.join(',')
-      const rp = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=in.(${ids})&select=id,pseudo,initials,avatar_url,online`, { headers: h })
+      const rp = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=in.(${friendIds.join(',')})&select=id,pseudo,initials,avatar_url,online`, { headers: h })
       const dp = await rp.json()
       setFriendsList(Array.isArray(dp) ? dp : [])
       setFriendsLoading(false)
@@ -142,8 +141,6 @@ export default function Profile() {
   const [bannerZoom, setBannerZoom]               = useState(1)
   const [bannerCroppedArea, setBannerCroppedArea] = useState(null)
   const [uploadingBanner, setUploadingBanner]     = useState(false)
-
-  // ── Infos personnelles ──
   const [editingInfos, setEditingInfos] = useState(false)
   const [infosRegion,  setInfosRegion]  = useState('')
   const [infosDept,    setInfosDept]    = useState('')
@@ -350,9 +347,9 @@ export default function Profile() {
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
           {[
-            { icon: '👥', label: 'Amis', value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
-            { icon: '💬', label: 'Posts',       value: profile.posts   || 0, color: '#2ecc71' },
-            { icon: '⭐', label: 'Votes reçus', value: totalVotes,          color: '#c8a200' },
+            { icon: '👥', label: 'Amis',        value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
+            { icon: '💬', label: 'Posts',        value: profile.posts || 0,                        color: '#2ecc71' },
+            { icon: '⭐', label: 'Votes reçus',  value: totalVotes,                                color: '#c8a200' },
           ].map(s => (
             <div key={s.label} style={{ ...PANEL, borderTop: `3px solid ${s.color}`, padding: '14px 10px', textAlign: 'center' }}>
               <div style={{ fontSize: 22, marginBottom: 4 }}>{s.icon}</div>
@@ -362,96 +359,7 @@ export default function Profile() {
           ))}
         </div>
 
-        {/* ── AMIS ── */}
-        <div style={{ ...PANEL, borderTop: '3px solid #3498db' }}>
-          <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>👥 Amis ({friendsList.length})</div>
-          {friendsLoading
-            ? <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', padding: 12 }}>Chargement…</div>
-            : friendsList.length === 0
-              ? <div style={{ fontSize: 13, color: C.textDim, fontStyle: 'italic', textAlign: 'center', padding: 12 }}>Aucun ami pour l'instant.</div>
-              : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10 }}>
-                  {friendsList.map(f => {
-                    const fColors = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
-                    const fColor = fColors[(f.pseudo?.charCodeAt(0) || 0) % fColors.length]
-                    return (
-                      <div key={f.id} onClick={() => navigate(`/members/${f.id}`)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 8px', background: C.surfaceB, borderRadius: 12, border: `1px solid ${C.border}`, cursor: 'pointer', transition: 'all .15s' }}
-                        onMouseEnter={e => e.currentTarget.style.borderColor = '#3498db'}
-                        onMouseLeave={e => e.currentTarget.style.borderColor = C.border}
-                      >
-                        <div style={{ width: 44, height: 44, borderRadius: '50%', background: f.avatar_url ? '#444' : fColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', overflow: 'hidden', border: '2px solid #fff', boxShadow: '0 2px 6px rgba(0,0,0,.1)' }}>
-                          {f.avatar_url ? <img src={f.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : f.initials || f.pseudo?.slice(0,2).toUpperCase()}
-                        </div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: C.text, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>@{f.pseudo}</div>
-                        {f.online && <span style={{ fontSize: 9, color: '#2ecc71', fontWeight: 700 }}>● En ligne</span>}
-                      </div>
-                    )
-                  })}
-                </div>
-          }
-        </div>
-
-        {/* ── INFOS PERSONNELLES ── */}
-        <div style={PANEL}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>📍 Infos personnelles</div>
-            {!editingInfos && (
-              <button onClick={openEditInfos} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.accentTxt, fontWeight: 600 }}>Modifier</button>
-            )}
-          </div>
-
-          {editingInfos ? (
-            <div>
-              <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Localisation</div>
-              <GeoSelects
-                region={infosRegion} dept={infosDept} city={infosCity}
-                onRegion={v => { setInfosRegion(v); setInfosDept(''); setInfosCity('') }}
-                onDept={v => { setInfosDept(v); setInfosCity('') }}
-                onCity={setInfosCity}
-              />
-
-              <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, margin: '14px 0 8px' }}>Statut relationnel</div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {STATUTS.map(s => (
-                  <button key={s.value} onClick={() => setInfosStatut(s.value)}
-                    style={{
-                      padding: '7px 14px', borderRadius: 20, cursor: 'pointer',
-                      background: infosStatut === s.value ? '#fffae6' : C.surfaceB,
-                      border: `1px solid ${infosStatut === s.value ? C.accentDk : C.border}`,
-                      color: infosStatut === s.value ? C.accentTxt : C.textMid,
-                      fontSize: 12, fontFamily: 'inherit', fontWeight: infosStatut === s.value ? 700 : 400,
-                      transition: 'all .15s'
-                    }}>
-                    {s.emoji} {s.label}
-                  </button>
-                ))}
-              </div>
-
-              <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                <Btn onClick={saveInfos} variant="yellow">{savingInfos ? '…' : 'Sauvegarder'}</Btn>
-                <Btn onClick={() => setEditingInfos(false)} variant="ghost">Annuler</Btn>
-              </div>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {[
-                { icon: '🌍', label: 'Région',          value: profile.region },
-                { icon: '🗺️', label: 'Département',      value: profile.dept },
-                { icon: '📍', label: 'Ville',            value: profile.city },
-                { icon: statutDef.emoji, label: 'Statut', value: statutDef.value ? statutDef.label : null },
-              ].map(item => (
-                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: C.surfaceB, borderRadius: 10 }}>
-                  <span style={{ fontSize: 16, width: 24, textAlign: 'center' }}>{item.icon}</span>
-                  <span style={{ fontSize: 12, color: C.textMid, flex: 1 }}>{item.label}</span>
-                  <span style={{ fontSize: 13, color: item.value ? C.text : C.textDim, fontStyle: item.value ? 'normal' : 'italic', fontWeight: item.value ? 600 : 400 }}>
-                    {item.value || 'Non renseigné'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Bio */}
+        {/* ── BIO (en premier) ── */}
         <div style={PANEL}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>✍️ Bio</div>
@@ -472,7 +380,82 @@ export default function Profile() {
           )}
         </div>
 
-        {/* Votes reçus */}
+        {/* ── AMIS ── */}
+        <div style={{ ...PANEL, borderTop: '3px solid #3498db' }}>
+          <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>👥 Amis ({friendsList.length})</div>
+          {friendsLoading
+            ? <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', padding: 12 }}>Chargement…</div>
+            : friendsList.length === 0
+              ? <div style={{ fontSize: 13, color: C.textDim, fontStyle: 'italic', textAlign: 'center', padding: 12 }}>Aucun ami pour l'instant.</div>
+              : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10 }}>
+                  {friendsList.map(f => {
+                    const fColor = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63'][(f.pseudo?.charCodeAt(0) || 0) % 8]
+                    return (
+                      <div key={f.id} onClick={() => navigate(`/members/${f.id}`)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 8px', background: C.surfaceB, borderRadius: 12, border: `1px solid ${C.border}`, cursor: 'pointer', transition: 'all .15s' }}
+                        onMouseEnter={e => e.currentTarget.style.borderColor = '#3498db'}
+                        onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
+                        <div style={{ width: 44, height: 44, borderRadius: '50%', background: f.avatar_url ? '#444' : fColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', overflow: 'hidden', border: '2px solid #fff', boxShadow: '0 2px 6px rgba(0,0,0,.1)' }}>
+                          {f.avatar_url ? <img src={f.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : f.initials || f.pseudo?.slice(0,2).toUpperCase()}
+                        </div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: C.text, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>@{f.pseudo}</div>
+                        {f.online && <span style={{ fontSize: 9, color: '#2ecc71', fontWeight: 700 }}>● En ligne</span>}
+                      </div>
+                    )
+                  })}
+                </div>
+          }
+        </div>
+
+        {/* ── INFOS PERSONNELLES ── */}
+        <div style={PANEL}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>📍 Infos personnelles</div>
+            {!editingInfos && <button onClick={openEditInfos} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.accentTxt, fontWeight: 600 }}>Modifier</button>}
+          </div>
+          {editingInfos ? (
+            <div>
+              <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Localisation</div>
+              <GeoSelects
+                region={infosRegion} dept={infosDept} city={infosCity}
+                onRegion={v => { setInfosRegion(v); setInfosDept(''); setInfosCity('') }}
+                onDept={v => { setInfosDept(v); setInfosCity('') }}
+                onCity={setInfosCity}
+              />
+              <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, margin: '14px 0 8px' }}>Statut relationnel</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {STATUTS.map(s => (
+                  <button key={s.value} onClick={() => setInfosStatut(s.value)}
+                    style={{ padding: '7px 14px', borderRadius: 20, cursor: 'pointer', background: infosStatut === s.value ? '#fffae6' : C.surfaceB, border: `1px solid ${infosStatut === s.value ? C.accentDk : C.border}`, color: infosStatut === s.value ? C.accentTxt : C.textMid, fontSize: 12, fontFamily: 'inherit', fontWeight: infosStatut === s.value ? 700 : 400, transition: 'all .15s' }}>
+                    {s.emoji} {s.label}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                <Btn onClick={saveInfos} variant="yellow">{savingInfos ? '…' : 'Sauvegarder'}</Btn>
+                <Btn onClick={() => setEditingInfos(false)} variant="ghost">Annuler</Btn>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[
+                { icon: '🌍', label: 'Région',       value: profile.region },
+                { icon: '🗺️', label: 'Département',   value: profile.dept },
+                { icon: '📍', label: 'Ville',         value: profile.city },
+                { icon: statutDef.emoji, label: 'Statut', value: statutDef.value ? statutDef.label : null },
+              ].map(item => (
+                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: C.surfaceB, borderRadius: 10 }}>
+                  <span style={{ fontSize: 16, width: 24, textAlign: 'center' }}>{item.icon}</span>
+                  <span style={{ fontSize: 12, color: C.textMid, flex: 1 }}>{item.label}</span>
+                  <span style={{ fontSize: 13, color: item.value ? C.text : C.textDim, fontStyle: item.value ? 'normal' : 'italic', fontWeight: item.value ? 600 : 400 }}>
+                    {item.value || 'Non renseigné'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ── VOTES REÇUS ── */}
         <div style={PANEL}>
           <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>🗳️ Votes reçus</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -495,7 +478,7 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Intérêts */}
+        {/* ── INTÉRÊTS ── */}
         <div style={PANEL}>
           <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>🎯 Intérêts</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 14, minHeight: 36 }}>
@@ -506,8 +489,7 @@ export default function Profile() {
                   style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, background: '#fffae6', color: '#7a6200', border: '1px solid #c8a20066', cursor: 'pointer', fontWeight: 600, transition: 'all .15s' }}
                   onMouseEnter={e => e.currentTarget.style.opacity = '.7'}
                   onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                  title="Cliquer pour supprimer"
-                >
+                  title="Cliquer pour supprimer">
                   {i} ✕
                 </span>
               ))
@@ -519,24 +501,19 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Photos */}
+        {/* ── PHOTOS ── */}
         <div style={PANEL}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>🖼️ Photos ({(profile.photos || []).length})</div>
-            <Btn onClick={() => photoRef.current.click()} variant="ghost" style={{ fontSize: 11 }}>
-              {uploadingPhoto ? '…' : '+ Ajouter'}
-            </Btn>
+            <Btn onClick={() => photoRef.current.click()} variant="ghost" style={{ fontSize: 11 }}>{uploadingPhoto ? '…' : '+ Ajouter'}</Btn>
             <input ref={photoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadPhoto} />
           </div>
           {(profile.photos || []).length === 0
-            ? (
-              <div style={{ textAlign: 'center', padding: '28px', color: C.textDim, fontSize: 13, background: C.surfaceB, borderRadius: 12, border: '1px dashed #ddd' }}>
+            ? <div style={{ textAlign: 'center', padding: '28px', color: C.textDim, fontSize: 13, background: C.surfaceB, borderRadius: 12, border: '1px dashed #ddd' }}>
                 <div style={{ fontSize: 28, marginBottom: 8 }}>📷</div>
                 Aucune photo ajoutée
               </div>
-            )
-            : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10 }}>
+            : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10 }}>
                 {(profile.photos || []).map((url, i) => (
                   <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', border: '1px solid #e8e0c8' }}>
                     <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -544,7 +521,6 @@ export default function Profile() {
                   </div>
                 ))}
               </div>
-            )
           }
         </div>
 
