@@ -497,6 +497,7 @@ export default function Navbar() {
                   </div>
                   {[
                     { icon: '👤', label: 'Mon profil',      to: '/profile' },
+                    { icon: '🏆', label: 'Récompenses',     to: '/rewards' },
                     { icon: '⚙️', label: 'Paramètres',      to: '/settings' },
                     { icon: '🐛', label: 'Signaler un bug', to: '/bug-report' },
                   ].map(item => (
