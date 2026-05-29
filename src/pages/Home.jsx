@@ -318,7 +318,7 @@ export default function Home() {
             <div style={{ padding: '12px 16px', borderBottom: `2px solid ${C.accent}`, fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>CATÉGORIES</div>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 0 }}>
               {[
-                { cat: 'Musique',    icon: '🎵', desc: 'Musique électronique, artistes, labels…' },
+                { cat: 'Musique',    icon: '🎵', desc: 'Tous styles musicaux, artistes, labels…' },
                 { cat: 'Rencontres', icon: '💜', desc: 'Rencontrez, discutez, partagez…' },
                 { cat: 'Culture',    icon: '🎭', desc: 'Cinéma, séries, livres, art…' },
                 { cat: 'Lifestyle',  icon: '☕', desc: 'Mode de vie, bien-être, sport…' },
