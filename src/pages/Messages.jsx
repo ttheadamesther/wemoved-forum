@@ -85,6 +85,8 @@ export default function MessagesPage() {
   const [showSidebar, setShowSidebar] = useState(true)
   const [blockedIds, setBlockedIds]   = useState([])
   const [blockedByIds, setBlockedByIds] = useState([])
+  const [hoveredMsg, setHoveredMsg]   = useState(null)
+  const [deletingMsg, setDeletingMsg] = useState(null)
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -200,6 +202,14 @@ export default function MessagesPage() {
     const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/message-photos/${path}`
     await sendMessage(`__IMG__${publicUrl}`)
     setUploading(false)
+  }
+
+  // ── Supprimer un message ──
+  const deleteMessage = async (msgId) => {
+    setDeletingMsg(msgId)
+    await api(`/rest/v1/messages?id=eq.${msgId}`, { method: 'DELETE' })
+    setMessages(prev => prev.filter(m => m.id !== msgId))
+    setDeletingMsg(null)
   }
 
   const getMember = (id) => members.find(m => m.id === id)
@@ -332,25 +342,45 @@ export default function MessagesPage() {
                   const isMe = m.from_id === user.id
                   const isImg = m.body?.startsWith('__IMG__')
                   const showAvatar = !isMe && (i === 0 || messages[i - 1]?.from_id !== m.from_id)
+                  const isHovered = hoveredMsg === m.id
+                  const isDeleting = deletingMsg === m.id
                   return (
-                    <div key={i} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: 8 }}>
+                    <div key={i}
+                      onMouseEnter={() => setHoveredMsg(m.id)}
+                      onMouseLeave={() => setHoveredMsg(null)}
+                      style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: 8, position: 'relative' }}>
                       {!isMe && (
                         <div style={{ width: 28, flexShrink: 0 }}>
                           {showAvatar && <Avatar member={activeMember} size={28} />}
                         </div>
                       )}
-                      <div style={{ maxWidth: isMobile ? '80%' : '65%' }}>
-                        <div style={{
-                          background: isImg ? 'transparent' : isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.white,
-                          border: isImg ? 'none' : isMe ? 'none' : `1px solid ${C.border}`,
-                          borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                          padding: isImg ? 0 : '10px 14px',
-                          boxShadow: isImg ? 'none' : '0 1px 3px rgba(0,0,0,.08)'
-                        }}>
-                          <MessageBody body={m.body} isMe={isMe} />
-                        </div>
-                        <div style={{ fontSize: 10, color: C.textDim, marginTop: 3, textAlign: isMe ? 'right' : 'left', paddingLeft: isMe ? 0 : 4 }}>
-                          {new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                      <div style={{ maxWidth: isMobile ? '80%' : '65%', display: 'flex', alignItems: 'center', gap: 6, flexDirection: isMe ? 'row-reverse' : 'row' }}>
+                        {/* Bouton suppression — visible au survol, uniquement mes messages */}
+                        {isMe && (isHovered || isDeleting) && (
+                          <button
+                            onClick={() => deleteMessage(m.id)}
+                            disabled={isDeleting}
+                            title="Supprimer ce message"
+                            style={{ background: 'none', border: 'none', cursor: isDeleting ? 'wait' : 'pointer', fontSize: 13, color: C.red, opacity: isDeleting ? 0.5 : 0.7, padding: '2px 4px', flexShrink: 0, transition: 'opacity .15s' }}
+                            onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                            onMouseLeave={e => e.currentTarget.style.opacity = '0.7'}
+                          >
+                            {isDeleting ? '…' : '🗑'}
+                          </button>
+                        )}
+                        <div>
+                          <div style={{
+                            background: isImg ? 'transparent' : isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.white,
+                            border: isImg ? 'none' : isMe ? 'none' : `1px solid ${C.border}`,
+                            borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                            padding: isImg ? 0 : '10px 14px',
+                            boxShadow: isImg ? 'none' : '0 1px 3px rgba(0,0,0,.08)'
+                          }}>
+                            <MessageBody body={m.body} isMe={isMe} />
+                          </div>
+                          <div style={{ fontSize: 10, color: C.textDim, marginTop: 3, textAlign: isMe ? 'right' : 'left', paddingLeft: isMe ? 0 : 4 }}>
+                            {new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          </div>
                         </div>
                       </div>
                     </div>
