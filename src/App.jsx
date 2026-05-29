@@ -17,6 +17,7 @@ import Notifications from './pages/Notifications'
 import BugReport     from './pages/BugReport'
 import Moderation    from './pages/Moderation'
 import Legal         from './pages/Legal'
+import Rewards       from './pages/Rewards'
 
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { error: null } }
@@ -91,6 +92,7 @@ export default function App() {
             <Route path="/members"  element={<Layout><Members /></Layout>} />
             <Route path="/members/:id" element={<Layout><MemberProfile /></Layout>} />
             <Route path="/legal"    element={<Layout><Legal /></Layout>} />
+            <Route path="/rewards"  element={<Layout><Rewards /></Layout>} />
             <Route path="/messages"      element={<PrivateRoute><Layout><Messages /></Layout></PrivateRoute>} />
             <Route path="/bug-report"    element={<PrivateRoute><Layout><BugReport /></Layout></PrivateRoute>} />
             <Route path="/moderation"    element={<PrivateRoute><Layout><Moderation /></Layout></PrivateRoute>} />
