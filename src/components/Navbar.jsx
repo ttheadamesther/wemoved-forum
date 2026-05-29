@@ -350,6 +350,7 @@ export default function Navbar() {
             {[
               { icon: '⚙️', label: 'Paramètres',      to: '/settings',      show: !!user },
               { icon: '🐛', label: 'Signaler un bug',  to: '/bug-report',    show: !!user },
+              { icon: '🏆', label: 'Récompenses',      to: '/rewards',       show: true },
               { icon: '🔔', label: 'Notifications',    to: '/notifications', show: !!user },
               { icon: '🛡️', label: 'Modération',       to: '/moderation',    show: !!user && canMod },
               { icon: '📜', label: 'Mentions légales', to: '/legal',         show: true },
