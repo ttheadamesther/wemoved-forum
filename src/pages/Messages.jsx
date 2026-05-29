@@ -329,6 +329,17 @@ export default function MessagesPage() {
                   </div>
                 </div>
                 <RoleBadge role={activeMember.role} />
+                <button
+                  onClick={async () => {
+                    if (!window.confirm('Supprimer toute la conversation ?')) return
+                    await api(`/rest/v1/messages?or=(and(from_id.eq.${user.id},to_id.eq.${activeId}),and(from_id.eq.${activeId},to_id.eq.${user.id}))`, { method: 'DELETE' })
+                    setMessages([])
+                  }}
+                  title="Supprimer la conversation"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: C.red, opacity: 0.6, padding: '4px', transition: 'opacity .15s' }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '0.6'}
+                >🗑</button>
               </div>
 
               <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 8, background: C.surfaceB }}>
