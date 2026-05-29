@@ -26,6 +26,7 @@ export default function Navbar() {
   const [isMobile, setIsMobile]           = useState(window.innerWidth < 768)
   const [unreadMessages, setUnreadMessages] = useState(0)
   const [showUserMenu, setShowUserMenu]   = useState(false)
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
   const userMenuRef = useRef()
   const searchRef = useRef()
   const notifRef  = useRef()
@@ -41,7 +42,7 @@ export default function Navbar() {
     return () => observer.disconnect()
   }, [])
 
-  useEffect(() => { setMenuOpen(false) }, [path])
+  useEffect(() => { setMenuOpen(false); setShowMobileMenu(false) }, [path])
 
   useEffect(() => {
     if (!user) return
@@ -195,10 +196,7 @@ export default function Navbar() {
   }
 
   // ── BOTTOM BAR MOBILE ──
-  const [showMobileMenu, setShowMobileMenu] = useState(false)
-
   const BottomBar = () => {
-    // Accueil / Forum / Profil(centre) / Messages / Membres
     const tabs = [
       { to: '/',         icon: '🏠', label: 'Accueil' },
       { to: '/forum',    icon: '💬', label: 'Forum' },
@@ -206,23 +204,14 @@ export default function Navbar() {
         <div style={{ width: 26, height: 26, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', border: `2px solid ${path === '/profile' ? C.accentDk : '#444'}` }}>
           {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
         </div>
-      ) : '👤', label: user ? 'Mon profil' : 'Connexion', isCenter: false },
+      ) : '👤', label: user ? 'Mon profil' : 'Connexion' },
       { to: '/messages', icon: '✉️', label: 'Messages', badge: unreadMessages },
       { to: '/members',  icon: '👥', label: 'Membres' },
     ]
-
     return (
-      <nav style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 999,
-        height: 64, background: '#111',
-        borderTop: `1px solid ${C.navBorder}`,
-        display: 'flex', alignItems: 'stretch',
-        paddingBottom: 'env(safe-area-inset-bottom)',
-        boxShadow: '0 -4px 20px rgba(0,0,0,.3)'
-      }}>
-        {tabs.map((tab, i) => {
+      <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 999, height: 64, background: '#111', borderTop: `1px solid ${C.navBorder}`, display: 'flex', alignItems: 'stretch', paddingBottom: 'env(safe-area-inset-bottom)', boxShadow: '0 -4px 20px rgba(0,0,0,.3)' }}>
+        {tabs.map((tab) => {
           const active = path === tab.to
-          const isCenter = tab.isCenter
           return (
             <Link key={tab.to} to={tab.to}
               onClick={() => { if (tab.to === '/messages') setUnreadMessages(0) }}
@@ -251,13 +240,13 @@ export default function Navbar() {
     )
   }
 
+  // ── MOBILE ──
   if (isMobile) {
     return (
       <>
-        {/* Top bar mobile — hamburger | logo centré | notifs+search */}
         <nav ref={navRef} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999, height: 56, display: 'flex', alignItems: 'center', padding: '0 12px', background: '#111', borderBottom: `1px solid ${C.navBorder}` }}>
 
-          {/* Hamburger gauche */}
+          {/* Hamburger */}
           <button onClick={() => setShowMobileMenu(m => !m)} style={{ width: 36, height: 36, borderRadius: 8, border: 'none', background: '#222', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5, flexShrink: 0 }}>
             <span style={{ width: 18, height: 2, background: showMobileMenu ? C.accent : '#ccc', display: 'block', transition: 'all .2s', transform: showMobileMenu ? 'rotate(45deg) translateY(7px)' : 'none' }} />
             <span style={{ width: 18, height: 2, background: showMobileMenu ? 'transparent' : '#ccc', display: 'block', transition: 'all .2s' }} />
@@ -269,7 +258,7 @@ export default function Navbar() {
             <Link to="/"><Logo height={52} /></Link>
           </div>
 
-          {/* Droite — search + notifs */}
+          {/* Droite */}
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
 
             {/* Recherche mobile */}
@@ -278,7 +267,7 @@ export default function Navbar() {
                 🔍
               </button>
               {showSearch && (
-                <div style={{ position: 'absolute', top: '110%', right: 0, background: '#1a1a1a', border: '1px solid #333', borderRadius: 12, padding: 10, width: 240, zIndex: 1000 }}>
+                <div style={{ position: 'fixed', top: 56, left: 12, right: 12, background: '#1a1a1a', border: '1px solid #333', borderRadius: 12, padding: 10, zIndex: 1000 }}>
                   <input value={search} onChange={e => { setSearch(e.target.value); setShowRes(true) }} autoFocus
                     placeholder="Rechercher un membre…"
                     style={{ width: '100%', background: '#222', border: '1px solid #444', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
@@ -287,10 +276,7 @@ export default function Navbar() {
                     <div style={{ marginTop: 8, background: '#1a1a1a', border: '1px solid #333', borderRadius: 8, overflow: 'hidden' }}>
                       {results.map(u => (
                         <div key={u.id} onClick={() => { navigate(`/members/${u.id}`); setSearch(''); setShowRes(false); setShowSearch(false) }}
-                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #2a2a2a' }}
-                          onMouseEnter={e => e.currentTarget.style.background = '#2a2a2a'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                        >
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #2a2a2a' }}>
                           <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
                             {u.avatar_url ? <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : u.initials}
                           </div>
@@ -315,20 +301,19 @@ export default function Navbar() {
                   )}
                 </button>
                 {showNotifs && (
-                  <div style={{ position: 'absolute', top: '110%', right: 0, width: 280, background: dropBg, border: `1px solid ${dropBorder}`, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,.3)', zIndex: 1000, overflow: 'hidden' }}>
+                  <div style={{ position: 'fixed', top: 56, left: 12, right: 12, background: dropBg, border: `1px solid ${dropBorder}`, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,.3)', zIndex: 1000, overflow: 'hidden' }}>
                     <div style={{ padding: '10px 14px', borderBottom: `1px solid ${dropBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontWeight: 700, fontSize: 12, color: dropTextDim }}>Notifications</span>
                       {notifs.length > 0 && <button onClick={markAllRead} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.accentTxt, fontWeight: 600 }}>Tout lire</button>}
                     </div>
-                    <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                    <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
                       {notifs.length === 0
                         ? <div style={{ padding: 16, textAlign: 'center', color: dropTextDim, fontSize: 12 }}>Aucune notification</div>
                         : notifs.map(n => (
                           <div key={n.id} onClick={() => { markRead(n.id); if (n.link) navigate(n.link); setShowNotifs(false) }}
-                            style={{ padding: '10px 14px', borderBottom: `1px solid ${dropBorder}`, cursor: 'pointer', background: dropSurface, fontSize: 12, color: dropText, display: 'flex', gap: 8 }}
-                          >
-                            <span style={{ flex: 1 }}>{n.content}</span>
-                            <button onClick={e => { e.stopPropagation(); markRead(n.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: dropTextDim, fontSize: 14 }}>✕</button>
+                            style={{ padding: '12px 14px', borderBottom: `1px solid ${dropBorder}`, cursor: 'pointer', background: dropSurface, fontSize: 13, color: dropText, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                            <span style={{ flex: 1, lineHeight: 1.5 }}>{n.content}</span>
+                            <button onClick={e => { e.stopPropagation(); markRead(n.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: dropTextDim, fontSize: 16, flexShrink: 0, padding: '0 4px' }}>✕</button>
                           </div>
                         ))
                       }
@@ -337,6 +322,7 @@ export default function Navbar() {
                 )}
               </div>
             )}
+
             {/* Dark mode */}
             <button onClick={toggle} className="theme-toggle" style={{ width: 32, height: 32, fontSize: 14 }}>
               {dark ? '☀️' : '🌙'}
@@ -344,9 +330,9 @@ export default function Navbar() {
           </div>
         </nav>
 
-        {/* Menu déroulant hamburger */}
+        {/* Menu hamburger déroulant */}
         {showMobileMenu && (
-          <div style={{ position: 'fixed', top: 56, left: 0, right: 0, background: '#111', zIndex: 998, borderBottom: `1px solid ${C.navBorder}`, boxShadow: '0 8px 24px rgba(0,0,0,.5)', animation: 'slidedown .2s ease' }}>
+          <div style={{ position: 'fixed', top: 56, left: 0, right: 0, background: '#111', zIndex: 998, borderBottom: `1px solid ${C.navBorder}`, boxShadow: '0 8px 24px rgba(0,0,0,.5)' }}>
             {user && (
               <div style={{ padding: '14px 20px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', overflow: 'hidden', border: `2px solid ${C.accentDk}` }}>
@@ -393,7 +379,6 @@ export default function Navbar() {
           </div>
         )}
 
-        {/* Bottom bar */}
         <BottomBar />
       </>
     )
@@ -406,9 +391,9 @@ export default function Navbar() {
         <Link to="/" style={{ flexShrink: 0, marginTop: 8, marginRight: 4 }}>
           <Logo height={70} />
         </Link>
-        <NavLink to="/"           label="Accueil"   icon="🏠" />
-        <NavLink to="/forum"      label="Forum"     icon="💬" />
-        <NavLink to="/members"    label="Membres"   icon="👥" />
+        <NavLink to="/"           label="Accueil"    icon="🏠" />
+        <NavLink to="/forum"      label="Forum"      icon="💬" />
+        <NavLink to="/members"    label="Membres"    icon="👥" />
         {user && <NavLink to="/messages"   label="Messages"   icon="✉️" />}
         {user && <NavLink to="/profile"    label="Profil"     icon="👤" />}
         {user && canMod && <NavLink to="/moderation" label="Modération" icon="🛡️" />}
@@ -429,8 +414,7 @@ export default function Navbar() {
                       <div key={u.id} onClick={() => { navigate(`/members/${u.id}`); setSearch(''); setShowRes(false); setShowSearch(false) }}
                         style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #2a2a2a', transition: 'background .15s' }}
                         onMouseEnter={e => e.currentTarget.style.background = '#2a2a2a'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                      >
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                         <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
                           {u.avatar_url ? <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : u.initials}
                         </div>
@@ -470,8 +454,7 @@ export default function Navbar() {
                         <div key={n.id} onClick={() => { markRead(n.id); if (n.link) navigate(n.link); setShowNotifs(false) }}
                           style={{ padding: '10px 14px', borderBottom: `1px solid ${dropBorder}`, cursor: 'pointer', background: dropSurface, fontSize: 12, color: dropText, display: 'flex', alignItems: 'flex-start', gap: 8, transition: 'background .15s' }}
                           onMouseEnter={e => e.currentTarget.style.background = dropHover}
-                          onMouseLeave={e => e.currentTarget.style.background = dropSurface}
-                        >
+                          onMouseLeave={e => e.currentTarget.style.background = dropSurface}>
                           <span style={{ flex: 1 }}>{n.content}</span>
                           <button onClick={e => { e.stopPropagation(); markRead(n.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: dropTextDim, fontSize: 14, flexShrink: 0, lineHeight: 1 }}>✕</button>
                         </div>
@@ -519,8 +502,7 @@ export default function Navbar() {
                     <div key={item.to} onClick={() => { navigate(item.to); setShowUserMenu(false) }}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', cursor: 'pointer', fontSize: 12, color: '#ccc', transition: 'all .15s' }}
                       onMouseEnter={e => e.currentTarget.style.background = '#222'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                       <span>{item.icon}</span>{item.label}
                     </div>
                   ))}
@@ -528,8 +510,7 @@ export default function Navbar() {
                     <div onClick={handleSignOut}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', cursor: 'pointer', fontSize: 12, color: '#e74c3c', transition: 'all .15s' }}
                       onMouseEnter={e => e.currentTarget.style.background = '#2a1a1a'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                       <span>⏻</span> Déconnexion
                     </div>
                   </div>
