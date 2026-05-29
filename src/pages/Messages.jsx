@@ -265,13 +265,13 @@ export default function MessagesPage() {
                         <Avatar member={m} size={40} showOnline />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                            <span style={{ fontWeight: 700, fontSize: 13, color: C.text }}>@{m.pseudo}</span>
+                            <span style={{ fontWeight: 700, fontSize: 14, color: C.text }}>@{m.pseudo}</span>
                             {last && <span style={{ fontSize: 10, color: C.textDim }}>{formatTime(last.created_at)}</span>}
                           </div>
                           {blocked
                             ? <div style={{ fontSize: 11, color: C.red, fontStyle: 'italic' }}>🚫 Bloqué</div>
                             : last && (
-                              <div style={{ fontSize: 12, color: unread > 0 ? C.text : C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: unread > 0 ? 600 : 400 }}>
+                              <div style={{ fontSize: 13, color: unread > 0 ? C.text : C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: unread > 0 ? 600 : 400 }}>
                                 {last.from_id === user.id ? 'Vous : ' : ''}{lastPreview}
                               </div>
                             )
