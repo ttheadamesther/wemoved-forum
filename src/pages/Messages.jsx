@@ -54,7 +54,6 @@ function Avatar({ member, size = 38, showOnline = false }) {
   )
 }
 
-// Affiche le contenu d'une bulle : texte ou image
 function MessageBody({ body, isMe }) {
   const isImage = body?.startsWith('__IMG__')
   if (isImage) {
@@ -151,11 +150,9 @@ export default function MessagesPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        user_id: activeId,
-        type:    'message',
+        user_id: activeId, type: 'message',
         content: `💬 @${profile?.pseudo || "Quelqu'un"} vous a envoyé un message`,
-        link:    '/messages',
-        read:    false
+        link: '/messages', read: false
       })
     })
     api(`/rest/v1/messages?or=(and(from_id.eq.${user.id},to_id.eq.${activeId}),and(from_id.eq.${activeId},to_id.eq.${user.id}))&order=created_at.asc`)
@@ -169,42 +166,25 @@ export default function MessagesPage() {
     setText('')
   }
 
-  // ── Upload photo vers Supabase Storage ──
   const uploadPhoto = async (file) => {
     if (!file || !user) return
-    const MAX = 5 * 1024 * 1024 // 5 Mo
+    const MAX = 5 * 1024 * 1024
     if (file.size > MAX) { alert('Image trop lourde (max 5 Mo)'); return }
-    if (!file.type.startsWith('image/')) { alert('Fichier non supporté, choisissez une image'); return }
-
+    if (!file.type.startsWith('image/')) { alert('Fichier non supporté'); return }
     setUploading(true)
     const token = await getToken()
-    const ext   = file.name.split('.').pop()
-    const path  = `${user.id}/${Date.now()}.${ext}`
-
+    const ext = file.name.split('.').pop()
+    const path = `${user.id}/${Date.now()}.${ext}`
     const res = await fetch(`${SUPABASE_URL}/storage/v1/object/message-photos/${path}`, {
       method: 'POST',
-      headers: {
-        'apikey': ANON_KEY,
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': file.type,
-        'x-upsert': 'true'
-      },
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': file.type, 'x-upsert': 'true' },
       body: file
     })
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      alert(`Erreur upload : ${err.message || res.status}`)
-      setUploading(false)
-      return
-    }
-
-    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/message-photos/${path}`
-    await sendMessage(`__IMG__${publicUrl}`)
+    if (!res.ok) { const err = await res.json().catch(() => ({})); alert(`Erreur : ${err.message || res.status}`); setUploading(false); return }
+    await sendMessage(`__IMG__${SUPABASE_URL}/storage/v1/object/public/message-photos/${path}`)
     setUploading(false)
   }
 
-  // ── Supprimer un message ──
   const deleteMessage = async (msgId) => {
     setDeletingMsg(msgId)
     await api(`/rest/v1/messages?id=eq.${msgId}`, { method: 'DELETE' })
@@ -212,28 +192,29 @@ export default function MessagesPage() {
     setDeletingMsg(null)
   }
 
+  const deleteConvo = async (otherId) => {
+    if (!window.confirm('Supprimer cette conversation ?')) return
+    await api(`/rest/v1/messages?or=(and(from_id.eq.${user.id},to_id.eq.${otherId}),and(from_id.eq.${otherId},to_id.eq.${user.id}))`, { method: 'DELETE' })
+    setConvos(prev => prev.filter(c => c.otherId !== otherId))
+    if (activeId === otherId) { setActiveId(null); setMessages([]) }
+  }
+
   const getMember = (id) => members.find(m => m.id === id)
   const activeMember = getMember(activeId)
   const isActiveBlocked = activeId && (blockedIds.includes(activeId) || blockedByIds.includes(activeId))
-
   const convoMembers = convos.map(c => getMember(c.otherId)).filter(Boolean)
-  const newMembers   = members
+  const newMembers = members
     .filter(m => !convos.find(c => c.otherId === m.id))
     .filter(m => !blockedByIds.includes(m.id))
     .filter(m => !search || m.pseudo?.toLowerCase().includes(search.toLowerCase()))
 
-  const openConvo = (id) => {
-    setActiveId(id)
-    if (isMobile) setShowSidebar(false)
-  }
+  const openConvo = (id) => { setActiveId(id); if (isMobile) setShowSidebar(false) }
 
   if (!user) return null
 
   return (
     <div ref={containerRef} style={{ maxWidth: 960, margin: '0 auto', padding: isMobile ? '0' : '20px 16px' }}>
-      {!isMobile && (
-        <h2 style={{ fontWeight: 700, fontSize: 20, color: C.text, marginBottom: 16 }}>Messages privés</h2>
-      )}
+      {!isMobile && <h2 style={{ fontWeight: 700, fontSize: 20, color: C.text, marginBottom: 16 }}>Messages privés</h2>}
 
       <div style={{ display: 'flex', background: C.white, border: isMobile ? 'none' : `1px solid ${C.border}`, borderRadius: isMobile ? 0 : 16, overflow: 'hidden', height: isMobile ? 'calc(100vh - 64px)' : 600, boxShadow: isMobile ? 'none' : '0 2px 12px rgba(0,0,0,.06)' }}>
 
@@ -245,8 +226,7 @@ export default function MessagesPage() {
               <div style={{ position: 'relative' }}>
                 <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: C.textDim, fontSize: 14 }}>🔍</span>
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Chercher un membre…"
-                  style={{ width: '100%', padding: '8px 12px 8px 32px', borderRadius: 10, border: `1px solid ${C.borderMid}`, fontSize: 12, fontFamily: 'inherit', outline: 'none', background: C.white, boxSizing: 'border-box' }}
-                />
+                  style={{ width: '100%', padding: '8px 12px 8px 32px', borderRadius: 10, border: `1px solid ${C.borderMid}`, fontSize: 12, fontFamily: 'inherit', outline: 'none', background: C.white, boxSizing: 'border-box' }} />
               </div>
             </div>
 
@@ -254,49 +234,41 @@ export default function MessagesPage() {
               {convoMembers.length > 0 && (
                 <div style={{ padding: '8px 0' }}>
                   {convoMembers.map(m => {
-                    const convo  = convos.find(c => c.otherId === m.id)
-                    const last   = convo?.messages?.[0]
+                    const convo = convos.find(c => c.otherId === m.id)
+                    const last  = convo?.messages?.[0]
                     const unread = convo?.unread || 0
                     const blocked = blockedIds.includes(m.id)
-                    // Aperçu du dernier message
                     const lastPreview = last?.body?.startsWith('__IMG__') ? '📷 Photo' : last?.body
+                    const isActive = activeId === m.id
                     return (
-                      <div key={m.id} style={{ display: 'flex', alignItems: 'center', borderLeft: activeId === m.id ? `3px solid ${C.accentDk}` : '3px solid transparent', opacity: blocked ? 0.5 : 1 }}>
-                        {/* Zone cliquable */}
-                        <div onClick={() => openConvo(m.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer', flex: 1, minWidth: 0, background: activeId === m.id ? 'rgba(200,162,0,0.15)' : 'transparent', transition: 'background .15s' }}>
-                          <Avatar member={m} size={40} showOnline />
+                      /* Ligne entière : zone clic + bouton 🗑 fixe à droite */
+                      <div key={m.id} style={{ display: 'flex', alignItems: 'stretch', borderLeft: isActive ? `3px solid ${C.accentDk}` : '3px solid transparent', opacity: blocked ? 0.5 : 1, background: isActive ? 'rgba(200,162,0,0.15)' : 'transparent', transition: 'background .15s' }}>
+
+                        {/* Zone cliquable : avatar + texte sur 3 lignes */}
+                        <div onClick={() => openConvo(m.id)} style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, padding: '10px 10px', cursor: 'pointer' }}>
+                          <Avatar member={m} size={38} showOnline />
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                              <span style={{ fontWeight: 700, fontSize: 14, color: C.text }}>@{m.pseudo}</span>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                                {unread > 0 && !blocked && (
-                                  <span style={{ background: C.red, color: '#fff', borderRadius: 10, fontSize: 10, fontWeight: 700, padding: '2px 6px' }}>{unread}</span>
-                                )}
-                                {last && <span style={{ fontSize: 10, color: C.textDim }}>{formatTime(last.created_at)}</span>}
-                              </div>
+                            {/* ligne 1 : pseudo + badge */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginBottom: 1 }}>
+                              <span style={{ fontWeight: 700, fontSize: 13, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{m.pseudo}</span>
+                              {unread > 0 && !blocked && <span style={{ background: C.red, color: '#fff', borderRadius: 10, fontSize: 10, fontWeight: 700, padding: '1px 6px', flexShrink: 0 }}>{unread}</span>}
                             </div>
+                            {/* ligne 2 : aperçu */}
                             {blocked
                               ? <div style={{ fontSize: 11, color: C.red, fontStyle: 'italic' }}>🚫 Bloqué</div>
-                              : last && (
-                                <div style={{ fontSize: 13, color: unread > 0 ? C.text : C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: unread > 0 ? 600 : 400 }}>
-                                  {last.from_id === user.id ? 'Vous : ' : ''}{lastPreview}
-                                </div>
-                              )
+                              : last && <div style={{ fontSize: 12, color: unread > 0 ? C.text : C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: unread > 0 ? 600 : 400 }}>{last.from_id === user.id ? 'Vous : ' : ''}{lastPreview}</div>
                             }
+                            {/* ligne 3 : date */}
+                            {last && <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{formatTime(last.created_at)}</div>}
                           </div>
                         </div>
-                        {/* Bouton suppression séparé */}
+
+                        {/* Bouton 🗑 pleine hauteur, width fixe */}
                         <button
-                          onClick={async (e) => {
-                            e.stopPropagation()
-                            if (!window.confirm('Supprimer cette conversation ?')) return
-                            await api(`/rest/v1/messages?or=(and(from_id.eq.${user.id},to_id.eq.${m.id}),and(from_id.eq.${m.id},to_id.eq.${user.id}))`, { method: 'DELETE' })
-                            setConvos(prev => prev.filter(c => c.otherId !== m.id))
-                            if (activeId === m.id) { setActiveId(null); setMessages([]) }
-                          }}
-                          title="Supprimer la conversation"
-                          style={{ background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 18, color: C.red, padding: '0 14px', alignSelf: 'stretch', display: 'flex', alignItems: 'center', flexShrink: 0, transition: 'background .15s' }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(231,76,60,.1)'}
+                          onClick={e => { e.stopPropagation(); deleteConvo(m.id) }}
+                          title="Supprimer"
+                          style={{ width: 44, flexShrink: 0, background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 17, color: C.red, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(231,76,60,.12)'}
                           onMouseLeave={e => e.currentTarget.style.background = 'none'}
                         >🗑</button>
                       </div>
@@ -311,8 +283,7 @@ export default function MessagesPage() {
                   {newMembers.slice(0, 8).map(m => (
                     <div key={m.id} onClick={() => openConvo(m.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', cursor: 'pointer', transition: 'background .15s' }}
                       onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                       <Avatar member={m} size={32} showOnline />
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 12, color: C.text }}>@{m.pseudo}</div>
@@ -334,31 +305,16 @@ export default function MessagesPage() {
         {(!isMobile || !showSidebar) && (
           activeMember ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-
               <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, background: C.surfaceB, display: 'flex', alignItems: 'center', gap: 12 }}>
-                {isMobile && (
-                  <button onClick={() => setShowSidebar(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: C.textMid, padding: 0, marginRight: 4 }}>←</button>
-                )}
+                {isMobile && <button onClick={() => setShowSidebar(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: C.textMid, padding: 0, marginRight: 4 }}>←</button>}
                 <Avatar member={activeMember} size={40} showOnline />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 14, color: C.text }}>@{activeMember.pseudo}</div>
                   <div style={{ fontSize: 11, color: activeMember.online ? C.online : C.textDim }}>
-                    {activeMember.online ? '● En ligne' : '○ Hors ligne'}
-                    {activeMember.city ? ` · ${activeMember.city}` : ''}
+                    {activeMember.online ? '● En ligne' : '○ Hors ligne'}{activeMember.city ? ` · ${activeMember.city}` : ''}
                   </div>
                 </div>
                 <RoleBadge role={activeMember.role} />
-                <button
-                  onClick={async () => {
-                    if (!window.confirm('Supprimer toute la conversation ?')) return
-                    await api(`/rest/v1/messages?or=(and(from_id.eq.${user.id},to_id.eq.${activeId}),and(from_id.eq.${activeId},to_id.eq.${user.id}))`, { method: 'DELETE' })
-                    setMessages([])
-                  }}
-                  title="Supprimer la conversation"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: C.red, opacity: 0.6, padding: '4px', transition: 'opacity .15s' }}
-                  onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                  onMouseLeave={e => e.currentTarget.style.opacity = '0.6'}
-                >🗑</button>
               </div>
 
               <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 8, background: C.surfaceB }}>
@@ -378,34 +334,19 @@ export default function MessagesPage() {
                     <div key={i}
                       onMouseEnter={() => setHoveredMsg(m.id)}
                       onMouseLeave={() => setHoveredMsg(null)}
-                      style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: 8, position: 'relative' }}>
-                      {!isMe && (
-                        <div style={{ width: 28, flexShrink: 0 }}>
-                          {showAvatar && <Avatar member={activeMember} size={28} />}
-                        </div>
-                      )}
+                      style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: 8 }}>
+                      {!isMe && <div style={{ width: 28, flexShrink: 0 }}>{showAvatar && <Avatar member={activeMember} size={28} />}</div>}
                       <div style={{ maxWidth: isMobile ? '80%' : '65%', display: 'flex', alignItems: 'center', gap: 6, flexDirection: isMe ? 'row-reverse' : 'row' }}>
-                        {/* Bouton suppression — visible au survol, uniquement mes messages */}
                         {isMe && (isHovered || isDeleting) && (
-                          <button
-                            onClick={() => deleteMessage(m.id)}
-                            disabled={isDeleting}
-                            title="Supprimer ce message"
-                            style={{ background: 'none', border: 'none', cursor: isDeleting ? 'wait' : 'pointer', fontSize: 13, color: C.red, opacity: isDeleting ? 0.5 : 0.7, padding: '2px 4px', flexShrink: 0, transition: 'opacity .15s' }}
+                          <button onClick={() => deleteMessage(m.id)} disabled={isDeleting} title="Supprimer"
+                            style={{ background: 'none', border: 'none', cursor: isDeleting ? 'wait' : 'pointer', fontSize: 13, color: C.red, opacity: isDeleting ? 0.5 : 0.7, padding: '2px 4px', flexShrink: 0 }}
                             onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                            onMouseLeave={e => e.currentTarget.style.opacity = '0.7'}
-                          >
+                            onMouseLeave={e => e.currentTarget.style.opacity = '0.7'}>
                             {isDeleting ? '…' : '🗑'}
                           </button>
                         )}
                         <div>
-                          <div style={{
-                            background: isImg ? 'transparent' : isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.white,
-                            border: isImg ? 'none' : isMe ? 'none' : `1px solid ${C.border}`,
-                            borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                            padding: isImg ? 0 : '10px 14px',
-                            boxShadow: isImg ? 'none' : '0 1px 3px rgba(0,0,0,.08)'
-                          }}>
+                          <div style={{ background: isImg ? 'transparent' : isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.white, border: isImg ? 'none' : isMe ? 'none' : `1px solid ${C.border}`, borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px', padding: isImg ? 0 : '10px 14px', boxShadow: isImg ? 'none' : '0 1px 3px rgba(0,0,0,.08)' }}>
                             <MessageBody body={m.body} isMe={isMe} />
                           </div>
                           <div style={{ fontSize: 10, color: C.textDim, marginTop: 3, textAlign: isMe ? 'right' : 'left', paddingLeft: isMe ? 0 : 4 }}>
@@ -419,34 +360,27 @@ export default function MessagesPage() {
                 <div ref={bottomRef} />
               </div>
 
-              {/* Zone input */}
               {isActiveBlocked ? (
                 <div style={{ padding: '16px', borderTop: `1px solid ${C.border}`, background: C.white, textAlign: 'center', fontSize: 12, color: C.red }}>
                   🚫 {blockedIds.includes(activeId) ? 'Vous avez bloqué ce membre.' : 'Ce membre vous a bloqué.'} Impossible d'envoyer un message.
                 </div>
               ) : (
                 <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}`, background: C.white, display: 'flex', gap: 8, alignItems: 'center' }}>
-
-                  {/* Bouton 📎 */}
                   <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
-                    onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.target.value = '' }}
-                  />
-                  <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
-                    title="Envoyer une photo"
-                    style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${C.borderMid}`, background: C.surfaceB, cursor: uploading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0, transition: 'all .15s' }}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.target.value = '' }} />
+                  <button onClick={() => fileInputRef.current?.click()} disabled={uploading} title="Envoyer une photo"
+                    style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${C.borderMid}`, background: C.surfaceB, cursor: uploading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}
                     onMouseEnter={e => e.currentTarget.style.borderColor = '#c8a200'}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = C.borderMid}
-                  >
+                    onMouseLeave={e => e.currentTarget.style.borderColor = C.borderMid}>
                     {uploading ? '⏳' : '📎'}
                   </button>
-
                   <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
                     placeholder={`Message à @${activeMember.pseudo}…`}
-                    style={{ flex: 1, border: `1px solid ${C.borderMid}`, borderRadius: 24, padding: '10px 18px', fontSize: 13, color: C.text, fontFamily: 'inherit', outline: 'none', background: C.surfaceB, transition: 'border .2s' }}
+                    style={{ flex: 1, border: `1px solid ${C.borderMid}`, borderRadius: 24, padding: '10px 18px', fontSize: 13, color: C.text, fontFamily: 'inherit', outline: 'none', background: C.surfaceB }}
                     onFocus={e => e.target.style.borderColor = '#c8a200'}
-                    onBlur={e => e.target.style.borderColor = C.borderMid}
-                  />
-                  <button onClick={send} disabled={sending || !text.trim()} style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: text.trim() ? 'linear-gradient(135deg,#f0c800,#c8a200)' : '#e0e0e0', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, transition: 'all .15s', flexShrink: 0 }}>
+                    onBlur={e => e.target.style.borderColor = C.borderMid} />
+                  <button onClick={send} disabled={sending || !text.trim()}
+                    style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: text.trim() ? 'linear-gradient(135deg,#f0c800,#c8a200)' : '#e0e0e0', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
                     {sending ? '…' : '➤'}
                   </button>
                 </div>
