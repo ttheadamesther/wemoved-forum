@@ -289,9 +289,9 @@ export default function MessagesPage() {
                             if (activeId === m.id) { setActiveId(null); setMessages([]) }
                           }}
                           title="Supprimer la conversation"
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: C.red, opacity: 0, padding: '2px 4px', flexShrink: 0, transition: 'opacity .15s' }}
-                          onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                          onMouseLeave={e => e.currentTarget.style.opacity = '0'}
+                          style={{ background: 'rgba(231,76,60,.12)', border: 'none', cursor: 'pointer', fontSize: 22, color: C.red, opacity: 1, padding: '6px 10px', flexShrink: 0, borderRadius: 8, transition: 'background .15s' }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(231,76,60,.25)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'rgba(231,76,60,.12)'}
                         >🗑</button>
                       </div>
                     )
