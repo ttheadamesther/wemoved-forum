@@ -266,7 +266,7 @@ export default function MessagesPage() {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
                             <span style={{ fontWeight: 700, fontSize: 14, color: C.text }}>@{m.pseudo}</span>
-                            {last && <span style={{ fontSize: 10, color: C.textDim }}>{formatTime(last.created_at)}</span>}
+                            {last && <span style={{ fontSize: 10, color: C.textDim, flexShrink: 0, marginLeft: 6 }}>{formatTime(last.created_at)}</span>}
                           </div>
                           {blocked
                             ? <div style={{ fontSize: 11, color: C.red, fontStyle: 'italic' }}>🚫 Bloqué</div>
@@ -277,22 +277,24 @@ export default function MessagesPage() {
                             )
                           }
                         </div>
-                        {unread > 0 && !blocked && (
-                          <span style={{ background: C.red, color: '#fff', borderRadius: 10, fontSize: 10, fontWeight: 700, padding: '2px 6px', flexShrink: 0 }}>{unread}</span>
-                        )}
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation()
-                            if (!window.confirm('Supprimer cette conversation ?')) return
-                            await api(`/rest/v1/messages?or=(and(from_id.eq.${user.id},to_id.eq.${m.id}),and(from_id.eq.${m.id},to_id.eq.${user.id}))`, { method: 'DELETE' })
-                            setConvos(prev => prev.filter(c => c.otherId !== m.id))
-                            if (activeId === m.id) { setActiveId(null); setMessages([]) }
-                          }}
-                          title="Supprimer la conversation"
-                          style={{ background: 'rgba(231,76,60,.12)', border: 'none', cursor: 'pointer', fontSize: 16, color: C.red, opacity: 1, padding: '5px 8px', flexShrink: 0, borderRadius: 8, transition: 'background .15s' }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(231,76,60,.25)'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'rgba(231,76,60,.12)'}
-                        >🗑</button>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                          {unread > 0 && !blocked && (
+                            <span style={{ background: C.red, color: '#fff', borderRadius: 10, fontSize: 10, fontWeight: 700, padding: '2px 6px' }}>{unread}</span>
+                          )}
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation()
+                              if (!window.confirm('Supprimer cette conversation ?')) return
+                              await api(`/rest/v1/messages?or=(and(from_id.eq.${user.id},to_id.eq.${m.id}),and(from_id.eq.${m.id},to_id.eq.${user.id}))`, { method: 'DELETE' })
+                              setConvos(prev => prev.filter(c => c.otherId !== m.id))
+                              if (activeId === m.id) { setActiveId(null); setMessages([]) }
+                            }}
+                            title="Supprimer la conversation"
+                            style={{ background: 'rgba(231,76,60,.12)', border: 'none', cursor: 'pointer', fontSize: 14, color: C.red, padding: '4px 7px', borderRadius: 8, transition: 'background .15s', lineHeight: 1 }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(231,76,60,.25)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'rgba(231,76,60,.12)'}
+                          >🗑</button>
+                        </div>
                       </div>
                     )
                   })}
