@@ -261,40 +261,44 @@ export default function MessagesPage() {
                     // Aperçu du dernier message
                     const lastPreview = last?.body?.startsWith('__IMG__') ? '📷 Photo' : last?.body
                     return (
-                      <div key={m.id} onClick={() => openConvo(m.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', cursor: 'pointer', background: activeId === m.id ? 'rgba(200,162,0,0.15)' : 'transparent', transition: 'background .15s', borderLeft: activeId === m.id ? `3px solid ${C.accentDk}` : '3px solid transparent', opacity: blocked ? 0.5 : 1 }}>
-                        <Avatar member={m} size={40} showOnline />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                            <span style={{ fontWeight: 700, fontSize: 14, color: C.text }}>@{m.pseudo}</span>
-                            {last && <span style={{ fontSize: 10, color: C.textDim, flexShrink: 0, marginLeft: 6 }}>{formatTime(last.created_at)}</span>}
-                          </div>
-                          {blocked
-                            ? <div style={{ fontSize: 11, color: C.red, fontStyle: 'italic' }}>🚫 Bloqué</div>
-                            : last && (
-                              <div style={{ fontSize: 13, color: unread > 0 ? C.text : C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: unread > 0 ? 600 : 400 }}>
-                                {last.from_id === user.id ? 'Vous : ' : ''}{lastPreview}
+                      <div key={m.id} style={{ display: 'flex', alignItems: 'center', borderLeft: activeId === m.id ? `3px solid ${C.accentDk}` : '3px solid transparent', opacity: blocked ? 0.5 : 1 }}>
+                        {/* Zone cliquable */}
+                        <div onClick={() => openConvo(m.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer', flex: 1, minWidth: 0, background: activeId === m.id ? 'rgba(200,162,0,0.15)' : 'transparent', transition: 'background .15s' }}>
+                          <Avatar member={m} size={40} showOnline />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                              <span style={{ fontWeight: 700, fontSize: 14, color: C.text }}>@{m.pseudo}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                                {unread > 0 && !blocked && (
+                                  <span style={{ background: C.red, color: '#fff', borderRadius: 10, fontSize: 10, fontWeight: 700, padding: '2px 6px' }}>{unread}</span>
+                                )}
+                                {last && <span style={{ fontSize: 10, color: C.textDim }}>{formatTime(last.created_at)}</span>}
                               </div>
-                            )
-                          }
+                            </div>
+                            {blocked
+                              ? <div style={{ fontSize: 11, color: C.red, fontStyle: 'italic' }}>🚫 Bloqué</div>
+                              : last && (
+                                <div style={{ fontSize: 13, color: unread > 0 ? C.text : C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: unread > 0 ? 600 : 400 }}>
+                                  {last.from_id === user.id ? 'Vous : ' : ''}{lastPreview}
+                                </div>
+                              )
+                            }
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                          {unread > 0 && !blocked && (
-                            <span style={{ background: C.red, color: '#fff', borderRadius: 10, fontSize: 10, fontWeight: 700, padding: '2px 6px' }}>{unread}</span>
-                          )}
-                          <button
-                            onClick={async (e) => {
-                              e.stopPropagation()
-                              if (!window.confirm('Supprimer cette conversation ?')) return
-                              await api(`/rest/v1/messages?or=(and(from_id.eq.${user.id},to_id.eq.${m.id}),and(from_id.eq.${m.id},to_id.eq.${user.id}))`, { method: 'DELETE' })
-                              setConvos(prev => prev.filter(c => c.otherId !== m.id))
-                              if (activeId === m.id) { setActiveId(null); setMessages([]) }
-                            }}
-                            title="Supprimer la conversation"
-                            style={{ background: 'rgba(231,76,60,.12)', border: 'none', cursor: 'pointer', fontSize: 14, color: C.red, padding: '4px 7px', borderRadius: 8, transition: 'background .15s', lineHeight: 1 }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(231,76,60,.25)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'rgba(231,76,60,.12)'}
-                          >🗑</button>
-                        </div>
+                        {/* Bouton suppression séparé */}
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            if (!window.confirm('Supprimer cette conversation ?')) return
+                            await api(`/rest/v1/messages?or=(and(from_id.eq.${user.id},to_id.eq.${m.id}),and(from_id.eq.${m.id},to_id.eq.${user.id}))`, { method: 'DELETE' })
+                            setConvos(prev => prev.filter(c => c.otherId !== m.id))
+                            if (activeId === m.id) { setActiveId(null); setMessages([]) }
+                          }}
+                          title="Supprimer la conversation"
+                          style={{ background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 18, color: C.red, padding: '0 14px', alignSelf: 'stretch', display: 'flex', alignItems: 'center', flexShrink: 0, transition: 'background .15s' }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(231,76,60,.1)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                        >🗑</button>
                       </div>
                     )
                   })}
