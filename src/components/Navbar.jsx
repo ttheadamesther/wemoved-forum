@@ -65,6 +65,7 @@ export default function Navbar() {
 
   useEffect(() => {
     if (!user || !supabase) return
+    let channelRef = null
     const setupChannel = async () => {
       const token = await (async () => {
         try {
@@ -78,16 +79,14 @@ export default function Navbar() {
         return null
       })()
       if (token) await supabase.realtime.setAuth(token)
-      const channel = supabase
+      channelRef = supabase
         .channel(`notifs-${user.id}`)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (payload) => {
           setNotifs(prev => [payload.new, ...prev])
         })
         .subscribe()
-      return channel
     }
-    let channelRef = null
-    setupChannel().then(ch => { channelRef = ch })
+    setupChannel()
     return () => { if (channelRef) supabase.removeChannel(channelRef) }
   }, [user])
 
