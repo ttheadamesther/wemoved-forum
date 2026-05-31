@@ -378,11 +378,11 @@ export default function Profile() {
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>🎖️ Badges obtenus</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
               {BADGES_DEF.filter(b => (profile.badges || []).includes(b.key)).map(b => (
-                <div key={b.key} title={b.desc} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 10px', background: b.bg || '#fffae6', border: `2px solid ${b.color || '#c8a200'}`, borderRadius: 14, minWidth: 72, textAlign: 'center', cursor: 'help' }}>
-                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,.5)', border: `2px solid ${b.color || '#c8a200'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+                <div key={b.key} title={b.desc} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '8px 6px', background: b.bg || '#fffae6', border: `1.5px solid ${b.color || '#c8a200'}`, borderRadius: 10, minWidth: 52, textAlign: 'center', cursor: 'help' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,.5)', border: `1.5px solid ${b.color || '#c8a200'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
                     {b.emoji}
                   </div>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: b.color || '#7a6200' }}>{b.label}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: b.color || '#7a6200', lineHeight: 1.2 }}>{b.label}</span>
                 </div>
               ))}
             </div>
