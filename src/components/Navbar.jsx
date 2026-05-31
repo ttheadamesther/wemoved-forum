@@ -329,6 +329,7 @@ export default function Navbar() {
         <NavLink to="/"           label="Accueil"    icon="🏠" />
         <NavLink to="/forum"      label="Forum"      icon="💬" />
         <NavLink to="/members"    label="Membres"    icon="👥" />
+        <NavLink to="/chat"       label="Salon"      icon="🗨️" />
         {user && <NavLink to="/messages"   label="Messages"   icon="✉️" />}
         {user && <NavLink to="/profile"    label="Profil"     icon="👤" />}
         {user && canMod && <NavLink to="/moderation" label="Modération" icon="🛡️" />}
