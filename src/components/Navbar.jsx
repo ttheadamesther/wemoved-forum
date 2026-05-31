@@ -156,7 +156,18 @@ export default function Navbar() {
   useEffect(() => {
     const handler = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) { setShowRes(false); setShowSearch(false) }
-      if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifs(false)
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        if (showNotifs && notifs.length > 0) {
+          getToken().then(token => {
+            fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, {
+              method: 'PATCH',
+              headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ read: true })
+            }).then(() => setNotifs([]))
+          })
+        }
+        setShowNotifs(false)
+      }
       if (userMenuRef.current && !userMenuRef.current.contains(e.target)) setShowUserMenu(false)
       // Ne pas fermer hamburger via mousedown - géré par les Links
     }
@@ -290,16 +301,14 @@ export default function Navbar() {
               <div ref={notifRef} style={{ position: 'relative' }}>
                 <button onClick={() => {
                   setShowNotifs(s => {
-                    if (!s && notifs.length > 0) {
-                      setTimeout(() => {
-                        getToken().then(token => {
-                          fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, {
-                            method: 'PATCH',
-                            headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ read: true })
-                          }).then(() => setNotifs([]))
-                        })
-                      }, 1500)
+                    if (s && notifs.length > 0) {
+                      getToken().then(token => {
+                        fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, {
+                          method: 'PATCH',
+                          headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ read: true })
+                        }).then(() => setNotifs([]))
+                      })
                     }
                     return !s
                   })
@@ -443,17 +452,15 @@ export default function Navbar() {
             <div ref={notifRef} style={{ position: 'relative' }}>
               <button onClick={() => {
                 setShowNotifs(s => {
-                  if (!s && notifs.length > 0) {
-                    // Marquer tout comme lu après 1.5s
-                    setTimeout(() => {
-                      getToken().then(token => {
-                        fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, {
-                          method: 'PATCH',
-                          headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ read: true })
-                        }).then(() => setNotifs([]))
-                      })
-                    }, 1500)
+                  if (s && notifs.length > 0) {
+                    // Marquer tout comme lu quand on FERME le dropdown
+                    getToken().then(token => {
+                      fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, {
+                        method: 'PATCH',
+                        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ read: true })
+                      }).then(() => setNotifs([]))
+                    })
                   }
                   return !s
                 })
