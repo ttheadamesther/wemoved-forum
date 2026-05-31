@@ -15,32 +15,37 @@ const Field = ({ label, required, children }) => (
   </div>
 )
 
+const currentYear = new Date().getFullYear()
+const BIRTH_YEARS = Array.from({ length: currentYear - 1924 - 17 }, (_, i) => currentYear - 18 - i)
+
 export default function Register() {
-  const [pseudo,   setPseudo]   = useState('')
-  const [email,    setEmail]    = useState('')
-  const [password, setPassword] = useState('')
-  const [confirm,  setConfirm]  = useState('')
-  const [age,      setAge]      = useState('')
-  const [sexe,     setSexe]     = useState('')
-  const [region,   setRegion]   = useState('')
-  const [dept,     setDept]     = useState('')
-  const [city,     setCity]     = useState('')
-  const [error,    setError]    = useState('')
-  const [loading,  setLoading]  = useState(false)
+  const [pseudo,     setPseudo]     = useState('')
+  const [email,      setEmail]      = useState('')
+  const [password,   setPassword]   = useState('')
+  const [confirm,    setConfirm]    = useState('')
+  const [birthYear,  setBirthYear]  = useState('')
+  const [sexe,       setSexe]       = useState('')
+  const [region,     setRegion]     = useState('')
+  const [dept,       setDept]       = useState('')
+  const [city,       setCity]       = useState('')
+  const [error,      setError]      = useState('')
+  const [loading,    setLoading]    = useState(false)
   const { signUp } = useAuth()
   const navigate   = useNavigate()
 
   const handle = async () => {
     setError('')
-    if (!pseudo.trim())       return setError('Le pseudo est obligatoire.')
-    if (pseudo.length < 3)    return setError('Le pseudo doit faire au moins 3 caractères.')
-    if (!email.trim())        return setError("L'email est obligatoire.")
-    if (password.length < 6)  return setError('Le mot de passe doit faire au moins 6 caractères.')
-    if (password !== confirm)  return setError('Les mots de passe ne correspondent pas.')
-    if (!sexe)                return setError('Le sexe est obligatoire.')
-    if (!age || age < 18)     return setError('Tu dois avoir au moins 18 ans.')
+    if (!pseudo.trim())        return setError('Le pseudo est obligatoire.')
+    if (pseudo.length < 3)     return setError('Le pseudo doit faire au moins 3 caractères.')
+    if (!email.trim())         return setError("L'email est obligatoire.")
+    if (password.length < 6)   return setError('Le mot de passe doit faire au moins 6 caractères.')
+    if (password !== confirm)   return setError('Les mots de passe ne correspondent pas.')
+    if (!sexe)                 return setError('Le sexe est obligatoire.')
+    if (!birthYear)            return setError("L'année de naissance est obligatoire.")
+    const age = currentYear - parseInt(birthYear)
+    if (age < 18)              return setError('Tu dois avoir au moins 18 ans.')
     setLoading(true)
-    const { error: err } = await signUp(email, password, pseudo, { age: parseInt(age), sexe, region, dept, city })
+    const { error: err } = await signUp(email, password, pseudo, { age, sexe, region, dept, city })
     setLoading(false)
     if (err) return setError(err.message)
     navigate('/')
@@ -79,8 +84,11 @@ export default function Register() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
           <div>
-            <label style={{ fontSize: 12, color: C.textMid, display: 'block', marginBottom: 4 }}>Âge <span style={{ color: C.red }}>*</span></label>
-            <Input value={age} onChange={e => setAge(e.target.value)} placeholder="ex: 25" type="number" min="18" max="99" style={{ width: '100%' }} />
+            <label style={{ fontSize: 12, color: C.textMid, display: 'block', marginBottom: 4 }}>Année de naissance <span style={{ color: C.red }}>*</span></label>
+            <select value={birthYear} onChange={e => setBirthYear(e.target.value)} style={{ width: '100%', padding: '7px 10px', border: `1px solid ${C.borderMid}`, borderRadius: 8, fontSize: 13, color: birthYear ? C.text : C.textDim, background: C.white, fontFamily: 'inherit' }}>
+              <option value="">Année…</option>
+              {BIRTH_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
           </div>
           <div>
             <label style={{ fontSize: 12, color: C.textMid, display: 'block', marginBottom: 4 }}>Sexe <span style={{ color: C.red }}>*</span></label>
@@ -99,7 +107,7 @@ export default function Register() {
         </Field>
 
         {error && (
-          <div style={{ background: '#ffe0e0', border: `1px solid ${C.red}`, borderRadius: 3, padding: '8px 12px', fontSize: 12, color: C.red, marginBottom: 14 }}>
+          <div style={{ background: '#ffe0e0', border: `1px solid ${C.red}`, borderRadius: 8, padding: '8px 12px', fontSize: 12, color: C.red, marginBottom: 14 }}>
             {error}
           </div>
         )}
