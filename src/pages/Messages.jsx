@@ -86,6 +86,7 @@ export default function MessagesPage() {
   const [blockedByIds, setBlockedByIds] = useState([])
   const [hoveredMsg, setHoveredMsg]   = useState(null)
   const [deletingMsg, setDeletingMsg] = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(null) // { type: 'msg'|'convo', id }
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -193,10 +194,10 @@ export default function MessagesPage() {
   }
 
   const deleteConvo = async (otherId) => {
-    if (!window.confirm('Supprimer cette conversation ?')) return
     await api(`/rest/v1/messages?or=(and(from_id.eq.${user.id},to_id.eq.${otherId}),and(from_id.eq.${otherId},to_id.eq.${user.id}))`, { method: 'DELETE' })
     setConvos(prev => prev.filter(c => c.otherId !== otherId))
     if (activeId === otherId) { setActiveId(null); setMessages([]) }
+    setConfirmDelete(null)
   }
 
   const getMember = (id) => members.find(m => m.id === id)
@@ -215,6 +216,36 @@ export default function MessagesPage() {
   return (
     <div ref={containerRef} style={{ maxWidth: 960, margin: '0 auto', padding: isMobile ? '0' : '20px 16px' }}>
       {!isMobile && <h2 style={{ fontWeight: 700, fontSize: 20, color: C.text, marginBottom: 16 }}>Messages privés</h2>}
+
+      {/* ── MODALE CONFIRMATION SUPPRESSION ── */}
+      {confirmDelete && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, width: '100%', maxWidth: 340, boxShadow: '0 8px 32px rgba(0,0,0,.25)' }}>
+            <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 12 }}>🗑️</div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: C.text, textAlign: 'center', marginBottom: 6 }}>
+              {confirmDelete.type === 'convo' ? 'Supprimer la conversation ?' : 'Supprimer ce message ?'}
+            </div>
+            <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', marginBottom: 20 }}>
+              {confirmDelete.type === 'convo'
+                ? 'Tous les messages seront supprimés définitivement.'
+                : 'Ce message sera supprimé définitivement.'}
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setConfirmDelete(null)}
+                style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surfaceB, color: C.textMid, fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                Annuler
+              </button>
+              <button onClick={() => {
+                if (confirmDelete.type === 'convo') deleteConvo(confirmDelete.id)
+                else { deleteMessage(confirmDelete.id); setConfirmDelete(null) }
+              }}
+                style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: C.red, color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'flex', background: C.white, border: isMobile ? 'none' : `1px solid ${C.border}`, borderRadius: isMobile ? 0 : 16, overflow: 'hidden', height: isMobile ? 'calc(100vh - 64px)' : 600, boxShadow: isMobile ? 'none' : '0 2px 12px rgba(0,0,0,.06)' }}>
 
@@ -265,7 +296,7 @@ export default function MessagesPage() {
 
                         {/* Bouton 🗑 pleine hauteur, width fixe */}
                         <button
-                          onClick={e => { e.stopPropagation(); deleteConvo(m.id) }}
+                          onClick={e => { e.stopPropagation(); setConfirmDelete({ type: 'convo', id: m.id }) }}
                           title="Supprimer"
                           style={{ width: 44, flexShrink: 0, background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 17, color: C.red, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
                           onMouseEnter={e => e.currentTarget.style.background = 'rgba(231,76,60,.12)'}
@@ -292,7 +323,7 @@ export default function MessagesPage() {
                         </div>
                       </div>
                       <button
-                        onClick={e => { e.stopPropagation(); deleteConvo(m.id) }}
+                        onClick={e => { e.stopPropagation(); setConfirmDelete({ type: 'convo', id: m.id }) }}
                         title="Supprimer"
                         style={{ width: 44, flexShrink: 0, background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 17, color: C.red, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
                         onMouseEnter={e => e.currentTarget.style.background = 'rgba(231,76,60,.12)'}
@@ -347,7 +378,7 @@ export default function MessagesPage() {
                       {!isMe && <div style={{ width: 28, flexShrink: 0 }}>{showAvatar && <Avatar member={activeMember} size={28} />}</div>}
                       <div style={{ maxWidth: isMobile ? '80%' : '65%', display: 'flex', alignItems: 'center', gap: 6, flexDirection: isMe ? 'row-reverse' : 'row' }}>
                         {isMe && (
-                          <button onClick={() => deleteMessage(m.id)} disabled={isDeleting} title="Supprimer"
+                          <button onClick={() => setConfirmDelete({ type: 'msg', id: m.id })} disabled={isDeleting} title="Supprimer"
                             style={{ background: 'none', border: 'none', cursor: isDeleting ? 'wait' : 'pointer', fontSize: 13, color: C.red, opacity: isDeleting ? 0.5 : 0.6, padding: '2px 4px', flexShrink: 0 }}
                             onMouseEnter={e => e.currentTarget.style.opacity = '1'}
                             onMouseLeave={e => e.currentTarget.style.opacity = '0.6'}>
