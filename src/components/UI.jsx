@@ -18,6 +18,7 @@ export const Dot = ({ on, size = 9 }) => (
 )
 
 export const RoleBadge = ({ role }) => {
+  if (!role || role === 'membre') return null
   const r = ROLES[role] || ROLES.membre
   return <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, color: r.color, background: r.bg, border: `1px solid ${r.color}44`, whiteSpace: 'nowrap', letterSpacing: .3 }}>{r.short}</span>
 }
