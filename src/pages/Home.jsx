@@ -385,11 +385,12 @@ export default function Home() {
           {user && profile && (
             <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
               <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 12 }}>VOS RÉCOMPENSES</div>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
                 {BADGES_DEF.map(b => {
                   const has = (profile.badges || []).includes(b.key)
                   return (
-                    <div key={b.key} title={b.label} style={{ width: 40, height: 40, borderRadius: '50%', background: has ? '#fffae6' : '#f5f5f5', border: `2px solid ${has ? C.accentDk : '#ddd'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, opacity: has ? 1 : 0.3, transition: 'all .2s', cursor: has ? 'help' : 'default' }}>
+                    <div key={b.key} title={`${b.label}${has ? ' ✓' : ' (verrouillé)'}`}
+                      style={{ width: 38, height: 38, borderRadius: '50%', background: has ? (b.bg || '#fffae6') : C.surfaceB, border: `2px solid ${has ? (b.color || C.accentDk) : C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, opacity: has ? 1 : 0.3, transition: 'all .2s', cursor: has ? 'help' : 'default', filter: has ? 'none' : 'grayscale(100%)' }}>
                       {b.emoji}
                     </div>
                   )
