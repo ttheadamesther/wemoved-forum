@@ -177,6 +177,12 @@ export default function Navbar() {
 
   const getToken = async () => {
     try {
+      if (supabase) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.access_token) return session.access_token
+      }
+    } catch {}
+    try {
       const keys = Object.keys(localStorage)
       const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
       if (authKey) { const data = JSON.parse(localStorage.getItem(authKey)); if (data?.access_token) return data.access_token }
