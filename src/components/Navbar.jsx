@@ -88,6 +88,11 @@ export default function Navbar() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (payload) => {
         setNotifs(prev => [payload.new, ...prev])
       })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (payload) => {
+        if (payload.new.read === true) {
+          setNotifs(prev => prev.filter(n => n.id !== payload.new.id))
+        }
+      })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [user])
