@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { C, VOTES_DEF } from '../lib/constants'
 import { RoleBadge } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
+import { useTheme } from '../hooks/ThemeContext'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -37,7 +38,6 @@ function Podium({ members, voteKey }) {
   const order = [sorted[1], sorted[0], sorted[2]].filter(Boolean)
   const heights = [120, 160, 100]
   const medals = ['🥈', '🥇', '🥉']
-  const positions = [2, 1, 3]
 
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
@@ -58,11 +58,17 @@ function Podium({ members, voteKey }) {
 export default function Rankings() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { dark } = useTheme()
   const [members,  setMembers]  = useState([])
   const [loading,  setLoading]  = useState(true)
   const [activeV,  setActiveV]  = useState(VOTES_DEF[0]?.key || 'mimi')
   const [tab,      setTab]      = useState('votes')
   const [timeLeft, setTimeLeft] = useState(getTimeLeft())
+
+  // Couleurs adaptées au dark mode
+  const highlightBg  = dark ? '#2a2400' : '#fffae6'
+  const highlightBorder = C.accentDk
+  const highlightText   = dark ? '#f0c800' : '#7a6200'
 
   useEffect(() => {
     fetch(`${SUPABASE_URL}/rest/v1/profiles?select=*&order=created_at.desc`, {
@@ -83,9 +89,9 @@ export default function Rankings() {
     .map(m => ({ ...m, count: m.votes?.[activeV] || 0 }))
     .sort((a, b) => b.count - a.count)
 
-  const topXP = [...members].sort((a, b) => (b.xp || 0) - (a.xp || 0))
+  const topXP      = [...members].sort((a, b) => (b.xp || 0) - (a.xp || 0))
   const topFriends = [...members].sort((a, b) => (b.friends || 0) - (a.friends || 0))
-  const topPosts = [...members].sort((a, b) => (b.posts || 0) - (a.posts || 0))
+  const topPosts   = [...members].sort((a, b) => (b.posts || 0) - (a.posts || 0))
 
   const medals = ['🥇', '🥈', '🥉']
 
@@ -94,23 +100,23 @@ export default function Rankings() {
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '20px 16px 40px' }}>
 
-      {/* Header */}
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ fontWeight: 700, fontSize: 22, color: C.text, marginBottom: 4 }}>🏆 Classements</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 12, color: C.textDim }}>Reset mensuel dans</span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: C.accentTxt, background: '#fffae6', padding: '2px 10px', borderRadius: 20, border: `1px solid ${C.accentDk}` }}>{timeLeft}</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: highlightText, background: highlightBg, padding: '2px 10px', borderRadius: 20, border: `1px solid ${highlightBorder}` }}>{timeLeft}</span>
         </div>
       </div>
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: C.surfaceB, borderRadius: 12, padding: 4 }}>
         {[
-          { key: 'votes',   label: '🗳️ Votes' },
-          { key: 'xp',      label: '⚡ XP' },
+          { key: 'votes',    label: '🗳️ Votes' },
+          { key: 'xp',       label: '⚡ XP' },
           { key: 'activity', label: '💬 Activité' },
         ].map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: tab === t.key ? C.white : 'transparent', color: tab === t.key ? C.text : C.textMid, fontWeight: tab === t.key ? 700 : 400, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', boxShadow: tab === t.key ? '0 1px 4px rgba(0,0,0,.08)' : 'none', transition: 'all .15s' }}>
+          <button key={t.key} onClick={() => setTab(t.key)}
+            style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: tab === t.key ? C.white : 'transparent', color: tab === t.key ? C.text : C.textMid, fontWeight: tab === t.key ? 700 : 400, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', boxShadow: tab === t.key ? '0 1px 4px rgba(0,0,0,.08)' : 'none', transition: 'all .15s' }}>
             {t.label}
           </button>
         ))}
@@ -118,17 +124,15 @@ export default function Rankings() {
 
       {tab === 'votes' && (
         <>
-          {/* Sélecteur de catégorie de vote */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
             {VOTES_DEF.map(v => (
               <button key={v.key} onClick={() => setActiveV(v.key)}
-                style={{ padding: '8px 16px', borderRadius: 20, border: `1px solid ${activeV === v.key ? C.accentDk : C.border}`, background: activeV === v.key ? '#fffae6' : C.white, color: activeV === v.key ? C.accentTxt : C.textMid, fontWeight: activeV === v.key ? 700 : 400, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s', display: 'flex', alignItems: 'center', gap: 6 }}>
+                style={{ padding: '8px 16px', borderRadius: 20, border: `1px solid ${activeV === v.key ? highlightBorder : C.border}`, background: activeV === v.key ? highlightBg : C.white, color: activeV === v.key ? highlightText : C.textMid, fontWeight: activeV === v.key ? 700 : 400, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s', display: 'flex', alignItems: 'center', gap: 6 }}>
                 {v.emoji} {v.label}
               </button>
             ))}
           </div>
 
-          {/* Podium */}
           {ranked.filter(m => m.count > 0).length >= 2 && (
             <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: '20px 16px 0', marginBottom: 16, overflow: 'hidden' }}>
               <div style={{ textAlign: 'center', marginBottom: 16 }}>
@@ -139,11 +143,10 @@ export default function Rankings() {
             </div>
           )}
 
-          {/* Liste complète */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {ranked.map((m, i) => (
               <div key={m.id} onClick={() => navigate(`/members/${m.id}`)}
-                style={{ background: i < 3 ? (i === 0 ? '#fffae6' : C.white) : C.white, border: `1px solid ${i === 0 ? C.accentDk : C.border}`, borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', transition: 'all .15s' }}
+                style={{ background: i === 0 ? highlightBg : C.white, border: `1px solid ${i === 0 ? highlightBorder : C.border}`, borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', transition: 'all .15s' }}
                 onMouseEnter={e => e.currentTarget.style.transform = 'translateX(4px)'}
                 onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
                 <div style={{ width: 28, textAlign: 'center', fontWeight: 700, fontSize: 16, flexShrink: 0 }}>
@@ -169,12 +172,12 @@ export default function Rankings() {
 
       {tab === 'xp' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ background: '#fffae6', border: `1px solid ${C.accentDk}`, borderRadius: 12, padding: '10px 16px', fontSize: 12, color: '#7a6200', marginBottom: 8 }}>
+          <div style={{ background: highlightBg, border: `1px solid ${highlightBorder}`, borderRadius: 12, padding: '10px 16px', fontSize: 12, color: highlightText, marginBottom: 8 }}>
             ⚡ L'XP est permanent — il s'accumule au fil du temps.
           </div>
           {topXP.map((m, i) => (
             <div key={m.id} onClick={() => navigate(`/members/${m.id}`)}
-              style={{ background: i === 0 ? '#fffae6' : C.white, border: `1px solid ${i === 0 ? C.accentDk : C.border}`, borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', transition: 'all .15s' }}
+              style={{ background: i === 0 ? highlightBg : C.white, border: `1px solid ${i === 0 ? highlightBorder : C.border}`, borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', transition: 'all .15s' }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateX(4px)'}
               onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
               <div style={{ width: 28, textAlign: 'center', fontWeight: 700, fontSize: 16, flexShrink: 0 }}>
@@ -201,7 +204,6 @@ export default function Rankings() {
 
       {tab === 'activity' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Top posts */}
           <div>
             <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 10 }}>💬 Top Posteurs</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -218,7 +220,6 @@ export default function Rankings() {
             </div>
           </div>
 
-          {/* Top amis */}
           <div>
             <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 10 }}>👥 Top Sociaux</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
