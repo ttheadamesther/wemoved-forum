@@ -139,13 +139,14 @@ export default function MessagesPage() {
     if (!activeId || !user) return
     api(`/rest/v1/messages?or=(and(from_id.eq.${user.id},to_id.eq.${activeId}),and(from_id.eq.${activeId},to_id.eq.${user.id}))&order=created_at.asc`)
       .then(r => r.json()).then(d => { if (Array.isArray(d)) setMessages(d) })
-    api(`/rest/v1/messages?to_id=eq.${user.id}&from_id=eq.${activeId}&read=eq.false`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ read: true })
-    }).then(() => {
-      // Notifier la Navbar que des messages ont été lus
-      window.dispatchEvent(new CustomEvent('messages-read'))
+    getToken().then(token => {
+      fetch(`${SUPABASE_URL}/rest/v1/messages?to_id=eq.${user.id}&from_id=eq.${activeId}&read=eq.false`, {
+        method: 'PATCH',
+        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ read: true })
+      }).then(() => {
+        window.dispatchEvent(new CustomEvent('messages-read'))
+      })
     })
   }, [activeId, user, sending])
 
