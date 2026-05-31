@@ -222,6 +222,7 @@ export default function ForumPage() {
   const [showReactionPicker, setShowReactionPicker] = useState(null)
   const [page,          setPage]          = useState(1)
   const [reporting,     setReporting]     = useState(null) // { type, targetId }
+  const [confirmDel,    setConfirmDel]    = useState(null) // { type: 'thread'|'reply', id }
   const [spamError,     setSpamError]     = useState('')
   const lastPostTime = useRef(0)
 
@@ -370,16 +371,22 @@ export default function ForumPage() {
   }
 
   const deleteThread = async (id) => {
-    if (!window.confirm('Supprimer définitivement ce topic ?')) return
+    setConfirmDel({ type: 'thread', id })
+  }
+
+  const doDeleteThread = async (id) => {
     await apiAuth(`/rest/v1/replies?thread_id=eq.${id}`, { method: 'DELETE' })
     await apiAuth(`/rest/v1/threads?id=eq.${id}`, { method: 'DELETE' })
-    setOpenId(null); setReplies([]); loadThreads()
+    setOpenId(null); setReplies([]); loadThreads(); setConfirmDel(null)
   }
 
   const deleteReply = async (id) => {
-    if (!window.confirm('Supprimer cette réponse ?')) return
+    setConfirmDel({ type: 'reply', id })
+  }
+
+  const doDeleteReply = async (id) => {
     await apiAuth(`/rest/v1/replies?id=eq.${id}`, { method: 'DELETE' })
-    loadReplies(openId)
+    loadReplies(openId); setConfirmDel(null)
   }
 
   const currentThread = threads.find(t => t.id === openId)
@@ -415,6 +422,31 @@ export default function ForumPage() {
         {reporting && (
           <ReportModal type={reporting.type} targetId={reporting.targetId} reporterId={user?.id} onClose={() => setReporting(null)} />
         )}
+
+        {confirmDel && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, width: '100%', maxWidth: 340, boxShadow: '0 8px 32px rgba(0,0,0,.25)' }}>
+              <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 12 }}>🗑️</div>
+              <div style={{ fontWeight: 700, fontSize: 15, color: C.text, textAlign: 'center', marginBottom: 6 }}>
+                {confirmDel.type === 'thread' ? 'Supprimer ce topic ?' : 'Supprimer cette réponse ?'}
+              </div>
+              <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', marginBottom: 20 }}>
+                Cette action est définitive et irréversible.
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setConfirmDel(null)}
+                  style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surfaceB, color: C.textMid, fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  Annuler
+                </button>
+                <button onClick={() => confirmDel.type === 'thread' ? doDeleteThread(confirmDel.id) : doDeleteReply(confirmDel.id)}
+                  style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: C.red, color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  Supprimer
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <button onClick={() => { setOpenId(null); setReplies([]); setEditingThread(null); setEditingReply(null) }}
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: C.textMid, cursor: 'pointer', fontSize: 13, fontWeight: 600, marginBottom: 16, padding: 0 }}>
           ← Retour au forum
