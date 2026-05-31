@@ -42,7 +42,17 @@ export default function Navbar() {
     return () => observer.disconnect()
   }, [])
 
-  useEffect(() => { setMenuOpen(false); setShowMobileMenu(false) }, [path])
+  useEffect(() => {
+    setMenuOpen(false); setShowMobileMenu(false)
+    // Si on revient de /notifications, recharger (tout a été marqué lu)
+    if (user && path !== '/notifications') {
+      getToken().then(token => {
+        fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false&order=created_at.desc&limit=20`, {
+          headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
+        }).then(r => r.json()).then(d => { if (Array.isArray(d)) setNotifs(d) })
+      })
+    }
+  }, [path])
 
   useEffect(() => {
     if (!user) return
@@ -74,13 +84,22 @@ export default function Navbar() {
     return () => { supabase.removeChannel(channel) }
   }, [user])
 
-  useEffect(() => {
-    if (!user) return
+  const refreshUnread = () => {
     getToken().then(token => {
-      fetch(`${SUPABASE_URL}/rest/v1/messages?to_id=eq.${user.id}&read=eq.false&select=id`, {
+      fetch(`${SUPABASE_URL}/rest/v1/messages?to_id=eq.${user?.id}&read=eq.false&select=id`, {
         headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
       }).then(r => r.json()).then(d => { if (Array.isArray(d)) setUnreadMessages(d.length) })
     })
+  }
+
+  useEffect(() => {
+    if (!user) return
+    refreshUnread()
+    // Si on est sur /messages, rafraîchir toutes les 3s (les msgs se marquent lus)
+    if (path === '/messages') {
+      const interval = setInterval(refreshUnread, 3000)
+      return () => clearInterval(interval)
+    }
   }, [user, path])
 
   useEffect(() => {
