@@ -455,7 +455,7 @@ export default function MemberProfile() {
           {(member.interests || []).length === 0
             ? <span style={{ fontSize: 13, color: C.textDim, fontStyle: 'italic' }}>Aucun intérêt renseigné.</span>
             : (member.interests || []).map(i => (
-              <span key={i} style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, background: '#fffae6', color: C.accentTxt, border: `1px solid ${C.accentDk}`, fontWeight: 600 }}>{i}</span>
+              <span key={i} style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, background: C.surfaceB, color: C.text, border: `1px solid ${C.border}`, fontWeight: 600 }}>{i}</span>
             ))
           }
         </div>
