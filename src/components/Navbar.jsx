@@ -84,7 +84,7 @@ export default function Navbar() {
   useEffect(() => {
     if (!user || !supabase) return
     const channel = supabase
-      .channel(`messages-${user.id}`)
+      .channel(`messages-${user.id}-${Date.now()}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `to_id=eq.${user.id}` }, () => {
         fetch(`${SUPABASE_URL}/rest/v1/messages?to_id=eq.${user.id}&read=eq.false&select=id`, {
           headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
@@ -109,6 +109,7 @@ export default function Navbar() {
       if (searchRef.current && !searchRef.current.contains(e.target)) { setShowRes(false); setShowSearch(false) }
       if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifs(false)
       if (userMenuRef.current && !userMenuRef.current.contains(e.target)) setShowUserMenu(false)
+      if (navRef.current && !navRef.current.contains(e.target)) setShowMobileMenu(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
