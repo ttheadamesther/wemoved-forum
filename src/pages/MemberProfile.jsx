@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { C, VOTES_DEF } from '../lib/constants'
 import { RoleBadge, Btn } from '../components/UI'
@@ -98,7 +98,8 @@ export default function MemberProfile() {
   const [friendsList, setFriendsList]     = useState([])
   const [friendsLoading, setFriendsLoading] = useState(false)
   const [likingPhoto, setLikingPhoto]     = useState(null)
-  const [lightbox, setLightbox]           = useState(null) // url de la photo en grand
+  const [lightbox, setLightbox]           = useState(null)
+  const notifSentRef = useRef(false)
 
   const isAdmin = profile?.role === 'admin'
   const isManager = profile?.role === 'manager'
@@ -106,12 +107,12 @@ export default function MemberProfile() {
   const monthKey = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth()}` }
 
   useEffect(() => {
+    notifSentRef.current = false
     fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${id}&limit=1`, {
       headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
     }).then(r => r.json()).then(data => {
       if (data && data[0]) setMember(data[0])
       setLoading(false)
-
     })
 
     if (user) {
@@ -133,7 +134,21 @@ export default function MemberProfile() {
       loadFriendship()
     }
     loadFriendsList()
-  }, [id, user])
+  }, [id])
+
+  // Notif visite profil — une seule fois par session, max 1 toutes les 10min via localStorage
+  useEffect(() => {
+    if (!user || !id || user.id === id) return
+    if (notifSentRef.current) return
+    const key = `pv_${user.id}_${id}`
+    const last = localStorage.getItem(key)
+    const now = Date.now()
+    if (last && now - parseInt(last) < 10 * 60 * 1000) return
+    notifSentRef.current = true
+    localStorage.setItem(key, now.toString())
+    const pseudo = profile?.pseudo || 'Quelqu\'un'
+    sendNotif(id, 'profile_view', `👀 @${pseudo} a consulté votre profil`, `/members/${user.id}`)
+  }, [id, user?.id, profile?.pseudo])
 
   const loadFriendsList = async () => {
     setFriendsLoading(true)
@@ -241,40 +256,24 @@ export default function MemberProfile() {
     setVoting(null)
   }
 
-  // ── LIKE PHOTO ──
   const togglePhotoLike = async (photoUrl, photoIndex) => {
     if (!user || likingPhoto !== null) return
     setLikingPhoto(photoIndex)
-
     const currentLikes = member.photo_likes || {}
     const key = String(photoIndex)
     const likers = currentLikes[key] || []
     const alreadyLiked = likers.includes(user.id)
-
-    const newLikers = alreadyLiked
-      ? likers.filter(uid => uid !== user.id)
-      : [...likers, user.id]
-
+    const newLikers = alreadyLiked ? likers.filter(uid => uid !== user.id) : [...likers, user.id]
     const newPhotoLikes = { ...currentLikes, [key]: newLikers }
-
     await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${id}`, {
       method: 'PATCH',
       headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
       body: JSON.stringify({ photo_likes: newPhotoLikes })
     })
-
     setMember(m => ({ ...m, photo_likes: newPhotoLikes }))
-
-    // Notif seulement quand on like (pas quand on unlike) et pas sur son propre profil
     if (!alreadyLiked && user.id !== id) {
-      await sendNotif(
-        id,
-        'photo_like',
-        `❤️ @${profile?.pseudo || 'Quelqu\'un'} a aimé une de vos photos`,
-        `/members/${id}`
-      )
+      await sendNotif(id, 'photo_like', `❤️ @${profile?.pseudo || 'Quelqu\'un'} a aimé une de vos photos`, `/members/${id}`)
     }
-
     setLikingPhoto(null)
   }
 
@@ -289,17 +288,6 @@ export default function MemberProfile() {
     setUpdatingRole(false)
     setShowRolePanel(false)
   }
-
-  // Notif visite profil — une seule fois par session/profil, max 1 toutes les 10min
-  useEffect(() => {
-    if (!user || !id || user.id === id) return
-    const key = `pv_${user.id}_${id}`
-    const last = localStorage.getItem(key)
-    const now = Date.now()
-    if (last && now - parseInt(last) < 10 * 60 * 1000) return
-    localStorage.setItem(key, now.toString())
-    sendNotif(id, 'profile_view', `👀 @${profile?.pseudo || "Quelqu'un"} a consulté votre profil`, `/members/${user.id}`)
-  }, [id, user?.id])
 
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: C.textMid }}>Chargement…</div>
 
@@ -328,7 +316,6 @@ export default function MemberProfile() {
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px' }}>
 
-      {/* ── LIGHTBOX ── */}
       {lightbox && (
         <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.92)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, cursor: 'zoom-out' }}>
           <img src={lightbox} alt="" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 12, objectFit: 'contain', boxShadow: '0 8px 40px rgba(0,0,0,.6)' }} onClick={e => e.stopPropagation()} />
@@ -485,36 +472,18 @@ export default function MemberProfile() {
               const count  = likers.length
               return (
                 <div key={i} style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.border}`, background: '#000' }}>
-                  {/* Photo cliquable pour lightbox */}
                   <div style={{ aspectRatio: '1', cursor: 'zoom-in' }} onClick={() => setLightbox(url)}>
                     <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'opacity .2s' }}
                       onMouseEnter={e => e.currentTarget.style.opacity = '.85'}
                       onMouseLeave={e => e.currentTarget.style.opacity = '1'}
                     />
                   </div>
-
-                  {/* Bouton like en bas de la photo */}
                   <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,.7) 0%, transparent 100%)', padding: '20px 10px 8px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
-                    {count > 0 && (
-                      <span style={{ fontSize: 11, color: '#fff', fontWeight: 700 }}>{count}</span>
-                    )}
+                    {count > 0 && <span style={{ fontSize: 11, color: '#fff', fontWeight: 700 }}>{count}</span>}
                     <button
                       onClick={() => user && user.id !== id && togglePhotoLike(url, i)}
                       disabled={likingPhoto !== null || !user || user.id === id}
-                      title={!user ? 'Connecte-toi pour liker' : user.id === id ? 'Tu ne peux pas liker tes propres photos' : liked ? 'Retirer le like' : 'Liker cette photo'}
-                      style={{
-                        background: liked ? 'rgba(231,76,60,.85)' : 'rgba(255,255,255,.2)',
-                        border: `1px solid ${liked ? '#e74c3c' : 'rgba(255,255,255,.4)'}`,
-                        borderRadius: 20,
-                        padding: '4px 10px',
-                        cursor: (!user || user.id === id || likingPhoto !== null) ? 'default' : 'pointer',
-                        fontSize: 14,
-                        display: 'flex', alignItems: 'center', gap: 4,
-                        transition: 'all .2s',
-                        backdropFilter: 'blur(4px)',
-                        opacity: likingPhoto === i ? 0.6 : 1
-                      }}
-                    >
+                      style={{ background: liked ? 'rgba(231,76,60,.85)' : 'rgba(255,255,255,.2)', border: `1px solid ${liked ? '#e74c3c' : 'rgba(255,255,255,.4)'}`, borderRadius: 20, padding: '4px 10px', cursor: (!user || user.id === id || likingPhoto !== null) ? 'default' : 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', gap: 4, transition: 'all .2s', backdropFilter: 'blur(4px)', opacity: likingPhoto === i ? 0.6 : 1 }}>
                       {likingPhoto === i ? '…' : liked ? '❤️' : '🤍'}
                     </button>
                   </div>
