@@ -6,10 +6,8 @@ import { ToastContainer } from './components/Toast.jsx'
 import { ThemeProvider } from './hooks/ThemeContext.jsx'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <ThemeProvider>
-      <App />
-      <ToastContainer />
-    </ThemeProvider>
-  </React.StrictMode>
+  <ThemeProvider>
+    <App />
+    <ToastContainer />
+  </ThemeProvider>
 )
