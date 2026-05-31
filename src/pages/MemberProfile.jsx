@@ -111,16 +111,7 @@ export default function MemberProfile() {
     }).then(r => r.json()).then(data => {
       if (data && data[0]) setMember(data[0])
       setLoading(false)
-      // Notif visite de profil (max 1 toutes les 10 minutes par visiteur)
-      if (user && user.id !== id) {
-        const key = `profile_view_${user.id}_${id}`
-        const last = localStorage.getItem(key)
-        const now = Date.now()
-        if (!last || now - parseInt(last) > 10 * 60 * 1000) {
-          localStorage.setItem(key, now.toString())
-          sendNotif(id, 'profile_view', `👀 @${profile?.pseudo || 'Quelqu\'un'} a consulté votre profil`, `/members/${user.id}`)
-        }
-      }
+
     })
 
     if (user) {
@@ -298,6 +289,17 @@ export default function MemberProfile() {
     setUpdatingRole(false)
     setShowRolePanel(false)
   }
+
+  // Notif visite profil — une seule fois par session/profil, max 1 toutes les 10min
+  useEffect(() => {
+    if (!user || !id || user.id === id) return
+    const key = `pv_${user.id}_${id}`
+    const last = localStorage.getItem(key)
+    const now = Date.now()
+    if (last && now - parseInt(last) < 10 * 60 * 1000) return
+    localStorage.setItem(key, now.toString())
+    sendNotif(id, 'profile_view', `👀 @${profile?.pseudo || "Quelqu'un"} a consulté votre profil`, `/members/${user.id}`)
+  }, [id, user?.id])
 
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: C.textMid }}>Chargement…</div>
 
