@@ -214,7 +214,7 @@ export default function Home() {
                       </div>
                       <div>
                         <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{m.pseudo}</div>
-                        <div style={{ fontSize: 10, color: C.textDim, textTransform: 'capitalize' }}>{m.role || 'membre'}</div>
+                        <div style={{ transform: 'scale(0.8)', transformOrigin: 'left center', marginTop: 1 }}><RoleBadge role={m.role} /></div>
                       </div>
                     </div>
                   )
