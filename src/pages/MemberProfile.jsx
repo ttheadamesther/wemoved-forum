@@ -101,6 +101,8 @@ export default function MemberProfile() {
   const [lightbox, setLightbox]           = useState(null) // url de la photo en grand
 
   const isAdmin = profile?.role === 'admin'
+  const isManager = profile?.role === 'manager'
+  const canManageRoles = isAdmin || isManager
   const monthKey = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth()}` }
 
   useEffect(() => {
@@ -333,7 +335,7 @@ export default function MemberProfile() {
             </div>
             {user && user.id !== id && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                {isAdmin && <Btn onClick={() => setShowRolePanel(v => !v)} variant="ghost" style={{ fontSize: 12 }}>🛡️ Gérer le rôle</Btn>}
+                {canManageRoles && <Btn onClick={() => setShowRolePanel(v => !v)} variant="ghost" style={{ fontSize: 12 }}>🛡️ Gérer le rôle</Btn>}
                 <FriendBtn user={user} id={id} friendship={friendship} friendLoading={friendLoading} onAdd={sendFriendRequest} onAccept={acceptFriendRequest} onRemove={removeFriend} />
                 {!isBlocked && <Btn onClick={() => navigate('/messages')} variant="yellow" style={{ fontSize: 12 }}>✉️ Message</Btn>}
                 <button onClick={toggleBlock} disabled={blocking} style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${isBlocked ? C.border : C.red}`, background: isBlocked ? C.surfaceB : 'transparent', color: isBlocked ? C.textMid : C.red, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
@@ -343,11 +345,11 @@ export default function MemberProfile() {
             )}
           </div>
 
-          {isAdmin && showRolePanel && (
+          {canManageRoles && showRolePanel && (
             <div style={{ background: C.surfaceB, border: `1px solid ${C.accentDk}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
               <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>🛡️ Attribuer un rôle à @{member.pseudo}</div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {ROLES_ASSIGNABLES.map(r => (
+                {ROLES_ASSIGNABLES.filter(r => isAdmin || ['membre', 'animateur', 'moderateur'].includes(r.value)).map(r => (
                   <button key={r.value} onClick={() => assignRole(r.value)} disabled={updatingRole || member.role === r.value}
                     style={{ padding: '8px 16px', borderRadius: 20, border: `2px solid ${member.role === r.value ? r.color : C.border}`, background: member.role === r.value ? r.color : C.white, color: member.role === r.value ? '#fff' : C.textMid, fontWeight: member.role === r.value ? 700 : 400, fontSize: 12, cursor: member.role === r.value ? 'default' : 'pointer', fontFamily: 'inherit', transition: 'all .15s', opacity: updatingRole ? 0.6 : 1 }}>
                     {updatingRole && member.role !== r.value ? '…' : r.label}{member.role === r.value && ' ✓'}
