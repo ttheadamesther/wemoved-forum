@@ -87,6 +87,7 @@ export default function MessagesPage() {
   const [hoveredMsg, setHoveredMsg]   = useState(null)
   const [deletingMsg, setDeletingMsg] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null) // { type: 'msg'|'convo', id }
+  const [reporting, setReporting] = useState(null) // { id, pseudo }
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -217,6 +218,36 @@ export default function MessagesPage() {
     <div ref={containerRef} style={{ maxWidth: 960, margin: '0 auto', padding: isMobile ? '0' : '20px 16px' }}>
       {!isMobile && <h2 style={{ fontWeight: 700, fontSize: 20, color: C.text, marginBottom: 16 }}>Messages privés</h2>}
 
+      {/* ── MODALE SIGNALEMENT ── */}
+      {reporting && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, width: '100%', maxWidth: 340, boxShadow: '0 8px 32px rgba(0,0,0,.25)' }}>
+            <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 12 }}>🚩</div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: C.text, textAlign: 'center', marginBottom: 6 }}>Signaler ce message ?</div>
+            <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', marginBottom: 20 }}>
+              Ce message sera transmis aux modérateurs pour examen.
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setReporting(null)}
+                style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surfaceB, color: C.textMid, fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                Annuler
+              </button>
+              <button onClick={async () => {
+                await api('/rest/v1/reports', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ type: 'message', target_id: reporting.id, reporter_id: user.id, reason: 'Message privé signalé', status: 'pending' })
+                })
+                setReporting(null)
+              }}
+                style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: '#e67e22', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                Signaler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── MODALE CONFIRMATION SUPPRESSION ── */}
       {confirmDelete && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
@@ -294,11 +325,18 @@ export default function MessagesPage() {
                           </div>
                         </div>
 
-                        {/* Bouton 🗑 pleine hauteur, width fixe */}
+                        {/* Boutons actions */}
+                        <button
+                          onClick={e => { e.stopPropagation(); setReporting({ id: m.id, pseudo: m.pseudo }) }}
+                          title="Signaler"
+                          style={{ width: 36, flexShrink: 0, background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 15, color: '#e67e22', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(230,126,34,.12)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                        >🚩</button>
                         <button
                           onClick={e => { e.stopPropagation(); setConfirmDelete({ type: 'convo', id: m.id }) }}
                           title="Supprimer"
-                          style={{ width: 44, flexShrink: 0, background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 17, color: C.red, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
+                          style={{ width: 36, flexShrink: 0, background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 15, color: C.red, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
                           onMouseEnter={e => e.currentTarget.style.background = 'rgba(231,76,60,.12)'}
                           onMouseLeave={e => e.currentTarget.style.background = 'none'}
                         >🗑</button>
@@ -323,9 +361,16 @@ export default function MessagesPage() {
                         </div>
                       </div>
                       <button
+                        onClick={e => { e.stopPropagation(); setReporting({ id: m.id, pseudo: m.pseudo }) }}
+                        title="Signaler"
+                        style={{ width: 36, flexShrink: 0, background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 15, color: '#e67e22', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(230,126,34,.12)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                      >🚩</button>
+                      <button
                         onClick={e => { e.stopPropagation(); setConfirmDelete({ type: 'convo', id: m.id }) }}
                         title="Supprimer"
-                        style={{ width: 44, flexShrink: 0, background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 17, color: C.red, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
+                        style={{ width: 36, flexShrink: 0, background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 15, color: C.red, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
                         onMouseEnter={e => e.currentTarget.style.background = 'rgba(231,76,60,.12)'}
                         onMouseLeave={e => e.currentTarget.style.background = 'none'}
                       >🗑</button>
