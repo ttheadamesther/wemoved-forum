@@ -329,7 +329,19 @@ export default function Navbar() {
         <NavLink to="/"           label="Accueil"    icon="🏠" />
         <NavLink to="/forum"      label="Forum"      icon="💬" />
         <NavLink to="/members"    label="Membres"    icon="👥" />
-        {user && <NavLink to="/messages"   label="Messages"   icon="✉️" />}
+        {user && (
+          <Link to="/messages" style={{ textDecoration: 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', height: 64, color: path === '/messages' ? C.accent : '#ccc', fontWeight: path === '/messages' ? 700 : 400, fontSize: 12, borderBottom: path === '/messages' ? `2px solid ${C.accent}` : '2px solid transparent', cursor: 'pointer', transition: 'all .15s', whiteSpace: 'nowrap', position: 'relative' }}>
+              <span style={{ fontSize: 14 }}>✉️</span>
+              Messages
+              {unreadMessages > 0 && (
+                <span style={{ position: 'absolute', top: 12, right: 2, background: C.red, color: '#fff', borderRadius: 10, fontSize: 9, fontWeight: 700, padding: '1px 5px', lineHeight: 1.4 }}>
+                  {unreadMessages > 9 ? '9+' : unreadMessages}
+                </span>
+              )}
+            </div>
+          </Link>
+        )}
         {user && <NavLink to="/profile"    label="Profil"     icon="👤" />}
         {user && canMod && <NavLink to="/moderation" label="Modération" icon="🛡️" />}
 

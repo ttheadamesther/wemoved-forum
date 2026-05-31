@@ -396,7 +396,7 @@ export default function MessagesPage() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 14, color: C.text }}>@{activeMember.pseudo}</div>
                   <div style={{ fontSize: 11, color: activeMember.online ? C.online : C.textDim }}>
-                    {activeMember.online ? '● En ligne' : '○ Hors ligne'}{activeMember.city ? ` · ${activeMember.city}` : ''}
+                    {activeMember.online ? '● En ligne' : '○ Hors ligne'}
                   </div>
                 </div>
                 <RoleBadge role={activeMember.role} />

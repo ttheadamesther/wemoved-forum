@@ -111,6 +111,10 @@ export default function MemberProfile() {
     }).then(r => r.json()).then(data => {
       if (data && data[0]) setMember(data[0])
       setLoading(false)
+      // Notif visite de profil (seulement si connecté et pas son propre profil)
+      if (user && user.id !== id) {
+        sendNotif(id, 'profile_view', `👀 @${profile?.pseudo || 'Quelqu\'un'} a consulté votre profil`, `/members/${user.id}`)
+      }
     })
 
     if (user) {
