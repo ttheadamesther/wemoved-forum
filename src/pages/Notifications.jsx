@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { C } from '../lib/constants'
 import { useAuth } from '../hooks/useAuth'
@@ -26,8 +26,13 @@ function formatDate(ts) {
 export default function Notifications() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [notifs,   setNotifs]   = useState([])
-  const [loading,  setLoading]  = useState(true)
+  const [notifs,  setNotifs]  = useState([])
+  const [loading, setLoading] = useState(true)
+  const notifsRef = useRef([])
+  const userRef   = useRef(null)
+
+  useEffect(() => { userRef.current = user }, [user])
+  useEffect(() => { notifsRef.current = notifs }, [notifs])
 
   useEffect(() => {
     if (!user) return
@@ -36,19 +41,28 @@ export default function Notifications() {
       .then(d => { if (Array.isArray(d)) setNotifs(d); setLoading(false) })
   }, [user])
 
+  // Marquer toutes les non-lues comme lues quand on quitte la page
+  useEffect(() => {
+    return () => {
+      const u = userRef.current
+      const unread = notifsRef.current.filter(n => !n.read)
+      if (u && unread.length > 0) {
+        fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${u.id}&read=eq.false`, {
+          method: 'PATCH',
+          headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ read: true })
+        }).catch(() => {})
+      }
+    }
+  }, [])
+
   const markRead = async (id) => {
-    await api(`/rest/v1/notifications?id=eq.${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ read: true })
-    })
+    await api(`/rest/v1/notifications?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ read: true }) })
     setNotifs(n => n.map(x => x.id === id ? { ...x, read: true } : x))
   }
 
   const markAllRead = async () => {
-    await api(`/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, {
-      method: 'PATCH',
-      body: JSON.stringify({ read: true })
-    })
+    await api(`/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, { method: 'PATCH', body: JSON.stringify({ read: true }) })
     setNotifs(n => n.map(x => ({ ...x, read: true })))
   }
 
@@ -69,7 +83,6 @@ export default function Notifications() {
   return (
     <div style={{ maxWidth: 600, margin: '0 auto', padding: '24px 16px' }}>
 
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>
           <h1 style={{ fontWeight: 700, fontSize: 19, color: C.text, marginBottom: 2 }}>🔔 Notifications</h1>
@@ -84,7 +97,6 @@ export default function Notifications() {
         )}
       </div>
 
-      {/* Liste */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: 40, color: C.textDim, fontSize: 13 }}>Chargement…</div>
       ) : notifs.length === 0 ? (
@@ -109,19 +121,11 @@ export default function Notifications() {
               onMouseEnter={e => { if (n.link) e.currentTarget.style.transform = 'translateY(-1px)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)' }}
             >
-              {/* Point non lu */}
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: n.read ? 'transparent' : C.accentDk, flexShrink: 0, marginTop: 5 }} />
-
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5, fontWeight: n.read ? 400 : 600 }}>
-                  {n.content}
-                </div>
-                <div style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>
-                  {formatDate(n.created_at)}
-                </div>
+                <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5, fontWeight: n.read ? 400 : 600 }}>{n.content}</div>
+                <div style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>{formatDate(n.created_at)}</div>
               </div>
-
-              {/* Actions */}
               <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                 {!n.read && (
                   <button onClick={e => { e.stopPropagation(); markRead(n.id) }}
