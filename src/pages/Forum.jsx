@@ -271,7 +271,7 @@ export default function ForumPage() {
   const openThread = (t) => {
     if (t.cat === '+18' && !isAdult && !canMod) return
     setOpenId(t.id); loadReplies(t.id)
-    api(`/rest/v1/threads?id=eq.${t.id}`, { method: 'PATCH', body: JSON.stringify({ views: (t.views || 0) + 1 }) })
+    apiAuth(`/rest/v1/threads?id=eq.${t.id}`, { method: 'PATCH', body: JSON.stringify({ views: (t.views || 0) + 1 }) })
     setThreads(prev => prev.map(th => th.id === t.id ? { ...th, views: (th.views || 0) + 1 } : th))
   }
 
@@ -286,7 +286,7 @@ export default function ForumPage() {
     setSpamError('')
     setPosting(true)
     lastPostTime.current = now
-    await api('/rest/v1/threads', { method: 'POST', body: JSON.stringify({ author_id: user.id, cat: nCat, title: nTitle.trim(), body: nBody.trim(), likes: 0, views: 0, pinned: false, locked: false, hidden: false }) })
+    await apiAuth('/rest/v1/threads', { method: 'POST', body: JSON.stringify({ author_id: user.id, cat: nCat, title: nTitle.trim(), body: nBody.trim(), likes: 0, views: 0, pinned: false, locked: false, hidden: false }) })
     await awardXP(user.id, 10)
     setNTitle(''); setNBody(''); setComposing(false); loadThreads(); setPosting(false)
   }
@@ -304,7 +304,7 @@ export default function ForumPage() {
     const body = quoting
       ? `> @${quoting.pseudo} : ${quoting.body.slice(0, 100)}${quoting.body.length > 100 ? '…' : ''}\n\n${replyText.trim()}`
       : replyText.trim()
-    await api('/rest/v1/replies', { method: 'POST', body: JSON.stringify({ thread_id: openId, author_id: user.id, body, hidden: false }) })
+    await apiAuth('/rest/v1/replies', { method: 'POST', body: JSON.stringify({ thread_id: openId, author_id: user.id, body, hidden: false }) })
     await awardXP(user.id, 5)
     const currentThread = threads.find(t => t.id === openId)
     if (currentThread && currentThread.author_id !== user.id) {
@@ -327,7 +327,7 @@ export default function ForumPage() {
   }
 
   const patchThread = async (id, body) => {
-    await api(`/rest/v1/threads?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(body) })
+    await apiAuth(`/rest/v1/threads?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(body) })
     loadThreads()
   }
 
@@ -336,7 +336,7 @@ export default function ForumPage() {
     const newCount = thread.likes + (liked ? -1 : 1)
     setLikes(l => ({ ...l, [thread.id]: !liked }))
     setThreads(prev => prev.map(t => t.id === thread.id ? { ...t, likes: newCount } : t))
-    await api(`/rest/v1/threads?id=eq.${thread.id}`, { method: 'PATCH', body: JSON.stringify({ likes: newCount }) })
+    await apiAuth(`/rest/v1/threads?id=eq.${thread.id}`, { method: 'PATCH', body: JSON.stringify({ likes: newCount }) })
     if (!liked && thread.author_id !== user?.id) {
       await sendNotif(thread.author_id, 'like', `♥ @${profile?.pseudo || 'Quelqu\'un'} a aimé votre topic "${thread.title.slice(0, 50)}"`, `/forum`)
     }
@@ -360,25 +360,25 @@ export default function ForumPage() {
   }
 
   const updateThread = async (id, title, body) => {
-    await api(`/rest/v1/threads?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ title, body, edited_at: new Date().toISOString() }) })
+    await apiAuth(`/rest/v1/threads?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ title, body, edited_at: new Date().toISOString() }) })
     loadThreads()
   }
 
   const updateReply = async (id, body) => {
-    await api(`/rest/v1/replies?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ body, edited_at: new Date().toISOString() }) })
+    await apiAuth(`/rest/v1/replies?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ body, edited_at: new Date().toISOString() }) })
     loadReplies(openId)
   }
 
   const deleteThread = async (id) => {
     if (!window.confirm('Supprimer définitivement ce topic ?')) return
-    await api(`/rest/v1/replies?thread_id=eq.${id}`, { method: 'DELETE' })
-    await api(`/rest/v1/threads?id=eq.${id}`, { method: 'DELETE' })
+    await apiAuth(`/rest/v1/replies?thread_id=eq.${id}`, { method: 'DELETE' })
+    await apiAuth(`/rest/v1/threads?id=eq.${id}`, { method: 'DELETE' })
     setOpenId(null); setReplies([]); loadThreads()
   }
 
   const deleteReply = async (id) => {
     if (!window.confirm('Supprimer cette réponse ?')) return
-    await api(`/rest/v1/replies?id=eq.${id}`, { method: 'DELETE' })
+    await apiAuth(`/rest/v1/replies?id=eq.${id}`, { method: 'DELETE' })
     loadReplies(openId)
   }
 
@@ -548,7 +548,7 @@ export default function ForumPage() {
                       )}
                       {canMod && (
                         <>
-                          <Btn onClick={async () => { await api(`/rest/v1/replies?id=eq.${r.id}`, { method: 'PATCH', body: JSON.stringify({ hidden: !r.hidden }) }); loadReplies(openId) }} variant={r.hidden ? 'green' : 'red'} style={{ fontSize: 10 }}>{r.hidden ? '👁' : '🙈'}</Btn>
+                          <Btn onClick={async () => { await apiAuth(`/rest/v1/replies?id=eq.${r.id}`, { method: 'PATCH', body: JSON.stringify({ hidden: !r.hidden }) }); loadReplies(openId) }} variant={r.hidden ? 'green' : 'red'} style={{ fontSize: 10 }}>{r.hidden ? '👁' : '🙈'}</Btn>
                           <Btn onClick={() => deleteReply(r.id)} variant="red" style={{ fontSize: 10 }}>🗑</Btn>
                         </>
                       )}
