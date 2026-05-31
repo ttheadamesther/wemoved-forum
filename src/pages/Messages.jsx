@@ -143,6 +143,9 @@ export default function MessagesPage() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ read: true })
+    }).then(() => {
+      // Notifier la Navbar que des messages ont été lus
+      window.dispatchEvent(new CustomEvent('messages-read'))
     })
   }, [activeId, user, sending])
 

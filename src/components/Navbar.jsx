@@ -93,20 +93,11 @@ export default function Navbar() {
 
   useEffect(() => {
     if (!user) return
-    const fetchUnread = () => {
-      getToken().then(token => {
-        fetch(`${SUPABASE_URL}/rest/v1/messages?to_id=eq.${user.id}&read=eq.false&select=id`, {
-          headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
-        }).then(r => r.json()).then(d => { if (Array.isArray(d)) setUnreadMessages(d.length) })
-      })
-    }
-    fetchUnread()
-    // Sur /messages : rafraîchir toutes les 3s pour capter les msgs lus
-    let interval = null
-    if (path === '/messages') {
-      interval = setInterval(fetchUnread, 3000)
-    }
-    return () => { if (interval) clearInterval(interval) }
+    getToken().then(token => {
+      fetch(`${SUPABASE_URL}/rest/v1/messages?to_id=eq.${user.id}&read=eq.false&select=id`, {
+        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
+      }).then(r => r.json()).then(d => { if (Array.isArray(d)) setUnreadMessages(d.length) })
+    })
   }, [user, path])
 
   useEffect(() => {
@@ -122,6 +113,28 @@ export default function Navbar() {
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
+  }, [user])
+
+  // Écouter l'event quand Notifications.jsx marque tout comme lu
+  useEffect(() => {
+    if (!user) return
+    const handler = () => setNotifs([])
+    window.addEventListener('notifs-read', handler)
+    return () => window.removeEventListener('notifs-read', handler)
+  }, [user])
+
+  // Écouter l'event quand Messages.jsx marque des messages comme lus
+  useEffect(() => {
+    if (!user) return
+    const handler = () => {
+      getToken().then(token => {
+        fetch(`${SUPABASE_URL}/rest/v1/messages?to_id=eq.${user.id}&read=eq.false&select=id`, {
+          headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
+        }).then(r => r.json()).then(d => { if (Array.isArray(d)) setUnreadMessages(d.length) })
+      })
+    }
+    window.addEventListener('messages-read', handler)
+    return () => window.removeEventListener('messages-read', handler)
   }, [user])
 
   useEffect(() => {

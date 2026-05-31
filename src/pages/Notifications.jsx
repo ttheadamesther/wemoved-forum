@@ -47,6 +47,7 @@ export default function Notifications() {
             body: JSON.stringify({ read: true })
           }).then(() => {
             setNotifs(n => n.map(x => ({ ...x, read: true })))
+            window.dispatchEvent(new CustomEvent('notifs-read'))
           }).catch(() => {})
         }, 2000)
       })
