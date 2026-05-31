@@ -19,10 +19,19 @@ async function getToken() {
   return ANON_KEY
 }
 
-function api(path, opts = {}) {
+async function api(path, opts = {}) {
+  let token = ANON_KEY
+  try {
+    const keys = Object.keys(localStorage)
+    const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
+    if (authKey) {
+      const data = JSON.parse(localStorage.getItem(authKey))
+      if (data?.access_token) token = data.access_token
+    }
+  } catch {}
   return fetch(`${SUPABASE_URL}${path}`, {
     ...opts,
-    headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, ...opts.headers }
+    headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, ...opts.headers }
   })
 }
 
