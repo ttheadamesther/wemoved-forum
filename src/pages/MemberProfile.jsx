@@ -111,9 +111,15 @@ export default function MemberProfile() {
     }).then(r => r.json()).then(data => {
       if (data && data[0]) setMember(data[0])
       setLoading(false)
-      // Notif visite de profil (seulement si connecté et pas son propre profil)
+      // Notif visite de profil (max 1 toutes les 10 minutes par visiteur)
       if (user && user.id !== id) {
-        sendNotif(id, 'profile_view', `👀 @${profile?.pseudo || 'Quelqu\'un'} a consulté votre profil`, `/members/${user.id}`)
+        const key = `profile_view_${user.id}_${id}`
+        const last = localStorage.getItem(key)
+        const now = Date.now()
+        if (!last || now - parseInt(last) > 10 * 60 * 1000) {
+          localStorage.setItem(key, now.toString())
+          sendNotif(id, 'profile_view', `👀 @${profile?.pseudo || 'Quelqu\'un'} a consulté votre profil`, `/members/${user.id}`)
+        }
       }
     })
 

@@ -47,6 +47,8 @@ export default function Navbar() {
     // Recharger les notifs non lues à chaque changement de page
     if (user) {
       const t = async () => {
+        // Attendre que le PATCH de Notifications.jsx soit terminé
+        await new Promise(r => setTimeout(r, 800))
         let token = ANON_KEY
         try {
           const keys = Object.keys(localStorage)
