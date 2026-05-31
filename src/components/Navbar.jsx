@@ -288,7 +288,22 @@ export default function Navbar() {
             </div>
             {user && (
               <div ref={notifRef} style={{ position: 'relative' }}>
-                <button onClick={() => setShowNotifs(s => !s)} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, position: 'relative' }}>
+                <button onClick={() => {
+                  setShowNotifs(s => {
+                    if (!s && notifs.length > 0) {
+                      setTimeout(() => {
+                        getToken().then(token => {
+                          fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, {
+                            method: 'PATCH',
+                            headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ read: true })
+                          }).then(() => setNotifs([]))
+                        })
+                      }, 1500)
+                    }
+                    return !s
+                  })
+                }} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, position: 'relative' }}>
                   🔔
                   {notifs.length > 0 && <span style={{ position: 'absolute', top: 2, right: 2, width: 14, height: 14, borderRadius: '50%', background: C.red, color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{notifs.length > 9 ? '9+' : notifs.length}</span>}
                 </button>
@@ -426,7 +441,23 @@ export default function Navbar() {
 
           {user && (
             <div ref={notifRef} style={{ position: 'relative' }}>
-              <button onClick={() => setShowNotifs(s => !s)} style={{ width: 36, height: 36, borderRadius: '50%', border: 'none', background: '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, position: 'relative' }}>
+              <button onClick={() => {
+                setShowNotifs(s => {
+                  if (!s && notifs.length > 0) {
+                    // Marquer tout comme lu après 1.5s
+                    setTimeout(() => {
+                      getToken().then(token => {
+                        fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, {
+                          method: 'PATCH',
+                          headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ read: true })
+                        }).then(() => setNotifs([]))
+                      })
+                    }, 1500)
+                  }
+                  return !s
+                })
+              }} style={{ width: 36, height: 36, borderRadius: '50%', border: 'none', background: '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, position: 'relative' }}>
                 🔔
                 {notifs.length > 0 && <span style={{ position: 'absolute', top: 2, right: 2, width: 16, height: 16, borderRadius: '50%', background: C.red, color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{notifs.length > 9 ? '9+' : notifs.length}</span>}
               </button>
