@@ -417,14 +417,13 @@ export default function Navbar() {
                 <div style={{ lineHeight: 1.2 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
                     <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>@{profile?.pseudo || user.email?.split('@')[0]}</span>
-                    {profile && <RoleBadge role={profile.role} />}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <span style={{ fontSize: 9, color: '#c8a200', fontWeight: 700 }}>Niv.{level}</span>
-                    <div style={{ width: 50, height: 3, background: '#333', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ width: 40, height: 3, background: '#333', borderRadius: 3, overflow: 'hidden' }}>
                       <div style={{ height: '100%', width: `${xpPercent}%`, background: 'linear-gradient(to right,#f0c800,#c8a200)', borderRadius: 3 }} />
                     </div>
-                    <span style={{ fontSize: 9, color: '#666' }}>{xp % 1000}</span>
+                    {profile && <RoleBadge role={profile.role} />}
                   </div>
                 </div>
                 <span style={{ fontSize: 10, color: '#666', marginLeft: 2 }}>{showUserMenu ? '▲' : '▼'}</span>
