@@ -109,7 +109,7 @@ export default function Navbar() {
       if (searchRef.current && !searchRef.current.contains(e.target)) { setShowRes(false); setShowSearch(false) }
       if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifs(false)
       if (userMenuRef.current && !userMenuRef.current.contains(e.target)) setShowUserMenu(false)
-      if (navRef.current && !navRef.current.contains(e.target)) setShowMobileMenu(false)
+      // Ne pas fermer hamburger via mousedown - géré par les Links
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
