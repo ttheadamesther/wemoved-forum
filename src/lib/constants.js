@@ -203,6 +203,7 @@ export const C = {
   accent:    'var(--accent)',
   accentDk:  'var(--accentDk)',
   accentTxt: 'var(--accentTxt)',
+  accentBg:  'var(--accentBg)',
   text:      'var(--text)',
   textMid:   'var(--textMid)',
   textDim:   'var(--textDim)',
