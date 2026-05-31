@@ -382,6 +382,13 @@ export default function MemberProfile() {
         ))}
       </div>
 
+      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.accentDk}`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
+        <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 10 }}>🔥 Bio</div>
+        <p style={{ fontSize: 13, color: member.bio ? C.textMid : C.textDim, lineHeight: 1.7, margin: 0, fontStyle: member.bio ? 'normal' : 'italic' }}>
+          {member.bio || 'Aucune bio renseignée.'}
+        </p>
+      </div>
+
       {(member.badges || []).length > 0 && (
         <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid #c8a200`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
           <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 14 }}>🎖️ Badges obtenus</div>
@@ -397,13 +404,6 @@ export default function MemberProfile() {
           </div>
         </div>
       )}
-
-      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.accentDk}`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
-        <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 10 }}>🔥 Bio</div>
-        <p style={{ fontSize: 13, color: member.bio ? C.textMid : C.textDim, lineHeight: 1.7, margin: 0, fontStyle: member.bio ? 'normal' : 'italic' }}>
-          {member.bio || 'Aucune bio renseignée.'}
-        </p>
-      </div>
 
       <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid #3498db`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
         <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 14 }}>👥 Amis ({friendsList.length})</div>

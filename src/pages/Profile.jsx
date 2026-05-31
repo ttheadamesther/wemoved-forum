@@ -372,6 +372,27 @@ export default function Profile() {
           ))}
         </div>
 
+        {/* BIO */}
+        <div style={PANEL}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>✍️ Bio</div>
+            {!editing && <button onClick={() => { setBio(profile.bio || ''); setEditing(true) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.accentTxt, fontWeight: 600 }}>Modifier</button>}
+          </div>
+          {editing ? (
+            <>
+              <Textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Parle de toi…" rows={4} />
+              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                <Btn onClick={save} variant="yellow">{saving ? '…' : 'Sauvegarder'}</Btn>
+                <Btn onClick={() => setEditing(false)} variant="ghost">Annuler</Btn>
+              </div>
+            </>
+          ) : (
+            <p style={{ fontSize: 13, color: profile.bio ? C.text : C.textDim, lineHeight: 1.7, margin: 0, fontStyle: profile.bio ? 'normal' : 'italic' }}>
+              {profile.bio || 'Aucune bio — clique sur Modifier pour en ajouter une.'}
+            </p>
+          )}
+        </div>
+
         {/* BADGES */}
         {(profile.badges || []).length > 0 && (
           <div style={{ ...PANEL, borderTop: '3px solid #c8a200' }}>
@@ -425,27 +446,6 @@ export default function Profile() {
             </div>
           </div>
         )}
-
-        {/* BIO */}
-        <div style={PANEL}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>✍️ Bio</div>
-            {!editing && <button onClick={() => { setBio(profile.bio || ''); setEditing(true) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.accentTxt, fontWeight: 600 }}>Modifier</button>}
-          </div>
-          {editing ? (
-            <>
-              <Textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Parle de toi…" rows={4} />
-              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                <Btn onClick={save} variant="yellow">{saving ? '…' : 'Sauvegarder'}</Btn>
-                <Btn onClick={() => setEditing(false)} variant="ghost">Annuler</Btn>
-              </div>
-            </>
-          ) : (
-            <p style={{ fontSize: 13, color: profile.bio ? C.text : C.textDim, lineHeight: 1.7, margin: 0, fontStyle: profile.bio ? 'normal' : 'italic' }}>
-              {profile.bio || 'Aucune bio — clique sur Modifier pour en ajouter une.'}
-            </p>
-          )}
-        </div>
 
         {/* AMIS */}
         <div style={{ ...PANEL, borderTop: '3px solid #3498db' }}>
