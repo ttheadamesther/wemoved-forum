@@ -180,14 +180,7 @@ export default function Navbar() {
     const active = path === to
     return (
       <Link to={to} style={{ textDecoration: 'none' }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          padding: '0 10px', height: 64,
-          color: active ? C.accent : '#ccc',
-          fontWeight: active ? 700 : 400, fontSize: 12,
-          borderBottom: active ? `2px solid ${C.accent}` : '2px solid transparent',
-          cursor: 'pointer', transition: 'all .15s', whiteSpace: 'nowrap'
-        }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', height: 64, color: active ? C.accent : '#ccc', fontWeight: active ? 700 : 400, fontSize: 12, borderBottom: active ? `2px solid ${C.accent}` : '2px solid transparent', cursor: 'pointer', transition: 'all .15s', whiteSpace: 'nowrap' }}>
           <span style={{ fontSize: 14 }}>{icon}</span>
           {label}
         </div>
@@ -195,7 +188,6 @@ export default function Navbar() {
     )
   }
 
-  // ── BOTTOM BAR MOBILE ──
   const BottomBar = () => {
     const tabs = [
       { to: '/',         icon: '🏠', label: 'Accueil' },
@@ -213,26 +205,14 @@ export default function Navbar() {
         {tabs.map((tab) => {
           const active = path === tab.to
           return (
-            <Link key={tab.to} to={tab.to}
-              onClick={() => { if (tab.to === '/messages') setUnreadMessages(0) }}
-              style={{ flex: 1, textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, position: 'relative', transition: 'all .15s' }}
-            >
+            <Link key={tab.to} to={tab.to} onClick={() => { if (tab.to === '/messages') setUnreadMessages(0) }}
+              style={{ flex: 1, textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, position: 'relative', transition: 'all .15s' }}>
               <div style={{ position: 'relative' }}>
-                <div style={{ fontSize: typeof tab.icon === 'string' ? 22 : 14, lineHeight: 1, transition: 'all .2s', transform: active ? 'translateY(-2px)' : 'none', opacity: active ? 1 : 0.7 }}>
-                  {tab.icon}
-                </div>
-                {tab.badge > 0 && (
-                  <span style={{ position: 'absolute', top: -4, right: -6, background: C.red, color: '#fff', borderRadius: 10, fontSize: 9, fontWeight: 700, padding: '1px 4px', lineHeight: 1.4 }}>
-                    {tab.badge > 9 ? '9+' : tab.badge}
-                  </span>
-                )}
+                <div style={{ fontSize: typeof tab.icon === 'string' ? 22 : 14, lineHeight: 1, transition: 'all .2s', transform: active ? 'translateY(-2px)' : 'none', opacity: active ? 1 : 0.7 }}>{tab.icon}</div>
+                {tab.badge > 0 && <span style={{ position: 'absolute', top: -4, right: -6, background: C.red, color: '#fff', borderRadius: 10, fontSize: 9, fontWeight: 700, padding: '1px 4px', lineHeight: 1.4 }}>{tab.badge > 9 ? '9+' : tab.badge}</span>}
               </div>
-              <span style={{ fontSize: 10, color: active ? C.accent : '#888', fontWeight: active ? 700 : 400, transition: 'all .15s' }}>
-                {tab.label}
-              </span>
-              {active && (
-                <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 24, height: 2, background: C.accentDk, borderRadius: '0 0 4px 4px' }} />
-              )}
+              <span style={{ fontSize: 10, color: active ? C.accent : '#888', fontWeight: active ? 700 : 400, transition: 'all .15s' }}>{tab.label}</span>
+              {active && <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 24, height: 2, background: C.accentDk, borderRadius: '0 0 4px 4px' }} />}
             </Link>
           )
         })}
@@ -240,43 +220,28 @@ export default function Navbar() {
     )
   }
 
-  // ── MOBILE ──
   if (isMobile) {
     return (
       <>
         <nav ref={navRef} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999, height: 56, display: 'flex', alignItems: 'center', padding: '0 12px', background: '#111', borderBottom: `1px solid ${C.navBorder}` }}>
-
-          {/* Hamburger */}
           <button onClick={() => setShowMobileMenu(m => !m)} style={{ width: 36, height: 36, borderRadius: 8, border: 'none', background: '#222', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5, flexShrink: 0 }}>
             <span style={{ width: 18, height: 2, background: showMobileMenu ? C.accent : '#ccc', display: 'block', transition: 'all .2s', transform: showMobileMenu ? 'rotate(45deg) translateY(7px)' : 'none' }} />
             <span style={{ width: 18, height: 2, background: showMobileMenu ? 'transparent' : '#ccc', display: 'block', transition: 'all .2s' }} />
             <span style={{ width: 18, height: 2, background: showMobileMenu ? C.accent : '#ccc', display: 'block', transition: 'all .2s', transform: showMobileMenu ? 'rotate(-45deg) translateY(-7px)' : 'none' }} />
           </button>
-
-          {/* Logo centré */}
           <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', marginTop: 4 }}>
             <Link to="/"><Logo height={52} /></Link>
           </div>
-
-          {/* Droite */}
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-
-            {/* Recherche mobile */}
             <div ref={searchRef} style={{ position: 'relative' }}>
-              <button onClick={() => setShowSearch(s => !s)} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: showSearch ? '#333' : '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>
-                🔍
-              </button>
+              <button onClick={() => setShowSearch(s => !s)} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: showSearch ? '#333' : '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>🔍</button>
               {showSearch && (
                 <div style={{ position: 'fixed', top: 56, left: 12, right: 12, background: '#1a1a1a', border: '1px solid #333', borderRadius: 12, padding: 10, zIndex: 1000 }}>
-                  <input value={search} onChange={e => { setSearch(e.target.value); setShowRes(true) }} autoFocus
-                    placeholder="Rechercher un membre…"
-                    style={{ width: '100%', background: '#222', border: '1px solid #444', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
-                  />
+                  <input value={search} onChange={e => { setSearch(e.target.value); setShowRes(true) }} autoFocus placeholder="Rechercher un membre…" style={{ width: '100%', background: '#222', border: '1px solid #444', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
                   {showRes && results.length > 0 && (
                     <div style={{ marginTop: 8, background: '#1a1a1a', border: '1px solid #333', borderRadius: 8, overflow: 'hidden' }}>
                       {results.map(u => (
-                        <div key={u.id} onClick={() => { navigate(`/members/${u.id}`); setSearch(''); setShowRes(false); setShowSearch(false) }}
-                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #2a2a2a' }}>
+                        <div key={u.id} onClick={() => { navigate(`/members/${u.id}`); setSearch(''); setShowRes(false); setShowSearch(false) }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #2a2a2a' }}>
                           <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
                             {u.avatar_url ? <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : u.initials}
                           </div>
@@ -288,17 +253,11 @@ export default function Navbar() {
                 </div>
               )}
             </div>
-
-            {/* Notifs mobile */}
             {user && (
               <div ref={notifRef} style={{ position: 'relative' }}>
                 <button onClick={() => setShowNotifs(s => !s)} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, position: 'relative' }}>
                   🔔
-                  {notifs.length > 0 && (
-                    <span style={{ position: 'absolute', top: 2, right: 2, width: 14, height: 14, borderRadius: '50%', background: C.red, color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {notifs.length > 9 ? '9+' : notifs.length}
-                    </span>
-                  )}
+                  {notifs.length > 0 && <span style={{ position: 'absolute', top: 2, right: 2, width: 14, height: 14, borderRadius: '50%', background: C.red, color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{notifs.length > 9 ? '9+' : notifs.length}</span>}
                 </button>
                 {showNotifs && (
                   <div style={{ position: 'fixed', top: 56, left: 12, right: 12, background: dropBg, border: `1px solid ${dropBorder}`, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,.3)', zIndex: 1000, overflow: 'hidden' }}>
@@ -310,8 +269,7 @@ export default function Navbar() {
                       {notifs.length === 0
                         ? <div style={{ padding: 16, textAlign: 'center', color: dropTextDim, fontSize: 12 }}>Aucune notification</div>
                         : notifs.map(n => (
-                          <div key={n.id} onClick={() => { markRead(n.id); if (n.link) navigate(n.link); setShowNotifs(false) }}
-                            style={{ padding: '12px 14px', borderBottom: `1px solid ${dropBorder}`, cursor: 'pointer', background: dropSurface, fontSize: 13, color: dropText, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                          <div key={n.id} onClick={() => { markRead(n.id); if (n.link) navigate(n.link); setShowNotifs(false) }} style={{ padding: '12px 14px', borderBottom: `1px solid ${dropBorder}`, cursor: 'pointer', background: dropSurface, fontSize: 13, color: dropText, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                             <span style={{ flex: 1, lineHeight: 1.5 }}>{n.content}</span>
                             <button onClick={e => { e.stopPropagation(); markRead(n.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: dropTextDim, fontSize: 16, flexShrink: 0, padding: '0 4px' }}>✕</button>
                           </div>
@@ -322,15 +280,10 @@ export default function Navbar() {
                 )}
               </div>
             )}
-
-            {/* Dark mode */}
-            <button onClick={toggle} className="theme-toggle" style={{ width: 32, height: 32, fontSize: 14 }}>
-              {dark ? '☀️' : '🌙'}
-            </button>
+            <button onClick={toggle} className="theme-toggle" style={{ width: 32, height: 32, fontSize: 14 }}>{dark ? '☀️' : '🌙'}</button>
           </div>
         </nav>
 
-        {/* Menu hamburger déroulant */}
         {showMobileMenu && (
           <div style={{ position: 'fixed', top: 56, left: 0, right: 0, background: '#111', zIndex: 998, borderBottom: `1px solid ${C.navBorder}`, boxShadow: '0 8px 24px rgba(0,0,0,.5)' }}>
             {user && (
@@ -362,8 +315,7 @@ export default function Navbar() {
               </div>
             ))}
             {user ? (
-              <div onClick={async () => { await handleSignOut(); setShowMobileMenu(false) }}
-                style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', cursor: 'pointer', fontSize: 13, color: '#e74c3c' }}>
+              <div onClick={async () => { await handleSignOut(); setShowMobileMenu(false) }} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', cursor: 'pointer', fontSize: 13, color: '#e74c3c' }}>
                 <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>⏻</span>
                 Déconnexion
               </div>
@@ -379,7 +331,6 @@ export default function Navbar() {
             )}
           </div>
         )}
-
         <BottomBar />
       </>
     )
@@ -389,9 +340,7 @@ export default function Navbar() {
   return (
     <>
       <nav ref={navRef} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999, height: 64, display: 'flex', alignItems: 'center', padding: '0 12px', background: '#111', borderBottom: `2px solid ${C.navBorder}`, gap: 4 }}>
-        <Link to="/" style={{ flexShrink: 0, marginTop: 8, marginRight: 4 }}>
-          <Logo height={70} />
-        </Link>
+        <Link to="/" style={{ flexShrink: 0, marginTop: 8, marginRight: 4 }}><Logo height={70} /></Link>
         <NavLink to="/"           label="Accueil"    icon="🏠" />
         <NavLink to="/forum"      label="Forum"      icon="💬" />
         <NavLink to="/members"    label="Membres"    icon="👥" />
@@ -402,13 +351,11 @@ export default function Navbar() {
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
           <button onClick={toggle} className="theme-toggle" title={dark ? 'Mode clair' : 'Mode sombre'}>{dark ? '☀️' : '🌙'}</button>
 
-          {/* Recherche desktop */}
           <div ref={searchRef} style={{ position: 'relative' }}>
             <button onClick={() => setShowSearch(s => !s)} style={{ width: 36, height: 36, borderRadius: '50%', border: 'none', background: showSearch ? '#333' : '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🔍</button>
             {showSearch && (
               <div style={{ position: 'absolute', top: '110%', right: 0, background: '#1a1a1a', border: '1px solid #333', borderRadius: 12, padding: 12, width: 260, zIndex: 1000 }}>
-                <input value={search} onChange={e => { setSearch(e.target.value); setShowRes(true) }} autoFocus placeholder="Rechercher un membre…"
-                  style={{ width: '100%', background: '#222', border: '1px solid #444', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+                <input value={search} onChange={e => { setSearch(e.target.value); setShowRes(true) }} autoFocus placeholder="Rechercher un membre…" style={{ width: '100%', background: '#222', border: '1px solid #444', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
                 {showRes && results.length > 0 && (
                   <div style={{ marginTop: 8, background: '#1a1a1a', border: '1px solid #333', borderRadius: 8, overflow: 'hidden' }}>
                     {results.map(u => (
@@ -431,16 +378,11 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Notifs desktop */}
           {user && (
             <div ref={notifRef} style={{ position: 'relative' }}>
               <button onClick={() => setShowNotifs(s => !s)} style={{ width: 36, height: 36, borderRadius: '50%', border: 'none', background: '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, position: 'relative' }}>
                 🔔
-                {notifs.length > 0 && (
-                  <span style={{ position: 'absolute', top: 2, right: 2, width: 16, height: 16, borderRadius: '50%', background: C.red, color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {notifs.length > 9 ? '9+' : notifs.length}
-                  </span>
-                )}
+                {notifs.length > 0 && <span style={{ position: 'absolute', top: 2, right: 2, width: 16, height: 16, borderRadius: '50%', background: C.red, color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{notifs.length > 9 ? '9+' : notifs.length}</span>}
               </button>
               {showNotifs && (
                 <div style={{ position: 'absolute', top: '110%', right: 0, width: 300, background: dropBg, border: `1px solid ${dropBorder}`, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,.3)', zIndex: 1000, overflow: 'hidden' }}>
@@ -467,7 +409,6 @@ export default function Navbar() {
             </div>
           )}
 
-          {/* Avatar desktop */}
           {user && (
             <div ref={userMenuRef} style={{ position: 'relative' }}>
               <div onClick={() => setShowUserMenu(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px', height: 42, background: '#1a1a1a', borderRadius: 22, border: `1px solid ${showUserMenu ? '#c8a200' : '#2a2a2a'}`, cursor: 'pointer', transition: 'all .15s' }}>
