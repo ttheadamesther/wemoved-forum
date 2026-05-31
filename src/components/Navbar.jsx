@@ -288,6 +288,7 @@ export default function Navbar() {
               { icon: '⚙️', label: 'Paramètres',      to: '/settings',      show: !!user },
               { icon: '🐛', label: 'Signaler un bug',  to: '/bug-report',    show: !!user },
               { icon: '🏆', label: 'Récompenses',      to: '/rewards',       show: true },
+              { icon: '📊', label: 'Classements',      to: '/rankings',      show: true },
               { icon: '🛡️', label: 'Modération',       to: '/moderation',    show: !!user && canMod },
               { icon: '📜', label: 'Mentions légales', to: '/legal',         show: true },
             ].filter(i => i.show).map(item => (
@@ -421,6 +422,7 @@ export default function Navbar() {
                   {[
                     { icon: '👤', label: 'Mon profil',      to: '/profile' },
                     { icon: '🏆', label: 'Récompenses',     to: '/rewards' },
+                    { icon: '📊', label: 'Classements',     to: '/rankings' },
                     { icon: '⚙️', label: 'Paramètres',      to: '/settings' },
                     { icon: '🐛', label: 'Signaler un bug', to: '/bug-report' },
                   ].map(item => (

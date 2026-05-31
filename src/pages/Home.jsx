@@ -97,6 +97,9 @@ export default function Home() {
       if (Array.isArray(d)) setActivity(d)
       setLoadingA(false)
     })
+    apiFetch('/rest/v1/messages?select=id').then(d => {
+      if (Array.isArray(d)) setStats(s => ({ ...s, messages: d.length }))
+    })
   }, [])
 
   // Realtime statut en ligne
@@ -231,7 +234,7 @@ export default function Home() {
             {[
               { icon: '👥', label: 'Membres',          value: stats.members },
               { icon: '💬', label: 'Discussions',       value: stats.threads },
-              { icon: '✉️', label: 'Messages',          value: 0 },
+              { icon: '✉️', label: 'Messages',          value: stats.messages },
               { icon: '🟢', label: 'Membres en ligne',  value: stats.online },
             ].map(s => (
               <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: `1px solid ${C.border}` }}>
