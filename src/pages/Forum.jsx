@@ -641,7 +641,7 @@ export default function ForumPage() {
         <div style={{ display: 'flex', gap: 6 }}>
           {[{ key: 'recent', label: '🕐 Récents' }, { key: 'popular', label: '🔥 Populaires' }, { key: 'unanswered', label: '💬 Sans réponse' }].map(s => (
             <button key={s.key} onClick={() => setSortBy(s.key)}
-              style={{ padding: '6px 12px', borderRadius: 20, border: `1px solid ${sortBy === s.key ? C.accentDk : C.border}`, background: sortBy === s.key ? '#fffae6' : C.surfaceB, color: sortBy === s.key ? C.accentTxt : C.textMid, fontSize: 11, fontWeight: sortBy === s.key ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', transition: 'all .15s' }}>
+              style={{ padding: '6px 12px', borderRadius: 20, border: `1px solid ${sortBy === s.key ? C.accentDk : C.border}`, background: sortBy === s.key ? C.accentBg : C.surfaceB, color: sortBy === s.key ? C.accentTxt : C.textMid, fontSize: 11, fontWeight: sortBy === s.key ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', transition: 'all .15s' }}>
               {s.label}
             </button>
           ))}
