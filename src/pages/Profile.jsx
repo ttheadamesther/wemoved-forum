@@ -13,15 +13,9 @@ async function getToken() {
   try {
     const keys = Object.keys(localStorage)
     const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
-    if (authKey) {
-      const data = JSON.parse(localStorage.getItem(authKey))
-      if (data?.access_token) return data.access_token
-    }
+    if (authKey) { const data = JSON.parse(localStorage.getItem(authKey)); if (data?.access_token) return data.access_token }
     const oldKey = keys.find(k => k.includes('auth-token'))
-    if (oldKey) {
-      const data = JSON.parse(localStorage.getItem(oldKey))
-      if (data?.access_token) return data.access_token
-    }
+    if (oldKey) { const data = JSON.parse(localStorage.getItem(oldKey)); if (data?.access_token) return data.access_token }
   } catch {}
   return ANON_KEY
 }
@@ -39,27 +33,22 @@ function getCroppedBlob(imageSrc, pixelCrop) {
     const image = new Image()
     image.onload = () => {
       const canvas = document.createElement('canvas')
-      canvas.width  = pixelCrop.width
-      canvas.height = pixelCrop.height
+      canvas.width = pixelCrop.width; canvas.height = pixelCrop.height
       canvas.getContext('2d').drawImage(image, pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height, 0, 0, pixelCrop.width, pixelCrop.height)
       canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('toBlob failed')), 'image/jpeg', 0.9)
     }
-    image.onerror = reject
-    image.src = imageSrc
+    image.onerror = reject; image.src = imageSrc
   })
 }
 
 const resizeImage = (file, maxSize = 1000) => new Promise((resolve) => {
-  const img = new Image()
-  const url = URL.createObjectURL(file)
+  const img = new Image(); const url = URL.createObjectURL(file)
   img.onload = () => {
     const canvas = document.createElement('canvas')
-    const ratio  = Math.min(maxSize / img.width, maxSize / img.height, 1)
-    canvas.width  = img.width  * ratio
-    canvas.height = img.height * ratio
+    const ratio = Math.min(maxSize / img.width, maxSize / img.height, 1)
+    canvas.width = img.width * ratio; canvas.height = img.height * ratio
     canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
-    URL.revokeObjectURL(url)
-    canvas.toBlob(resolve, 'image/jpeg', 0.85)
+    URL.revokeObjectURL(url); canvas.toBlob(resolve, 'image/jpeg', 0.85)
   }
   img.src = url
 })
@@ -76,21 +65,13 @@ const BANNER_GRADIENTS = [
 ]
 
 const STATUTS = [
-  { value: '',            label: 'Non renseigné',    emoji: '—' },
-  { value: 'celibataire', label: 'Célibataire',      emoji: '💚' },
-  { value: 'couple',      label: 'En couple',        emoji: '❤️' },
-  { value: 'complique',   label: "C'est compliqué",  emoji: '💛' },
+  { value: '',            label: 'Non renseigné',   emoji: '—' },
+  { value: 'celibataire', label: 'Célibataire',     emoji: '💚' },
+  { value: 'couple',      label: 'En couple',       emoji: '❤️' },
+  { value: 'complique',   label: "C'est compliqué", emoji: '💛' },
 ]
 
-const PANEL = {
-  background: C.white,
-  border: '1px solid #e8e0c8',
-  borderTop: '3px solid #c8a200',
-  borderRadius: 16,
-  padding: 20,
-  boxShadow: '0 2px 12px rgba(0,0,0,.06)',
-}
-
+const PANEL = { background: C.white, border: '1px solid #e8e0c8', borderTop: '3px solid #c8a200', borderRadius: 16, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,.06)' }
 const Tag = ({ icon, label }) => (
   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20, border: '1px solid #e8e8e8' }}>
     {icon} {label}
@@ -100,8 +81,10 @@ const Tag = ({ icon, label }) => (
 export default function Profile() {
   const { user, profile, loading, refreshProfile } = useAuth()
   const navigate = useNavigate()
-  const [friendsList, setFriendsList]       = useState([])
+  const [friendsList,    setFriendsList]    = useState([])
   const [friendsLoading, setFriendsLoading] = useState(false)
+  const [pendingRequests, setPendingRequests] = useState([]) // demandes reçues en attente
+  const [pendingProfiles, setPendingProfiles] = useState([])
 
   useEffect(() => {
     if (!user) return
@@ -116,31 +99,75 @@ export default function Profile() {
         ...(Array.isArray(d1) ? d1.map(f => f.user_b) : []),
         ...(Array.isArray(d2) ? d2.map(f => f.user_a) : [])
       ]
-      if (friendIds.length === 0) { setFriendsList([]); setFriendsLoading(false); return }
-      const rp = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=in.(${friendIds.join(',')})&select=id,pseudo,initials,avatar_url,online`, { headers: h })
-      const dp = await rp.json()
-      setFriendsList(Array.isArray(dp) ? dp : [])
+      if (friendIds.length > 0) {
+        const rp = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=in.(${friendIds.join(',')})&select=id,pseudo,initials,avatar_url,online`, { headers: h })
+        const dp = await rp.json()
+        setFriendsList(Array.isArray(dp) ? dp : [])
+      } else {
+        setFriendsList([])
+      }
       setFriendsLoading(false)
     }
+
+    const loadPending = async () => {
+      const h = { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+      // Demandes reçues (user_b = moi, status = pending)
+      const rp = await fetch(`${SUPABASE_URL}/rest/v1/friendships?user_b=eq.${user.id}&status=eq.pending&select=*`, { headers: h })
+      const dp = await rp.json()
+      if (Array.isArray(dp) && dp.length > 0) {
+        setPendingRequests(dp)
+        const ids = dp.map(f => f.user_a)
+        const rpr = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=in.(${ids.join(',')})&select=id,pseudo,initials,avatar_url`, { headers: h })
+        const dpr = await rpr.json()
+        setPendingProfiles(Array.isArray(dpr) ? dpr : [])
+      } else {
+        setPendingRequests([])
+        setPendingProfiles([])
+      }
+    }
+
     loadFriends()
+    loadPending()
   }, [user])
 
-  const [editing, setEditing]         = useState(false)
-  const [bio, setBio]                 = useState('')
-  const [interest, setInterest]       = useState('')
-  const [saving, setSaving]           = useState(false)
-  const [uploading, setUploading]     = useState(false)
+  const acceptFriend = async (friendship) => {
+    const token = await getToken()
+    await fetch(`${SUPABASE_URL}/rest/v1/friendships?id=eq.${friendship.id}`, {
+      method: 'PATCH',
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'accepted' })
+    })
+    setPendingRequests(p => p.filter(f => f.id !== friendship.id))
+    const accepted = pendingProfiles.find(p => p.id === friendship.user_a)
+    if (accepted) setFriendsList(prev => [...prev, accepted])
+  }
+
+  const rejectFriend = async (friendship) => {
+    const token = await getToken()
+    await fetch(`${SUPABASE_URL}/rest/v1/friendships?id=eq.${friendship.id}`, {
+      method: 'DELETE',
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
+    })
+    setPendingRequests(p => p.filter(f => f.id !== friendship.id))
+    setPendingProfiles(p => p.filter(pr => pr.id !== friendship.user_a))
+  }
+
+  const [editing,      setEditing]      = useState(false)
+  const [bio,          setBio]          = useState('')
+  const [interest,     setInterest]     = useState('')
+  const [saving,       setSaving]       = useState(false)
+  const [uploading,    setUploading]    = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [showBannerPicker, setShowBannerPicker] = useState(false)
-  const [cropSrc, setCropSrc]         = useState(null)
-  const [crop, setCrop]               = useState({ x: 0, y: 0 })
-  const [zoom, setZoom]               = useState(1)
-  const [croppedArea, setCroppedArea] = useState(null)
-  const [bannerCropSrc, setBannerCropSrc]         = useState(null)
-  const [bannerCrop, setBannerCrop]               = useState({ x: 0, y: 0 })
-  const [bannerZoom, setBannerZoom]               = useState(1)
+  const [cropSrc,      setCropSrc]      = useState(null)
+  const [crop,         setCrop]         = useState({ x: 0, y: 0 })
+  const [zoom,         setZoom]         = useState(1)
+  const [croppedArea,  setCroppedArea]  = useState(null)
+  const [bannerCropSrc, setBannerCropSrc]     = useState(null)
+  const [bannerCrop,    setBannerCrop]         = useState({ x: 0, y: 0 })
+  const [bannerZoom,    setBannerZoom]         = useState(1)
   const [bannerCroppedArea, setBannerCroppedArea] = useState(null)
-  const [uploadingBanner, setUploadingBanner]     = useState(false)
+  const [uploadingBanner, setUploadingBanner] = useState(false)
   const [editingInfos, setEditingInfos] = useState(false)
   const [infosRegion,  setInfosRegion]  = useState('')
   const [infosDept,    setInfosDept]    = useState('')
@@ -161,9 +188,7 @@ export default function Profile() {
 
   const patchProfile = async (body) => {
     await apiFetch(`/rest/v1/profiles?id=eq.${user.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify(body)
+      method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }, body: JSON.stringify(body)
     })
     await refreshProfile()
   }
@@ -172,20 +197,8 @@ export default function Profile() {
   const addInterest = async () => { if (!interest.trim()) return; await patchProfile({ interests: [...(profile.interests || []), interest.trim()] }); setInterest('') }
   const removeInterest = async (item) => { await patchProfile({ interests: (profile.interests || []).filter(i => i !== item) }) }
 
-  const openEditInfos = () => {
-    setInfosRegion(profile.region || '')
-    setInfosDept(profile.dept || '')
-    setInfosCity(profile.city || '')
-    setInfosStatut(profile.statut || '')
-    setEditingInfos(true)
-  }
-
-  const saveInfos = async () => {
-    setSavingInfos(true)
-    await patchProfile({ region: infosRegion, dept: infosDept, city: infosCity, statut: infosStatut })
-    setSavingInfos(false)
-    setEditingInfos(false)
-  }
+  const openEditInfos = () => { setInfosRegion(profile.region || ''); setInfosDept(profile.dept || ''); setInfosCity(profile.city || ''); setInfosStatut(profile.statut || ''); setEditingInfos(true) }
+  const saveInfos = async () => { setSavingInfos(true); await patchProfile({ region: infosRegion, dept: infosDept, city: infosCity, statut: infosStatut }); setSavingInfos(false); setEditingInfos(false) }
 
   const uploadAvatar = (e) => {
     const file = e.target.files[0]; if (!file) return
@@ -226,11 +239,11 @@ export default function Profile() {
   }
   const removePhoto = async (url) => { await patchProfile({ photos: (profile.photos || []).filter(p => p !== url) }) }
 
-  const votes       = profile.votes || {}
-  const totalVotes  = Object.values(votes).reduce((a, b) => a + b, 0)
-  const sexeLabel   = profile.sexe ? profile.sexe.charAt(0).toUpperCase() + profile.sexe.slice(1) : null
-  const statutDef   = STATUTS.find(s => s.value === (profile.statut || '')) || STATUTS[0]
-  const colors      = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
+  const votes      = profile.votes || {}
+  const totalVotes = Object.values(votes).reduce((a, b) => a + b, 0)
+  const sexeLabel  = profile.sexe ? profile.sexe.charAt(0).toUpperCase() + profile.sexe.slice(1) : null
+  const statutDef  = STATUTS.find(s => s.value === (profile.statut || '')) || STATUTS[0]
+  const colors     = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
   const avatarColor = colors[(profile.pseudo?.charCodeAt(0) || 0) % colors.length]
   const bannerStyle = profile.banner_url
     ? { backgroundImage: `url(${profile.banner_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
@@ -240,7 +253,7 @@ export default function Profile() {
   return (
     <div style={{ maxWidth: 860, margin: '0 auto', paddingBottom: 32 }}>
 
-      {/* ── MODAL CROP AVATAR ── */}
+      {/* MODAL CROP AVATAR */}
       {cropSrc && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
           <div style={{ background: C.white, borderRadius: 12, overflow: 'hidden', width: '100%', maxWidth: 400, boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
@@ -259,7 +272,7 @@ export default function Profile() {
         </div>
       )}
 
-      {/* ── MODAL CROP BANNIÈRE ── */}
+      {/* MODAL CROP BANNIÈRE */}
       {bannerCropSrc && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
           <div style={{ background: C.white, borderRadius: 12, overflow: 'hidden', width: '100%', maxWidth: 600, boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
@@ -278,7 +291,7 @@ export default function Profile() {
         </div>
       )}
 
-      {/* ── BANNIÈRE ── */}
+      {/* BANNIÈRE */}
       <div style={{ position: 'relative', height: 180, ...bannerStyle }}>
         <div style={{ position: 'absolute', top: 12, right: 12 }}>
           <button onClick={() => setShowBannerPicker(p => !p)} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
@@ -303,7 +316,7 @@ export default function Profile() {
         )}
       </div>
 
-      {/* ── HEADER ── */}
+      {/* HEADER */}
       <div style={{ background: C.white, borderBottom: '1px solid #e8e0c8', padding: '0 20px 20px', marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: -44 }}>
           <div style={{ position: 'relative' }}>
@@ -316,9 +329,8 @@ export default function Profile() {
             </div>
             <input ref={avatarRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadAvatar} />
           </div>
-          <Btn onClick={() => { setBio(profile.bio || ''); setEditing(true) }} variant="ghost" style={{ marginBottom: 4, fontSize: 12 }}>✏️ Modifier</Btn>
+          <Btn onClick={() => { setBio(profile.bio || ''); setEditing(true) }} variant="ghost" style={{ marginBottom: 4, fontSize: 12 }}>✏️ Modifier bio</Btn>
         </div>
-
         <div style={{ marginTop: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 700, fontSize: 20, color: C.text }}>@{profile.pseudo}</span>
@@ -330,26 +342,26 @@ export default function Profile() {
             )}
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {profile.joined  && <Tag icon="📅" label={profile.joined} />}
-            {profile.age     && <Tag icon="🎂" label={`${profile.age} ans`} />}
-            {sexeLabel       && <Tag icon="👤" label={sexeLabel} />}
-            {profile.city    && <Tag icon="📍" label={profile.city} />}
-            {profile.dept    && <Tag icon="🗺️" label={profile.dept} />}
-            {profile.region  && <Tag icon="🏳️" label={profile.region} />}
-            {profile.statut  && statutDef.value && <Tag icon={statutDef.emoji} label={statutDef.label} />}
+            {profile.joined && <Tag icon="📅" label={profile.joined} />}
+            {profile.age    && <Tag icon="🎂" label={`${profile.age} ans`} />}
+            {sexeLabel      && <Tag icon="👤" label={sexeLabel} />}
+            {profile.city   && <Tag icon="📍" label={profile.city} />}
+            {profile.dept   && <Tag icon="🗺️" label={profile.dept} />}
+            {profile.region && <Tag icon="🏳️" label={profile.region} />}
+            {profile.statut && statutDef.value && <Tag icon={statutDef.emoji} label={statutDef.label} />}
           </div>
         </div>
       </div>
 
-      {/* ── CONTENU ── */}
+      {/* CONTENU */}
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
           {[
-            { icon: '👥', label: 'Amis',        value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
-            { icon: '💬', label: 'Posts',        value: profile.posts || 0,                        color: '#2ecc71' },
-            { icon: '⭐', label: 'Votes reçus',  value: totalVotes,                                color: '#c8a200' },
+            { icon: '👥', label: 'Amis',       value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
+            { icon: '💬', label: 'Posts',       value: profile.posts || 0,                        color: '#2ecc71' },
+            { icon: '⭐', label: 'Votes reçus', value: totalVotes,                                color: '#c8a200' },
           ].map(s => (
             <div key={s.label} style={{ ...PANEL, borderTop: `3px solid ${s.color}`, padding: '14px 10px', textAlign: 'center' }}>
               <div style={{ fontSize: 22, marginBottom: 4 }}>{s.icon}</div>
@@ -359,7 +371,44 @@ export default function Profile() {
           ))}
         </div>
 
-        {/* ── BIO (en premier) ── */}
+        {/* DEMANDES D'AMIS EN ATTENTE */}
+        {pendingRequests.length > 0 && (
+          <div style={{ ...PANEL, borderTop: '3px solid #e67e22' }}>
+            <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>
+              🔔 Demandes d'amis ({pendingRequests.length})
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {pendingRequests.map(friendship => {
+                const sender = pendingProfiles.find(p => p.id === friendship.user_a)
+                if (!sender) return null
+                const fColor = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63'][(sender.pseudo?.charCodeAt(0) || 0) % 8]
+                return (
+                  <div key={friendship.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#fffae6', border: `1px solid ${C.accentDk}`, borderRadius: 12 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: sender.avatar_url ? '#444' : fColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
+                      {sender.avatar_url ? <img src={sender.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : sender.initials || sender.pseudo?.slice(0,2).toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: C.text }}>@{sender.pseudo}</div>
+                      <div style={{ fontSize: 11, color: C.textDim }}>veut être ton ami</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => acceptFriend(friendship)}
+                        style={{ padding: '6px 14px', borderRadius: 20, border: 'none', background: '#2ecc71', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        ✅ Accepter
+                      </button>
+                      <button onClick={() => rejectFriend(friendship)}
+                        style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.white, color: C.textMid, fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* BIO */}
         <div style={PANEL}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>✍️ Bio</div>
@@ -380,7 +429,7 @@ export default function Profile() {
           )}
         </div>
 
-        {/* ── AMIS ── */}
+        {/* AMIS */}
         <div style={{ ...PANEL, borderTop: '3px solid #3498db' }}>
           <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>👥 Amis ({friendsList.length})</div>
           {friendsLoading
@@ -406,7 +455,7 @@ export default function Profile() {
           }
         </div>
 
-        {/* ── INFOS PERSONNELLES ── */}
+        {/* INFOS PERSONNELLES */}
         <div style={PANEL}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>📍 Infos personnelles</div>
@@ -415,12 +464,10 @@ export default function Profile() {
           {editingInfos ? (
             <div>
               <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Localisation</div>
-              <GeoSelects
-                region={infosRegion} dept={infosDept} city={infosCity}
+              <GeoSelects region={infosRegion} dept={infosDept} city={infosCity}
                 onRegion={v => { setInfosRegion(v); setInfosDept(''); setInfosCity('') }}
                 onDept={v => { setInfosDept(v); setInfosCity('') }}
-                onCity={setInfosCity}
-              />
+                onCity={setInfosCity} />
               <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, margin: '14px 0 8px' }}>Statut relationnel</div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {STATUTS.map(s => (
@@ -438,9 +485,9 @@ export default function Profile() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {[
-                { icon: '🌍', label: 'Région',       value: profile.region },
-                { icon: '🗺️', label: 'Département',   value: profile.dept },
-                { icon: '📍', label: 'Ville',         value: profile.city },
+                { icon: '🌍', label: 'Région',      value: profile.region },
+                { icon: '🗺️', label: 'Département',  value: profile.dept },
+                { icon: '📍', label: 'Ville',        value: profile.city },
                 { icon: statutDef.emoji, label: 'Statut', value: statutDef.value ? statutDef.label : null },
               ].map(item => (
                 <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: C.surfaceB, borderRadius: 10 }}>
@@ -455,7 +502,7 @@ export default function Profile() {
           )}
         </div>
 
-        {/* ── VOTES REÇUS ── */}
+        {/* VOTES REÇUS */}
         <div style={PANEL}>
           <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>🗳️ Votes reçus</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -478,7 +525,7 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* ── INTÉRÊTS ── */}
+        {/* INTÉRÊTS */}
         <div style={PANEL}>
           <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>🎯 Intérêts</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 14, minHeight: 36 }}>
@@ -489,9 +536,7 @@ export default function Profile() {
                   style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, background: '#fffae6', color: '#7a6200', border: '1px solid #c8a20066', cursor: 'pointer', fontWeight: 600, transition: 'all .15s' }}
                   onMouseEnter={e => e.currentTarget.style.opacity = '.7'}
                   onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                  title="Cliquer pour supprimer">
-                  {i} ✕
-                </span>
+                  title="Cliquer pour supprimer">{i} ✕</span>
               ))
             }
           </div>
@@ -501,7 +546,7 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* ── PHOTOS ── */}
+        {/* PHOTOS */}
         <div style={PANEL}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>🖼️ Photos ({(profile.photos || []).length})</div>
@@ -510,8 +555,7 @@ export default function Profile() {
           </div>
           {(profile.photos || []).length === 0
             ? <div style={{ textAlign: 'center', padding: '28px', color: C.textDim, fontSize: 13, background: C.surfaceB, borderRadius: 12, border: '1px dashed #ddd' }}>
-                <div style={{ fontSize: 28, marginBottom: 8 }}>📷</div>
-                Aucune photo ajoutée
+                <div style={{ fontSize: 28, marginBottom: 8 }}>📷</div>Aucune photo ajoutée
               </div>
             : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10 }}>
                 {(profile.photos || []).map((url, i) => (
