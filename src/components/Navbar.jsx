@@ -293,11 +293,11 @@ export default function Navbar() {
               { icon: '🛡️', label: 'Modération',       to: '/moderation',    show: !!user && canMod },
               { icon: '📜', label: 'Mentions légales', to: '/legal',         show: true },
             ].filter(i => i.show).map(item => (
-              <div key={item.to} onClick={() => { navigate(item.to); setShowMobileMenu(false) }}
-                style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: '1px solid #1a1a1a', cursor: 'pointer', fontSize: 13, color: '#ccc' }}>
+              <Link key={item.to} to={item.to} onClick={() => setShowMobileMenu(false)}
+                style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: '1px solid #1a1a1a', cursor: 'pointer', fontSize: 13, color: '#ccc' }}>
                 <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{item.icon}</span>
                 {item.label}
-              </div>
+              </Link>
             ))}
             {user ? (
               <div onClick={async () => { await handleSignOut(); setShowMobileMenu(false) }} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', cursor: 'pointer', fontSize: 13, color: '#e74c3c' }}>
