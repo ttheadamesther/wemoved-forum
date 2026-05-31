@@ -281,14 +281,23 @@ export default function MessagesPage() {
                 <div style={{ padding: '8px 0', borderTop: `1px solid ${C.border}` }}>
                   <div style={{ padding: '8px 16px', fontSize: 11, fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>Nouveau message</div>
                   {newMembers.slice(0, 8).map(m => (
-                    <div key={m.id} onClick={() => openConvo(m.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', cursor: 'pointer', transition: 'background .15s' }}
+                    <div key={m.id} style={{ display: 'flex', alignItems: 'stretch', transition: 'background .15s' }}
                       onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                      <Avatar member={m} size={32} showOnline />
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: 12, color: C.text }}>@{m.pseudo}</div>
-                        {m.city && <div style={{ fontSize: 11, color: C.textDim }}>📍 {m.city}</div>}
+                      <div onClick={() => openConvo(m.id)} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', cursor: 'pointer' }}>
+                        <Avatar member={m} size={32} showOnline />
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: 12, color: C.text }}>@{m.pseudo}</div>
+                          {m.city && <div style={{ fontSize: 11, color: C.textDim }}>📍 {m.city}</div>}
+                        </div>
                       </div>
+                      <button
+                        onClick={e => { e.stopPropagation(); deleteConvo(m.id) }}
+                        title="Supprimer"
+                        style={{ width: 44, flexShrink: 0, background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 17, color: C.red, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(231,76,60,.12)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                      >🗑</button>
                     </div>
                   ))}
                 </div>
