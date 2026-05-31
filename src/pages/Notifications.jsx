@@ -6,18 +6,6 @@ import { useAuth } from '../hooks/useAuth'
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-async function getToken() {
-  try {
-    const keys = Object.keys(localStorage)
-    const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
-    if (authKey) {
-      const data = JSON.parse(localStorage.getItem(authKey))
-      if (data?.access_token) return data.access_token
-    }
-  } catch {}
-  return ANON_KEY
-}
-
 function api(path, opts = {}) {
   return fetch(`${SUPABASE_URL}${path}`, {
     ...opts,
@@ -29,7 +17,7 @@ function formatDate(ts) {
   if (!ts) return ''
   const d = new Date(ts)
   const diff = Math.floor((Date.now() - d) / 1000)
-  if (diff < 60)    return 'À l\'instant'
+  if (diff < 60)    return "À l'instant"
   if (diff < 3600)  return `Il y a ${Math.floor(diff / 60)} min`
   if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)} h`
   return d.toLocaleDateString('fr-FR')
@@ -37,63 +25,54 @@ function formatDate(ts) {
 
 export default function Notifications() {
   const { user } = useAuth()
-  const navigate = useNavigate()
+  const navigate  = useNavigate()
   const [notifs,  setNotifs]  = useState([])
   const [loading, setLoading] = useState(true)
-  const userRef = useRef(user)
-  useEffect(() => { userRef.current = user }, [user])
+  const timerRef  = useRef(null)
 
   useEffect(() => {
     if (!user) return
+
+    // Charger les notifs
     api(`/rest/v1/notifications?user_id=eq.${user.id}&order=created_at.desc`)
       .then(r => r.json())
-      .then(d => { if (Array.isArray(d)) setNotifs(d); setLoading(false) })
+      .then(d => {
+        if (Array.isArray(d)) setNotifs(d)
+        setLoading(false)
+
+        // Marquer toutes comme lues après 2 secondes sur la page
+        timerRef.current = setTimeout(() => {
+          api(`/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, {
+            method: 'PATCH',
+            body: JSON.stringify({ read: true })
+          }).then(() => {
+            setNotifs(n => n.map(x => ({ ...x, read: true })))
+          }).catch(() => {})
+        }, 2000)
+      })
+
+    return () => {
+      // Cleanup : annuler le timer ET marquer comme lu immédiatement si on quitte avant 2s
+      if (timerRef.current) clearTimeout(timerRef.current)
+      api(`/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, {
+        method: 'PATCH',
+        body: JSON.stringify({ read: true })
+      }).catch(() => {})
+    }
   }, [user])
 
-  // Marquer tout comme lu quand on quitte la page
-  const markAllReadSilent = async () => {
-    const u = userRef.current
-    if (!u) return
-    const token = await getToken()
-    fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${u.id}&read=eq.false`, {
-      method: 'PATCH',
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ read: true })
-    }).catch(() => {})
-    setNotifs(n => n.map(x => ({ ...x, read: true })))
-  }
-
-  useEffect(() => {
-    // Au démontage du composant (navigation vers autre page)
-    return () => { markAllReadSilent() }
-  }, [])
-
   const markRead = async (id) => {
-    const token = await getToken()
-    await fetch(`${SUPABASE_URL}/rest/v1/notifications?id=eq.${id}`, {
-      method: 'PATCH',
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ read: true })
-    })
+    await api(`/rest/v1/notifications?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ read: true }) })
     setNotifs(n => n.map(x => x.id === id ? { ...x, read: true } : x))
   }
 
   const markAllRead = async () => {
-    const token = await getToken()
-    await fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, {
-      method: 'PATCH',
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ read: true })
-    })
+    await api(`/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, { method: 'PATCH', body: JSON.stringify({ read: true }) })
     setNotifs(n => n.map(x => ({ ...x, read: true })))
   }
 
   const deleteNotif = async (id) => {
-    const token = await getToken()
-    await fetch(`${SUPABASE_URL}/rest/v1/notifications?id=eq.${id}`, {
-      method: 'DELETE',
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
-    })
+    await api(`/rest/v1/notifications?id=eq.${id}`, { method: 'DELETE' })
     setNotifs(n => n.filter(x => x.id !== id))
   }
 
@@ -108,6 +87,7 @@ export default function Notifications() {
 
   return (
     <div style={{ maxWidth: 600, margin: '0 auto', padding: '24px 16px' }}>
+
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>
           <h1 style={{ fontWeight: 700, fontSize: 19, color: C.text, marginBottom: 2 }}>🔔 Notifications</h1>
