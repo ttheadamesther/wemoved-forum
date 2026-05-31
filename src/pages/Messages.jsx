@@ -337,12 +337,27 @@ export default function MessagesPage() {
                       style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: 8 }}>
                       {!isMe && <div style={{ width: 28, flexShrink: 0 }}>{showAvatar && <Avatar member={activeMember} size={28} />}</div>}
                       <div style={{ maxWidth: isMobile ? '80%' : '65%', display: 'flex', alignItems: 'center', gap: 6, flexDirection: isMe ? 'row-reverse' : 'row' }}>
-                        {isMe && (isHovered || isDeleting) && (
+                        {isMe && (
                           <button onClick={() => deleteMessage(m.id)} disabled={isDeleting} title="Supprimer"
-                            style={{ background: 'none', border: 'none', cursor: isDeleting ? 'wait' : 'pointer', fontSize: 13, color: C.red, opacity: isDeleting ? 0.5 : 0.7, padding: '2px 4px', flexShrink: 0 }}
+                            style={{ background: 'none', border: 'none', cursor: isDeleting ? 'wait' : 'pointer', fontSize: 13, color: C.red, opacity: isDeleting ? 0.5 : 0.6, padding: '2px 4px', flexShrink: 0 }}
                             onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                            onMouseLeave={e => e.currentTarget.style.opacity = '0.7'}>
+                            onMouseLeave={e => e.currentTarget.style.opacity = '0.6'}>
                             {isDeleting ? '…' : '🗑'}
+                          </button>
+                        )}
+                        {!isMe && (
+                          <button onClick={async () => {
+                            await api('/rest/v1/reports', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ type: 'message', target_id: m.id, reporter_id: user.id, reason: 'Message privé signalé', status: 'pending' })
+                            })
+                            alert('Message signalé aux modérateurs.')
+                          }} title="Signaler"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: C.textDim, opacity: 0.6, padding: '2px 4px', flexShrink: 0 }}
+                            onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                            onMouseLeave={e => e.currentTarget.style.opacity = '0.6'}>
+                            🚩
                           </button>
                         )}
                         <div>
