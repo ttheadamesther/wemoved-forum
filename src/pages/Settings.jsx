@@ -7,8 +7,16 @@ import { useAuth } from '../hooks/useAuth'
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-const currentYear = new Date().getFullYear()
-const BIRTH_YEARS = Array.from({ length: currentYear - 1924 - 17 }, (_, i) => currentYear - 18 - i)
+const MAX_DATE = (() => { const d = new Date(); d.setFullYear(d.getFullYear() - 18); return d.toISOString().split('T')[0] })()
+const MIN_DATE = (() => { const d = new Date(); d.setFullYear(d.getFullYear() - 100); return d.toISOString().split('T')[0] })()
+function calcAge(birthDate) {
+  if (!birthDate) return null
+  const today = new Date(); const birth = new Date(birthDate)
+  let age = today.getFullYear() - birth.getFullYear()
+  const m = today.getMonth() - birth.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
+  return age
+}
 
 async function getToken() {
   try {
@@ -56,7 +64,7 @@ export default function Settings() {
 
   // ── Âge ──
   const [editAge,    setEditAge]    = useState(false)
-  const [birthYear,  setBirthYear]  = useState('')
+  const [birthDate,  setBirthDate]  = useState('')
   const [ageOk,      setAgeOk]      = useState(false)
   const [savingAge,  setSavingAge]  = useState(false)
 
@@ -118,12 +126,13 @@ export default function Settings() {
   }
 
   const saveAge = async () => {
-    if (!birthYear) return
+    if (!birthDate) return
+    const age = calcAge(birthDate)
+    if (!age || age < 18) return
     setSavingAge(true)
-    const age = currentYear - parseInt(birthYear)
-    await apiFetch(`/rest/v1/profiles?id=eq.${user.id}`, { method: 'PATCH', body: JSON.stringify({ age }) })
+    await apiFetch(`/rest/v1/profiles?id=eq.${user.id}`, { method: 'PATCH', body: JSON.stringify({ age, birth_date: birthDate }) })
     await refreshProfile()
-    setSavingAge(false); setAgeOk(true); setEditAge(false); setBirthYear('')
+    setSavingAge(false); setAgeOk(true); setEditAge(false); setBirthDate('')
   }
 
   const deleteAccount = async () => {
@@ -172,15 +181,22 @@ export default function Settings() {
           {editAge ? (
             <div>
               <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
-                <select value={birthYear} onChange={e => setBirthYear(e.target.value)}
-                  style={{ flex: 1, padding: '7px 10px', border: `1px solid ${C.borderMid}`, borderRadius: 8, fontSize: 13, color: C.text, background: C.white, fontFamily: 'inherit' }}>
-                  <option value="">Sélectionner une année…</option>
-                  {BIRTH_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
-                <Btn onClick={saveAge} variant="yellow" style={{ fontSize: 12 }} disabled={!birthYear}>{savingAge ? '…' : 'OK'}</Btn>
-                <Btn onClick={() => { setEditAge(false); setBirthYear('') }} variant="ghost" style={{ fontSize: 12 }}>✕</Btn>
+                <input
+                  type="date"
+                  value={birthDate}
+                  onChange={e => setBirthDate(e.target.value)}
+                  min={MIN_DATE}
+                  max={MAX_DATE}
+                  style={{ flex: 1, padding: '7px 10px', border: `1px solid ${C.borderMid}`, borderRadius: 8, fontSize: 13, color: C.text, background: C.white, fontFamily: 'inherit' }}
+                />
+                <Btn onClick={saveAge} variant="yellow" style={{ fontSize: 12 }} disabled={!birthDate}>{savingAge ? '…' : 'OK'}</Btn>
+                <Btn onClick={() => { setEditAge(false); setBirthDate('') }} variant="ghost" style={{ fontSize: 12 }}>✕</Btn>
               </div>
-              {birthYear && <div style={{ fontSize: 11, color: C.textDim }}>Âge calculé : {currentYear - parseInt(birthYear)} ans</div>}
+              {birthDate && calcAge(birthDate) !== null && (
+                <div style={{ fontSize: 11, color: calcAge(birthDate) >= 18 ? C.textDim : C.red }}>
+                  {calcAge(birthDate) >= 18 ? `Âge calculé : ${calcAge(birthDate)} ans` : `${calcAge(birthDate)} ans — minimum 18 ans requis`}
+                </div>
+              )}
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

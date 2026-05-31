@@ -12,6 +12,16 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  const calcAge = (birthDate) => {
+    if (!birthDate) return null
+    const today = new Date()
+    const birth = new Date(birthDate)
+    let age = today.getFullYear() - birth.getFullYear()
+    const m = today.getMonth() - birth.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
+    return age
+  }
+
   const fetchProfile = async (uid, token) => {
     if (!uid) return null
     try {
@@ -19,7 +29,22 @@ export function AuthProvider({ children }) {
         headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token || ANON_KEY}` }
       })
       const data = await res.json()
-      return (data && data[0]) ?? null
+      if (!data || !data[0]) return null
+      const p = data[0]
+      // Recalculer l'âge depuis birth_date si disponible
+      if (p.birth_date) {
+        const freshAge = calcAge(p.birth_date)
+        if (freshAge !== null && freshAge !== p.age) {
+          // Mettre à jour silencieusement si l'âge a changé
+          fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${uid}`, {
+            method: 'PATCH',
+            headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token || ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+            body: JSON.stringify({ age: freshAge })
+          }).catch(() => {})
+          p.age = freshAge
+        }
+      }
+      return p
     } catch { return null }
   }
 
@@ -136,7 +161,8 @@ export function AuthProvider({ children }) {
           banned:    false,
           votes:     { mimi: 0, cool: 0, sexy: 0, loose: 0 },
           photo_likes: {},
-          age:       extra.age    || null,
+          age:       extra.age        || null,
+          birth_date: extra.birth_date || null,
           sexe:      extra.sexe   || null,
           region:    extra.region || '',
           dept:      extra.dept   || '',
