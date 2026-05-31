@@ -44,13 +44,20 @@ export default function Navbar() {
 
   useEffect(() => {
     setMenuOpen(false); setShowMobileMenu(false)
-    // Si on revient de /notifications, recharger (tout a été marqué lu)
-    if (user && path !== '/notifications') {
-      getToken().then(token => {
+    // Recharger les notifs non lues à chaque changement de page
+    if (user) {
+      const t = async () => {
+        let token = ANON_KEY
+        try {
+          const keys = Object.keys(localStorage)
+          const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
+          if (authKey) { const d = JSON.parse(localStorage.getItem(authKey)); if (d?.access_token) token = d.access_token }
+        } catch {}
         fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false&order=created_at.desc&limit=20`, {
           headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
         }).then(r => r.json()).then(d => { if (Array.isArray(d)) setNotifs(d) })
-      })
+      }
+      t()
     }
   }, [path])
 
@@ -84,22 +91,22 @@ export default function Navbar() {
     return () => { supabase.removeChannel(channel) }
   }, [user])
 
-  const refreshUnread = () => {
-    getToken().then(token => {
-      fetch(`${SUPABASE_URL}/rest/v1/messages?to_id=eq.${user?.id}&read=eq.false&select=id`, {
-        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
-      }).then(r => r.json()).then(d => { if (Array.isArray(d)) setUnreadMessages(d.length) })
-    })
-  }
-
   useEffect(() => {
     if (!user) return
-    refreshUnread()
-    // Si on est sur /messages, rafraîchir toutes les 3s (les msgs se marquent lus)
-    if (path === '/messages') {
-      const interval = setInterval(refreshUnread, 3000)
-      return () => clearInterval(interval)
+    const fetchUnread = () => {
+      getToken().then(token => {
+        fetch(`${SUPABASE_URL}/rest/v1/messages?to_id=eq.${user.id}&read=eq.false&select=id`, {
+          headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
+        }).then(r => r.json()).then(d => { if (Array.isArray(d)) setUnreadMessages(d.length) })
+      })
     }
+    fetchUnread()
+    // Sur /messages : rafraîchir toutes les 3s pour capter les msgs lus
+    let interval = null
+    if (path === '/messages') {
+      interval = setInterval(fetchUnread, 3000)
+    }
+    return () => { if (interval) clearInterval(interval) }
   }, [user, path])
 
   useEffect(() => {
