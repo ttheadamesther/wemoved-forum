@@ -223,29 +223,15 @@ export default function MemberProfile() {
     if (!user || voting) return
     setVoting(voteType)
     if (myVotes[voteType]) {
-      await fetch(`${SUPABASE_URL}/rest/v1/votes?from_id=eq.${user.id}&to_id=eq.${id}&vote_type=eq.${voteType}&month_key=eq.${monthKey()}`, {
-        method: 'DELETE', headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
-      })
+      await api(`/rest/v1/votes?from_id=eq.${user.id}&to_id=eq.${id}&vote_type=eq.${voteType}&month_key=eq.${monthKey()}`, { method: 'DELETE' })
       const newVotes = { ...member.votes, [voteType]: Math.max(0, (member.votes?.[voteType] || 0) - 1) }
-      await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${id}`, {
-        method: 'PATCH',
-        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-        body: JSON.stringify({ votes: newVotes })
-      })
+      await api(`/rest/v1/profiles?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ votes: newVotes }) })
       setMember(m => ({ ...m, votes: newVotes }))
       setMyVotes(v => ({ ...v, [voteType]: false }))
     } else {
-      await fetch(`${SUPABASE_URL}/rest/v1/votes`, {
-        method: 'POST',
-        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from_id: user.id, to_id: id, vote_type: voteType, month_key: monthKey() })
-      })
+      await api(`/rest/v1/votes`, { method: 'POST', body: JSON.stringify({ from_id: user.id, to_id: id, vote_type: voteType, month_key: monthKey() }) })
       const newVotes = { ...member.votes, [voteType]: (member.votes?.[voteType] || 0) + 1 }
-      await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${id}`, {
-        method: 'PATCH',
-        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-        body: JSON.stringify({ votes: newVotes })
-      })
+      await api(`/rest/v1/profiles?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ votes: newVotes }) })
       setMember(m => ({ ...m, votes: newVotes }))
       setMyVotes(v => ({ ...v, [voteType]: true }))
       await awardXP(id, 2)
