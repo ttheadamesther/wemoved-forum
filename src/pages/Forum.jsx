@@ -8,6 +8,7 @@ import { awardXP } from '../lib/xp'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
+const PAGE_SIZE    = 15
 
 function api(path, opts = {}) {
   return fetch(`${SUPABASE_URL}${path}`, {
@@ -136,7 +137,6 @@ function Avatar({ member, size = 36, onClick }) {
   )
 }
 
-// Détecte les @mentions dans un texte et retourne les pseudos cités
 function extractMentions(text) {
   const matches = text.match(/@(\w+)/g)
   if (!matches) return []
@@ -144,6 +144,54 @@ function extractMentions(text) {
 }
 
 const REACTIONS = ['👍','❤️','😂','😮','😢','🔥']
+
+// ── Modale de signalement ──
+function ReportModal({ type, targetId, reporterId, onClose }) {
+  const [reason, setReason] = useState('')
+  const [sent,   setSent]   = useState(false)
+  const REASONS = ['Contenu inapproprié', 'Spam ou pub', 'Harcèlement', 'Contenu haineux', 'Fausses informations', 'Autre']
+
+  const submit = async () => {
+    if (!reason) return
+    await apiAuth('/rest/v1/reports', {
+      method: 'POST',
+      body: JSON.stringify({ type, target_id: targetId, reporter_id: reporterId, reason, status: 'pending' })
+    })
+    setSent(true)
+    setTimeout(onClose, 1500)
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, width: '100%', maxWidth: 400, boxShadow: '0 8px 32px rgba(0,0,0,.2)' }}>
+        {sent ? (
+          <div style={{ textAlign: 'center', padding: '16px 0' }}>
+            <div style={{ fontSize: 36, marginBottom: 10 }}>✅</div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: C.text }}>Signalement envoyé</div>
+            <div style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>Merci, nos modérateurs vont examiner ça.</div>
+          </div>
+        ) : (
+          <>
+            <div style={{ fontWeight: 700, fontSize: 15, color: C.text, marginBottom: 4 }}>🚩 Signaler ce contenu</div>
+            <div style={{ fontSize: 12, color: C.textDim, marginBottom: 16 }}>Sélectionne la raison du signalement</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+              {REASONS.map(r => (
+                <button key={r} onClick={() => setReason(r)}
+                  style={{ padding: '10px 14px', borderRadius: 10, border: `1px solid ${reason === r ? C.accentDk : C.border}`, background: reason === r ? '#fffae6' : C.surfaceB, color: reason === r ? C.accentTxt : C.text, fontSize: 13, fontWeight: reason === r ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'all .15s' }}>
+                  {r}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Btn onClick={onClose} variant="ghost" style={{ flex: 1 }}>Annuler</Btn>
+              <Btn onClick={submit} variant="yellow" style={{ flex: 1 }} disabled={!reason}>Envoyer</Btn>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export default function ForumPage() {
   const { user, profile } = useAuth()
@@ -172,6 +220,8 @@ export default function ForumPage() {
   const [reactions,     setReactions]     = useState({})
   const [myReactions,   setMyReactions]   = useState({})
   const [showReactionPicker, setShowReactionPicker] = useState(null)
+  const [page,          setPage]          = useState(1)
+  const [reporting,     setReporting]     = useState(null) // { type, targetId }
 
   const myRole = profile?.role || 'membre'
   const ROLES_RANK = { admin: 4, manager: 3, moderateur: 2, animateur: 1, membre: 0 }
@@ -194,6 +244,9 @@ export default function ForumPage() {
     api('/rest/v1/profiles?select=*').then(r => r.json()).then(d => { if (Array.isArray(d)) setMembers(d) })
     loadThreads()
   }, [])
+
+  // Reset page quand filtre change
+  useEffect(() => { setPage(1) }, [cat, sortBy, searchQuery])
 
   const loadThreads = async () => {
     const r = await api('/rest/v1/threads?select=*&order=pinned.desc,created_at.desc')
@@ -235,51 +288,22 @@ export default function ForumPage() {
     const body = quoting
       ? `> @${quoting.pseudo} : ${quoting.body.slice(0, 100)}${quoting.body.length > 100 ? '…' : ''}\n\n${replyText.trim()}`
       : replyText.trim()
-
     await api('/rest/v1/replies', { method: 'POST', body: JSON.stringify({ thread_id: openId, author_id: user.id, body, hidden: false }) })
     await awardXP(user.id, 5)
-
     const currentThread = threads.find(t => t.id === openId)
-
-    // ── NOTIF : réponse au créateur du topic ──
     if (currentThread && currentThread.author_id !== user.id) {
-      await sendNotif(
-        currentThread.author_id,
-        'reply',
-        `💬 @${profile?.pseudo || 'Quelqu\'un'} a répondu à votre topic "${currentThread.title.slice(0, 50)}${currentThread.title.length > 50 ? '…' : ''}"`,
-        `/forum`
-      )
+      await sendNotif(currentThread.author_id, 'reply', `💬 @${profile?.pseudo || 'Quelqu\'un'} a répondu à votre topic "${currentThread.title.slice(0, 50)}"`, `/forum`)
     }
-
-    // ── NOTIF : citation @pseudo ──
     if (quoting && quoting.authorId && quoting.authorId !== user.id && quoting.authorId !== currentThread?.author_id) {
-      await sendNotif(
-        quoting.authorId,
-        'mention',
-        `💬 @${profile?.pseudo || 'Quelqu\'un'} a cité votre message dans "${currentThread?.title?.slice(0, 40) || 'un topic'}"`,
-        `/forum`
-      )
+      await sendNotif(quoting.authorId, 'mention', `💬 @${profile?.pseudo || 'Quelqu\'un'} a cité votre message dans "${currentThread?.title?.slice(0, 40) || 'un topic'}"`, `/forum`)
     }
-
-    // ── NOTIF : mentions @pseudo dans le texte ──
     const mentions = extractMentions(replyText)
     if (mentions.length > 0) {
-      const mentionedMembers = members.filter(m =>
-        mentions.includes(m.pseudo?.toLowerCase()) &&
-        m.id !== user.id &&
-        m.id !== currentThread?.author_id &&
-        m.id !== quoting?.authorId
-      )
+      const mentionedMembers = members.filter(m => mentions.includes(m.pseudo?.toLowerCase()) && m.id !== user.id && m.id !== currentThread?.author_id && m.id !== quoting?.authorId)
       for (const m of mentionedMembers) {
-        await sendNotif(
-          m.id,
-          'mention',
-          `🔔 @${profile?.pseudo || 'Quelqu\'un'} vous a mentionné dans "${currentThread?.title?.slice(0, 40) || 'un topic'}"`,
-          `/forum`
-        )
+        await sendNotif(m.id, 'mention', `🔔 @${profile?.pseudo || 'Quelqu\'un'} vous a mentionné dans "${currentThread?.title?.slice(0, 40) || 'un topic'}"`, `/forum`)
       }
     }
-
     setReplyText(''); setQuoting(null); loadReplies(openId)
     setReplyCounts(prev => ({ ...prev, [openId]: (prev[openId] || 0) + 1 }))
     setPosting(false)
@@ -297,14 +321,8 @@ export default function ForumPage() {
     setLikes(l => ({ ...l, [thread.id]: !liked }))
     setThreads(prev => prev.map(t => t.id === thread.id ? { ...t, likes: newCount } : t))
     await api(`/rest/v1/threads?id=eq.${thread.id}`, { method: 'PATCH', body: JSON.stringify({ likes: newCount }) })
-    // ── NOTIF : like sur un topic ──
     if (!liked && thread.author_id !== user?.id) {
-      await sendNotif(
-        thread.author_id,
-        'like',
-        `♥ @${profile?.pseudo || 'Quelqu\'un'} a aimé votre topic "${thread.title.slice(0, 50)}"`,
-        `/forum`
-      )
+      await sendNotif(thread.author_id, 'like', `♥ @${profile?.pseudo || 'Quelqu\'un'} a aimé votre topic "${thread.title.slice(0, 50)}"`, `/forum`)
     }
   }
 
@@ -359,6 +377,10 @@ export default function ForumPage() {
   else if (sortBy === 'unanswered') filtered = filtered.filter(t => !replyCounts[t.id])
   else filtered = [...filtered].sort((a, b) => b.pinned - a.pinned || new Date(b.created_at) - new Date(a.created_at))
 
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
   const ModBar = ({ thread }) => (
     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '8px 12px', background: '#fffae6', border: `1px solid ${C.accentDk}`, borderRadius: 10, marginTop: 10 }}>
       <span style={{ fontSize: 10, color: C.accentTxt, fontWeight: 700, alignSelf: 'center' }}>🛡 Modération :</span>
@@ -374,6 +396,9 @@ export default function ForumPage() {
     const catColor = CAT_COLORS[currentThread.cat] || C.accentDk
     return (
       <div ref={containerRef} style={{ maxWidth: 780, margin: '0 auto', padding: isMobile ? '12px' : '20px 16px' }}>
+        {reporting && (
+          <ReportModal type={reporting.type} targetId={reporting.targetId} reporterId={user?.id} onClose={() => setReporting(null)} />
+        )}
         <button onClick={() => { setOpenId(null); setReplies([]); setEditingThread(null); setEditingReply(null) }}
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: C.textMid, cursor: 'pointer', fontSize: 13, fontWeight: 600, marginBottom: 16, padding: 0 }}>
           ← Retour au forum
@@ -418,6 +443,9 @@ export default function ForumPage() {
                 <span style={{ fontSize: 11, color: C.textDim }}>↩ {replyCounts[currentThread.id] || visReplies.length} réponses</span>
                 {user && user.id !== currentThread.author_id && !currentThread.locked && (
                   <Btn onClick={() => { setQuoting({ pseudo: author?.pseudo || 'Inconnu', body: currentThread.body, authorId: currentThread.author_id }); setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100) }} variant="ghost" style={{ fontSize: 11 }}>💬 Citer</Btn>
+                )}
+                {user && user.id !== currentThread.author_id && (
+                  <Btn onClick={() => setReporting({ type: 'thread', targetId: currentThread.id })} variant="ghost" style={{ fontSize: 11, color: C.red }}>🚩 Signaler</Btn>
                 )}
                 {user?.id === currentThread.author_id && !editingThread && (
                   <Btn onClick={() => setEditingThread({ title: currentThread.title, body: currentThread.body })} variant="ghost" style={{ fontSize: 11 }}>✏️ Modifier</Btn>
@@ -465,7 +493,6 @@ export default function ForumPage() {
                   ) : (
                     <p style={{ fontSize: 13, color: C.textMid, lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}><RichText text={r.body} /></p>
                   )}
-
                   <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                     {Object.entries(rReactions).filter(([, count]) => count > 0).map(([emoji, count]) => (
                       <button key={emoji} onClick={() => user && toggleReaction(r.id, emoji)}
@@ -493,10 +520,12 @@ export default function ForumPage() {
                         )}
                       </div>
                     )}
-
                     <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
                       {user && user.id !== r.author_id && !currentThread.locked && !isEditingThis && (
                         <Btn onClick={() => { setQuoting({ pseudo: ru?.pseudo || 'Inconnu', body: r.body, authorId: r.author_id }); setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100) }} variant="ghost" style={{ fontSize: 10 }}>💬 Citer</Btn>
+                      )}
+                      {user && user.id !== r.author_id && !isEditingThis && (
+                        <Btn onClick={() => setReporting({ type: 'reply', targetId: r.id })} variant="ghost" style={{ fontSize: 10, color: C.red }}>🚩</Btn>
                       )}
                       {user?.id === r.author_id && !isEditingThis && (
                         <Btn onClick={() => setEditingReply({ id: r.id, body: r.body })} variant="ghost" style={{ fontSize: 10 }}>✏️ Modifier</Btn>
@@ -543,6 +572,9 @@ export default function ForumPage() {
 
   return (
     <div ref={containerRef} style={{ maxWidth: 780, margin: '0 auto', padding: isMobile ? '12px' : '20px 16px' }}>
+      {reporting && (
+        <ReportModal type={reporting.type} targetId={reporting.targetId} reporterId={user?.id} onClose={() => setReporting(null)} />
+      )}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>
           <h1 style={{ fontWeight: 700, fontSize: isMobile ? 18 : 22, color: C.text, marginBottom: 2 }}>Forum</h1>
@@ -583,7 +615,7 @@ export default function ForumPage() {
       )}
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 180, position: 'relative' }}>
+        <div style={{ flex: 1, minWidth: 180 }}>
           <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="🔍 Rechercher dans le forum…"
             style={{ width: '100%', padding: '8px 14px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.surfaceB, color: C.text, fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
           />
@@ -611,7 +643,7 @@ export default function ForumPage() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {filtered.map(t => {
+        {paginated.map(t => {
           const author = getMember(t.author_id)
           const isAdultCat = t.cat === '+18'
           const catColor = CAT_COLORS[t.cat] || C.accentDk
@@ -628,9 +660,7 @@ export default function ForumPage() {
                 <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 4, flexWrap: 'wrap' }}>
                   <strong style={{ fontSize: 12, color: C.text }}>@{author?.pseudo || 'Inconnu'}</strong>
                   <RoleBadge role={author?.role || 'membre'} />
-                  <span style={{ padding: '1px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: catColor + '22', color: catColor, border: `1px solid ${catColor}44` }}>
-                    {isAdultCat ? '🔞 +18' : t.cat}
-                  </span>
+                  <span style={{ padding: '1px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: catColor + '22', color: catColor, border: `1px solid ${catColor}44` }}>{isAdultCat ? '🔞 +18' : t.cat}</span>
                   {novel && <span style={{ padding: '1px 7px', borderRadius: 20, fontSize: 9, fontWeight: 700, background: '#2ecc71', color: '#fff' }}>NOUVEAU</span>}
                   {t.pinned && <span style={{ fontSize: 10, color: C.accentTxt, fontWeight: 700 }}>📌</span>}
                   {t.locked && <span style={{ fontSize: 10, color: C.red, fontWeight: 700 }}>🔒</span>}
@@ -640,7 +670,7 @@ export default function ForumPage() {
                 <div style={{ fontWeight: 700, fontSize: isMobile ? 13 : 14, color: C.text, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</div>
                 <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>{t.body}</div>
                 <div style={{ display: 'flex', gap: 14, marginTop: 8, alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, color: C.textDim, display: 'flex', alignItems: 'center', gap: 4 }}>♥ {t.likes || 0}</span>
+                  <span style={{ fontSize: 11, color: C.textDim }}>♥ {t.likes || 0}</span>
                   <span style={{ fontSize: 11, color: replyCount === 0 ? C.red : C.textDim, fontWeight: replyCount === 0 ? 600 : 400 }}>↩ {replyCount} réponse{replyCount !== 1 ? 's' : ''}</span>
                   <span style={{ fontSize: 11, color: C.textDim }}>👁 {t.views || 0}</span>
                 </div>
@@ -654,6 +684,26 @@ export default function ForumPage() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 20 }}>
+          <button onClick={() => { setPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0 }) }} disabled={page === 1}
+            style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.white, color: page === 1 ? C.textDim : C.text, cursor: page === 1 ? 'not-allowed' : 'pointer', fontSize: 13, fontFamily: 'inherit' }}>
+            ← Préc.
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+            <button key={p} onClick={() => { setPage(p); window.scrollTo({ top: 0 }) }}
+              style={{ width: 34, height: 34, borderRadius: '50%', border: `1px solid ${p === page ? C.accentDk : C.border}`, background: p === page ? '#fffae6' : C.white, color: p === page ? C.accentTxt : C.text, fontWeight: p === page ? 700 : 400, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', transition: 'all .15s' }}>
+              {p}
+            </button>
+          ))}
+          <button onClick={() => { setPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0 }) }} disabled={page === totalPages}
+            style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.white, color: page === totalPages ? C.textDim : C.text, cursor: page === totalPages ? 'not-allowed' : 'pointer', fontSize: 13, fontFamily: 'inherit' }}>
+            Suiv. →
+          </button>
+        </div>
+      )}
     </div>
   )
 }
