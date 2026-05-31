@@ -6,7 +6,8 @@ import { supabase } from '../lib/supabase'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
-const MAX_MSG      = 100 // nb messages à charger
+const MAX_MSG      = 100
+const FLOOD_DELAY  = 3000 // ms entre chaque message
 
 async function getToken() {
   try {
@@ -37,18 +38,19 @@ export default function Chatroom() {
   const [text,      setText]      = useState('')
   const [sending,   setSending]   = useState(false)
   const [online,    setOnline]    = useState([])
-  const bottomRef = useRef()
-  const inputRef  = useRef()
+  const [floodMsg,  setFloodMsg]  = useState('')
+  const bottomRef    = useRef()
+  const inputRef     = useRef()
+  const lastSentTime = useRef(0)
 
-  // Charger les messages existants
+  const canMod = ['admin', 'manager', 'moderateur'].includes(profile?.role)
+
   useEffect(() => {
     fetch(`${SUPABASE_URL}/rest/v1/chat_messages?select=*&order=created_at.asc&limit=${MAX_MSG}`, {
       headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
-    }).then(r => r.json()).then(d => {
-      if (Array.isArray(d)) setMessages(d)
-    })
-    // Charger les profils
-    fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,pseudo,initials,avatar_url,online&order=created_at.desc`, {
+    }).then(r => r.json()).then(d => { if (Array.isArray(d)) setMessages(d) })
+
+    fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,pseudo,initials,avatar_url,online,role&order=created_at.desc`, {
       headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
     }).then(r => r.json()).then(d => {
       if (Array.isArray(d)) {
@@ -60,7 +62,6 @@ export default function Chatroom() {
     })
   }, [])
 
-  // Realtime messages
   useEffect(() => {
     if (!supabase) return
     const channel = supabase
@@ -68,18 +69,29 @@ export default function Chatroom() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, (payload) => {
         setMessages(prev => [...prev, payload.new].slice(-MAX_MSG))
       })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'chat_messages' }, (payload) => {
+        setMessages(prev => prev.filter(m => m.id !== payload.old.id))
+      })
       .subscribe()
     return () => supabase.removeChannel(channel)
   }, [])
 
-  // Scroll en bas à chaque nouveau message
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
   const send = async () => {
     if (!text.trim() || !user || sending) return
+    const now = Date.now()
+    if (now - lastSentTime.current < FLOOD_DELAY) {
+      const wait = Math.ceil((FLOOD_DELAY - (now - lastSentTime.current)) / 1000)
+      setFloodMsg(`Attends encore ${wait}s…`)
+      setTimeout(() => setFloodMsg(''), FLOOD_DELAY - (now - lastSentTime.current))
+      return
+    }
+    setFloodMsg('')
     setSending(true)
+    lastSentTime.current = now
     const token = await getToken()
     await fetch(`${SUPABASE_URL}/rest/v1/chat_messages`, {
       method: 'POST',
@@ -89,6 +101,15 @@ export default function Chatroom() {
     setText('')
     setSending(false)
     inputRef.current?.focus()
+  }
+
+  const deleteMessage = async (msgId) => {
+    const token = await getToken()
+    await fetch(`${SUPABASE_URL}/rest/v1/chat_messages?id=eq.${msgId}`, {
+      method: 'DELETE',
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
+    })
+    setMessages(prev => prev.filter(m => m.id !== msgId))
   }
 
   const getMember = (id) => members[id] || null
@@ -101,11 +122,10 @@ export default function Chatroom() {
         <div>
           <h1 style={{ fontWeight: 700, fontSize: 20, color: C.text, marginBottom: 2 }}>💬 Salon général</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.textDim }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#2ecc71', display: 'inline-block', animation: 'pulse 2s infinite' }} />
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#2ecc71', display: 'inline-block' }} />
             {online.length} membre{online.length !== 1 ? 's' : ''} en ligne
           </div>
         </div>
-        {/* Avatars en ligne */}
         <div style={{ display: 'flex' }}>
           {online.slice(0, 6).map((m, i) => (
             <div key={m.id} onClick={() => navigate(`/members/${m.id}`)}
@@ -129,9 +149,12 @@ export default function Chatroom() {
           const isMe = msg.author_id === user?.id
           const prevMsg = messages[i - 1]
           const sameAuthor = prevMsg && prevMsg.author_id === msg.author_id && (new Date(msg.created_at) - new Date(prevMsg.created_at)) < 60000
+          const canDelete = isMe || canMod
           return (
-            <div key={msg.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexDirection: isMe ? 'row-reverse' : 'row', marginTop: sameAuthor ? 2 : 10 }}>
-              {/* Avatar — affiché seulement si nouveau groupe */}
+            <div key={msg.id}
+              style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexDirection: isMe ? 'row-reverse' : 'row', marginTop: sameAuthor ? 2 : 10 }}
+              onMouseEnter={e => { if (canDelete) e.currentTarget.querySelector('.del-btn')?.style && (e.currentTarget.querySelector('.del-btn').style.opacity = '1') }}
+              onMouseLeave={e => { if (canDelete) e.currentTarget.querySelector('.del-btn')?.style && (e.currentTarget.querySelector('.del-btn').style.opacity = '0') }}>
               {!sameAuthor ? (
                 <div onClick={() => author && navigate(`/members/${author.id}`)}
                   style={{ width: 30, height: 30, borderRadius: '50%', background: author?.avatar_url ? '#444' : avatarColor(author?.pseudo), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, cursor: 'pointer' }}>
@@ -140,7 +163,7 @@ export default function Chatroom() {
               ) : (
                 <div style={{ width: 30, flexShrink: 0 }} />
               )}
-              <div style={{ maxWidth: '70%' }}>
+              <div style={{ maxWidth: '70%', position: 'relative' }}>
                 {!sameAuthor && !isMe && (
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.accentTxt, marginBottom: 3, paddingLeft: 4 }}>@{author?.pseudo || 'Inconnu'}</div>
                 )}
@@ -150,6 +173,12 @@ export default function Chatroom() {
                 <div style={{ fontSize: 10, color: C.textDim, marginTop: 2, paddingLeft: 4, textAlign: isMe ? 'right' : 'left' }}>
                   {formatTime(msg.created_at)}
                 </div>
+                {canDelete && (
+                  <button className="del-btn" onClick={() => deleteMessage(msg.id)}
+                    style={{ position: 'absolute', top: 0, [isMe ? 'left' : 'right']: -28, width: 22, height: 22, borderRadius: '50%', border: 'none', background: '#e74c3c', color: '#fff', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity .2s' }}>
+                    ✕
+                  </button>
+                )}
               </div>
             </div>
           )
@@ -159,22 +188,22 @@ export default function Chatroom() {
 
       {/* Input */}
       {user ? (
-        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-          <input
-            ref={inputRef}
-            value={text}
-            onChange={e => setText(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
-            placeholder="Écris un message… (Entrée pour envoyer)"
-            maxLength={500}
-            style={{ flex: 1, padding: '12px 16px', borderRadius: 24, border: `1px solid ${C.borderMid}`, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.white, color: C.text, transition: 'border .2s' }}
-            onFocus={e => e.target.style.borderColor = '#c8a200'}
-            onBlur={e => e.target.style.borderColor = C.borderMid}
-          />
-          <button onClick={send} disabled={!text.trim() || sending}
-            style={{ width: 46, height: 46, borderRadius: '50%', border: 'none', background: text.trim() ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.surfaceB, color: text.trim() ? '#3a2e00' : C.textDim, cursor: text.trim() ? 'pointer' : 'default', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .2s', flexShrink: 0 }}>
-            {sending ? '…' : '➤'}
-          </button>
+        <div style={{ flexShrink: 0 }}>
+          {floodMsg && <div style={{ fontSize: 11, color: C.red, fontWeight: 600, marginBottom: 4, textAlign: 'center' }}>⏳ {floodMsg}</div>}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input ref={inputRef} value={text} onChange={e => setText(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
+              placeholder="Écris un message… (Entrée pour envoyer)"
+              maxLength={500}
+              style={{ flex: 1, padding: '12px 16px', borderRadius: 24, border: `1px solid ${C.borderMid}`, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.white, color: C.text, transition: 'border .2s' }}
+              onFocus={e => e.target.style.borderColor = '#c8a200'}
+              onBlur={e => e.target.style.borderColor = C.borderMid}
+            />
+            <button onClick={send} disabled={!text.trim() || sending}
+              style={{ width: 46, height: 46, borderRadius: '50%', border: 'none', background: text.trim() ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.surfaceB, color: text.trim() ? '#3a2e00' : C.textDim, cursor: text.trim() ? 'pointer' : 'default', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .2s', flexShrink: 0 }}>
+              {sending ? '…' : '➤'}
+            </button>
+          </div>
         </div>
       ) : (
         <div style={{ textAlign: 'center', padding: '14px', background: C.surfaceB, border: `1px solid ${C.border}`, borderRadius: 12, fontSize: 13, color: C.textDim }}>

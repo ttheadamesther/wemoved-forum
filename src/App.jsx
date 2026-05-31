@@ -20,6 +20,7 @@ import Legal         from './pages/Legal'
 import Rewards       from './pages/Rewards'
 import Rankings      from './pages/Rankings'
 import Chatroom      from './pages/Chatroom'
+import NotFound      from './pages/NotFound'
 
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { error: null } }
@@ -103,7 +104,7 @@ export default function App() {
             <Route path="/notifications" element={<PrivateRoute><Layout><Notifications /></Layout></PrivateRoute>} />
             <Route path="/profile"       element={<PrivateRoute><Layout><ErrorBoundary><Profile /></ErrorBoundary></Layout></PrivateRoute>} />
             <Route path="/settings"      element={<PrivateRoute><Layout><Settings /></Layout></PrivateRoute>} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

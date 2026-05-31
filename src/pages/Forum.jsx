@@ -222,6 +222,8 @@ export default function ForumPage() {
   const [showReactionPicker, setShowReactionPicker] = useState(null)
   const [page,          setPage]          = useState(1)
   const [reporting,     setReporting]     = useState(null) // { type, targetId }
+  const [spamError,     setSpamError]     = useState('')
+  const lastPostTime = useRef(0)
 
   const myRole = profile?.role || 'membre'
   const ROLES_RANK = { admin: 4, manager: 3, moderateur: 2, animateur: 1, membre: 0 }
@@ -276,7 +278,14 @@ export default function ForumPage() {
   const postThread = async () => {
     if (!nTitle.trim() || !nBody.trim() || !user) return
     if (nCat === '+18' && !isAdult && !canMod) return
+    const now = Date.now()
+    if (now - lastPostTime.current < 30000) {
+      setSpamError(`Attends encore ${Math.ceil((30000 - (now - lastPostTime.current)) / 1000)}s avant de poster.`)
+      return
+    }
+    setSpamError('')
     setPosting(true)
+    lastPostTime.current = now
     await api('/rest/v1/threads', { method: 'POST', body: JSON.stringify({ author_id: user.id, cat: nCat, title: nTitle.trim(), body: nBody.trim(), likes: 0, views: 0, pinned: false, locked: false, hidden: false }) })
     await awardXP(user.id, 10)
     setNTitle(''); setNBody(''); setComposing(false); loadThreads(); setPosting(false)
@@ -284,7 +293,14 @@ export default function ForumPage() {
 
   const postReply = async () => {
     if (!replyText.trim() || !openId || !user) return
+    const now = Date.now()
+    if (now - lastPostTime.current < 30000) {
+      setSpamError(`Attends encore ${Math.ceil((30000 - (now - lastPostTime.current)) / 1000)}s avant de poster.`)
+      return
+    }
+    setSpamError('')
     setPosting(true)
+    lastPostTime.current = now
     const body = quoting
       ? `> @${quoting.pseudo} : ${quoting.body.slice(0, 100)}${quoting.body.length > 100 ? '…' : ''}\n\n${replyText.trim()}`
       : replyText.trim()
@@ -557,6 +573,7 @@ export default function ForumPage() {
               </div>
             )}
             <RichInput value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Écris ta réponse… (liens, émojis et @mentions supportés)" rows={3} />
+            {spamError && <div style={{ fontSize: 11, color: C.red, marginTop: 8, fontWeight: 600 }}>⏳ {spamError}</div>}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
               <Btn onClick={postReply} variant="yellow">{posting ? '…' : 'Publier ma réponse'}</Btn>
             </div>
@@ -607,6 +624,7 @@ export default function ForumPage() {
           <Input value={nTitle} onChange={e => setNTitle(e.target.value)} placeholder="Titre de ta discussion…" style={{ width: '100%', marginBottom: 14, borderRadius: 10, padding: '10px 14px' }} />
           <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 6 }}>Message</div>
           <RichInput value={nBody} onChange={e => setNBody(e.target.value)} placeholder="Développe ta discussion…" rows={4} />
+          {spamError && <div style={{ fontSize: 11, color: C.red, marginTop: 8, fontWeight: 600 }}>⏳ {spamError}</div>}
           <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'flex-end' }}>
             <Btn onClick={() => setComposing(false)} variant="ghost">Annuler</Btn>
             <Btn onClick={postThread} variant="yellow">{posting ? '…' : 'Publier'}</Btn>

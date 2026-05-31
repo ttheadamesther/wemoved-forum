@@ -7,27 +7,19 @@ import { useAuth } from '../hooks/useAuth'
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
 
+const currentYear = new Date().getFullYear()
+const BIRTH_YEARS = Array.from({ length: currentYear - 1924 - 17 }, (_, i) => currentYear - 18 - i)
+
 async function getToken() {
   try {
     const keys = Object.keys(localStorage)
     const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
-    if (authKey) {
-      const data = JSON.parse(localStorage.getItem(authKey))
-      if (data?.access_token) return data.access_token
-    }
+    if (authKey) { const data = JSON.parse(localStorage.getItem(authKey)); if (data?.access_token) return data.access_token }
   } catch {}
   return ANON_KEY
 }
 
-const PANEL = {
-  background: C.white,
-  border: `1px solid ${C.border}`,
-  borderTop: `3px solid ${C.accentDk}`,
-  borderRadius: 14,
-  padding: 24,
-  marginBottom: 16,
-  boxShadow: '0 1px 4px rgba(0,0,0,.04)',
-}
+const PANEL = { background: C.white, border: `1px solid ${C.border}`, borderTop: `3px solid ${C.accentDk}`, borderRadius: 14, padding: 24, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }
 
 const Row = ({ icon, label, children }) => (
   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '14px 0', borderBottom: `1px solid ${C.border}` }}>
@@ -43,33 +35,34 @@ export default function Settings() {
   const { user, profile, refreshProfile, signOut } = useAuth()
   const navigate = useNavigate()
 
-  // ── Pseudo ──
   const [newPseudo,    setNewPseudo]    = useState('')
   const [pseudoError,  setPseudoError]  = useState('')
   const [pseudoOk,     setPseudoOk]     = useState(false)
   const [savingPseudo, setSavingPseudo] = useState(false)
   const [editPseudo,   setEditPseudo]   = useState(false)
 
-  // ── Email ──
   const [newEmail,    setNewEmail]    = useState('')
   const [emailError,  setEmailError]  = useState('')
   const [emailOk,     setEmailOk]     = useState(false)
   const [savingEmail, setSavingEmail] = useState(false)
   const [editEmail,   setEditEmail]   = useState(false)
 
-  // ── Mot de passe ──
-  const [currentPwd,  setCurrentPwd]  = useState('')
-  const [newPwd,      setNewPwd]      = useState('')
-  const [confirmPwd,  setConfirmPwd]  = useState('')
-  const [pwdError,    setPwdError]    = useState('')
-  const [pwdOk,       setPwdOk]       = useState(false)
-  const [savingPwd,   setSavingPwd]   = useState(false)
-  const [editPwd,     setEditPwd]     = useState(false)
+  const [newPwd,     setNewPwd]     = useState('')
+  const [confirmPwd, setConfirmPwd] = useState('')
+  const [pwdError,   setPwdError]   = useState('')
+  const [pwdOk,      setPwdOk]      = useState(false)
+  const [savingPwd,  setSavingPwd]  = useState(false)
+  const [editPwd,    setEditPwd]    = useState(false)
 
-  // ── Supprimer compte ──
-  const [showDelete,   setShowDelete]   = useState(false)
+  // ── Âge ──
+  const [editAge,    setEditAge]    = useState(false)
+  const [birthYear,  setBirthYear]  = useState('')
+  const [ageOk,      setAgeOk]      = useState(false)
+  const [savingAge,  setSavingAge]  = useState(false)
+
+  const [showDelete,    setShowDelete]    = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState('')
-  const [deleting,     setDeleting]     = useState(false)
+  const [deleting,      setDeleting]      = useState(false)
 
   if (!user || !profile) return <div style={{ padding: 40, textAlign: 'center', color: C.textMid }}>Non connecté</div>
 
@@ -121,13 +114,21 @@ export default function Settings() {
     const { error } = await sb.auth.updateUser({ password: newPwd })
     setSavingPwd(false)
     if (error) return setPwdError(error.message)
-    setPwdOk(true); setEditPwd(false); setCurrentPwd(''); setNewPwd(''); setConfirmPwd('')
+    setPwdOk(true); setEditPwd(false); setNewPwd(''); setConfirmPwd('')
+  }
+
+  const saveAge = async () => {
+    if (!birthYear) return
+    setSavingAge(true)
+    const age = currentYear - parseInt(birthYear)
+    await apiFetch(`/rest/v1/profiles?id=eq.${user.id}`, { method: 'PATCH', body: JSON.stringify({ age }) })
+    await refreshProfile()
+    setSavingAge(false); setAgeOk(true); setEditAge(false); setBirthYear('')
   }
 
   const deleteAccount = async () => {
     if (deleteConfirm !== profile.pseudo) return
     setDeleting(true)
-    // Supprimer le profil (les autres données seront cascadées)
     await apiFetch(`/rest/v1/profiles?id=eq.${user.id}`, { method: 'DELETE' })
     await signOut()
     navigate('/')
@@ -161,6 +162,33 @@ export default function Settings() {
             </div>
           )}
           {pseudoOk && <div style={{ fontSize: 11, color: '#2ecc71', marginTop: 4 }}>✓ Pseudo mis à jour !</div>}
+        </Row>
+      </div>
+
+      {/* Âge */}
+      <div style={PANEL}>
+        <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 4 }}>🎂 Âge</div>
+        <Row icon="🎂" label="Année de naissance">
+          {editAge ? (
+            <div>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+                <select value={birthYear} onChange={e => setBirthYear(e.target.value)}
+                  style={{ flex: 1, padding: '7px 10px', border: `1px solid ${C.borderMid}`, borderRadius: 8, fontSize: 13, color: C.text, background: C.white, fontFamily: 'inherit' }}>
+                  <option value="">Sélectionner une année…</option>
+                  {BIRTH_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+                <Btn onClick={saveAge} variant="yellow" style={{ fontSize: 12 }} disabled={!birthYear}>{savingAge ? '…' : 'OK'}</Btn>
+                <Btn onClick={() => { setEditAge(false); setBirthYear('') }} variant="ghost" style={{ fontSize: 12 }}>✕</Btn>
+              </div>
+              {birthYear && <div style={{ fontSize: 11, color: C.textDim }}>Âge calculé : {currentYear - parseInt(birthYear)} ans</div>}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 13, color: C.text }}>{profile.age ? `${profile.age} ans` : 'Non renseigné'}</span>
+              <button onClick={() => setEditAge(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.accentTxt, fontWeight: 600 }}>Modifier</button>
+            </div>
+          )}
+          {ageOk && <div style={{ fontSize: 11, color: '#2ecc71', marginTop: 4 }}>✓ Âge mis à jour !</div>}
         </Row>
       </div>
 
@@ -199,7 +227,7 @@ export default function Settings() {
               {pwdError && <div style={{ fontSize: 11, color: C.red }}>{pwdError}</div>}
               <div style={{ fontSize: 10, color: C.textDim }}>6 caractères minimum.</div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <Btn onClick={savePassword} variant="yellow" style={{ fontSize: 12 }}>{savingPwd ? '…' : 'Changer le mot de passe'}</Btn>
+                <Btn onClick={savePassword} variant="yellow" style={{ fontSize: 12 }}>{savingPwd ? '…' : 'Changer'}</Btn>
                 <Btn onClick={() => { setEditPwd(false); setNewPwd(''); setConfirmPwd(''); setPwdError('') }} variant="ghost" style={{ fontSize: 12 }}>Annuler</Btn>
               </div>
             </div>
@@ -213,7 +241,7 @@ export default function Settings() {
         </Row>
       </div>
 
-      {/* Supprimer le compte */}
+      {/* Zone dangereuse */}
       <div style={{ ...PANEL, borderTop: `3px solid ${C.red}` }}>
         <div style={{ fontWeight: 700, fontSize: 13, color: C.red, marginBottom: 4 }}>⚠️ Zone dangereuse</div>
         <Row icon="🗑" label="Supprimer mon compte">
