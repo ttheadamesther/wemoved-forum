@@ -44,11 +44,10 @@ export default function Navbar() {
 
   useEffect(() => {
     setMenuOpen(false); setShowMobileMenu(false)
-    // Recharger les notifs non lues à chaque changement de page
+    // Ne pas recharger si on vient de /notifications (le badge sera vidé par l'event notifs-read)
+    if (path === '/notifications') return
     if (user) {
       const t = async () => {
-        // Attendre que le PATCH de Notifications.jsx soit terminé
-        await new Promise(r => setTimeout(r, 800))
         let token = ANON_KEY
         try {
           const keys = Object.keys(localStorage)
