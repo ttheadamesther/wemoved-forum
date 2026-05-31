@@ -6,6 +6,18 @@ import { useAuth } from '../hooks/useAuth'
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
 
+async function getToken() {
+  try {
+    const keys = Object.keys(localStorage)
+    const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
+    if (authKey) {
+      const data = JSON.parse(localStorage.getItem(authKey))
+      if (data?.access_token) return data.access_token
+    }
+  } catch {}
+  return ANON_KEY
+}
+
 function api(path, opts = {}) {
   return fetch(`${SUPABASE_URL}${path}`, {
     ...opts,
@@ -28,11 +40,8 @@ export default function Notifications() {
   const navigate = useNavigate()
   const [notifs,  setNotifs]  = useState([])
   const [loading, setLoading] = useState(true)
-  const notifsRef = useRef([])
-  const userRef   = useRef(null)
-
+  const userRef = useRef(user)
   useEffect(() => { userRef.current = user }, [user])
-  useEffect(() => { notifsRef.current = notifs }, [notifs])
 
   useEffect(() => {
     if (!user) return
@@ -41,33 +50,50 @@ export default function Notifications() {
       .then(d => { if (Array.isArray(d)) setNotifs(d); setLoading(false) })
   }, [user])
 
-  // Marquer toutes les non-lues comme lues quand on quitte la page
+  // Marquer tout comme lu quand on quitte la page
+  const markAllReadSilent = async () => {
+    const u = userRef.current
+    if (!u) return
+    const token = await getToken()
+    fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${u.id}&read=eq.false`, {
+      method: 'PATCH',
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ read: true })
+    }).catch(() => {})
+    setNotifs(n => n.map(x => ({ ...x, read: true })))
+  }
+
   useEffect(() => {
-    return () => {
-      const u = userRef.current
-      const unread = notifsRef.current.filter(n => !n.read)
-      if (u && unread.length > 0) {
-        fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${u.id}&read=eq.false`, {
-          method: 'PATCH',
-          headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ read: true })
-        }).catch(() => {})
-      }
-    }
+    // Au démontage du composant (navigation vers autre page)
+    return () => { markAllReadSilent() }
   }, [])
 
   const markRead = async (id) => {
-    await api(`/rest/v1/notifications?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ read: true }) })
+    const token = await getToken()
+    await fetch(`${SUPABASE_URL}/rest/v1/notifications?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ read: true })
+    })
     setNotifs(n => n.map(x => x.id === id ? { ...x, read: true } : x))
   }
 
   const markAllRead = async () => {
-    await api(`/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, { method: 'PATCH', body: JSON.stringify({ read: true }) })
+    const token = await getToken()
+    await fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, {
+      method: 'PATCH',
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ read: true })
+    })
     setNotifs(n => n.map(x => ({ ...x, read: true })))
   }
 
   const deleteNotif = async (id) => {
-    await api(`/rest/v1/notifications?id=eq.${id}`, { method: 'DELETE' })
+    const token = await getToken()
+    await fetch(`${SUPABASE_URL}/rest/v1/notifications?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
+    })
     setNotifs(n => n.filter(x => x.id !== id))
   }
 
@@ -82,7 +108,6 @@ export default function Notifications() {
 
   return (
     <div style={{ maxWidth: 600, margin: '0 auto', padding: '24px 16px' }}>
-
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>
           <h1 style={{ fontWeight: 700, fontSize: 19, color: C.text, marginBottom: 2 }}>🔔 Notifications</h1>

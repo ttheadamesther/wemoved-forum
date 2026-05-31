@@ -76,9 +76,11 @@ export default function Navbar() {
 
   useEffect(() => {
     if (!user) return
-    fetch(`${SUPABASE_URL}/rest/v1/messages?to_id=eq.${user.id}&read=eq.false&select=id`, {
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
-    }).then(r => r.json()).then(d => { if (Array.isArray(d)) setUnreadMessages(d.length) })
+    getToken().then(token => {
+      fetch(`${SUPABASE_URL}/rest/v1/messages?to_id=eq.${user.id}&read=eq.false&select=id`, {
+        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
+      }).then(r => r.json()).then(d => { if (Array.isArray(d)) setUnreadMessages(d.length) })
+    })
   }, [user, path])
 
   useEffect(() => {
@@ -86,9 +88,11 @@ export default function Navbar() {
     const channel = supabase
       .channel(`messages-${user.id}-${Date.now()}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `to_id=eq.${user.id}` }, () => {
-        fetch(`${SUPABASE_URL}/rest/v1/messages?to_id=eq.${user.id}&read=eq.false&select=id`, {
-          headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
-        }).then(r => r.json()).then(d => { if (Array.isArray(d)) setUnreadMessages(d.length) })
+        getToken().then(token => {
+          fetch(`${SUPABASE_URL}/rest/v1/messages?to_id=eq.${user.id}&read=eq.false&select=id`, {
+            headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
+          }).then(r => r.json()).then(d => { if (Array.isArray(d)) setUnreadMessages(d.length) })
+        })
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
