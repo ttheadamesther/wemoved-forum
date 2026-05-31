@@ -6,10 +6,23 @@ import { useAuth } from '../hooks/useAuth'
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-function api(path, opts = {}) {
+async function getToken() {
+  try {
+    const keys = Object.keys(localStorage)
+    const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
+    if (authKey) {
+      const data = JSON.parse(localStorage.getItem(authKey))
+      if (data?.access_token) return data.access_token
+    }
+  } catch {}
+  return ANON_KEY
+}
+
+async function api(path, opts = {}) {
+  const token = await getToken()
   return fetch(`${SUPABASE_URL}${path}`, {
     ...opts,
-    headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json', ...opts.headers }
+    headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', ...opts.headers }
   })
 }
 
