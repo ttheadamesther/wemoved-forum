@@ -174,6 +174,8 @@ export default function Profile() {
   const [infosCity,    setInfosCity]    = useState('')
   const [infosStatut,  setInfosStatut]  = useState('')
   const [savingInfos,  setSavingInfos]  = useState(false)
+  const [lightbox,     setLightbox]     = useState(null) // { url, index }
+  const [likerProfiles, setLikerProfiles] = useState([])
 
   const avatarRef = useRef()
   const photoRef  = useRef()
@@ -239,6 +241,18 @@ export default function Profile() {
   }
   const removePhoto = async (url) => { await patchProfile({ photos: (profile.photos || []).filter(p => p !== url) }) }
 
+  const openLightbox = async (url, index) => {
+    setLightbox({ url, index }); setLikerProfiles([])
+    const photoLikes = profile.photo_likes || {}
+    const likerIds = photoLikes[String(index)] || []
+    if (likerIds.length === 0) return
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=in.(${likerIds.join(',')})&select=id,pseudo,initials,avatar_url`, {
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+    })
+    const d = await r.json()
+    if (Array.isArray(d)) setLikerProfiles(d)
+  }
+
   const votes      = profile.votes || {}
   const totalVotes = Object.values(votes).reduce((a, b) => a + b, 0)
   const sexeLabel  = profile.sexe ? profile.sexe.charAt(0).toUpperCase() + profile.sexe.slice(1) : null
@@ -250,8 +264,37 @@ export default function Profile() {
     : { background: profile.banner_gradient || BANNER_GRADIENTS[0] }
   const topVote = VOTES_DEF.reduce((best, v) => (votes[v.key] || 0) > (votes[best?.key] || 0) ? v : best, null)
 
+  const photoLikes = profile.photo_likes || {}
+
   return (
     <div style={{ maxWidth: 860, margin: '0 auto', paddingBottom: 32 }}>
+
+      {lightbox && (
+        <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.92)', zIndex: 3000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, cursor: 'zoom-out' }}>
+          <img src={lightbox.url} alt="" style={{ maxWidth: '90vw', maxHeight: '65vh', borderRadius: 12, objectFit: 'contain', boxShadow: '0 8px 40px rgba(0,0,0,.6)' }} onClick={e => e.stopPropagation()} />
+          <div onClick={e => e.stopPropagation()} style={{ marginTop: 16, background: 'rgba(255,255,255,.08)', borderRadius: 14, padding: '12px 20px', maxWidth: 500, width: '100%', backdropFilter: 'blur(8px)' }}>
+            <div style={{ fontSize: 13, color: '#fff', fontWeight: 700, marginBottom: 8 }}>
+              ❤️ {(photoLikes[String(lightbox.index)] || []).length} j'aime{(photoLikes[String(lightbox.index)] || []).length !== 1 ? 's' : ''}
+            </div>
+            {likerProfiles.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {likerProfiles.map(lk => {
+                  const lkColor = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63'][(lk.pseudo?.charCodeAt(0) || 0) % 8]
+                  return (
+                    <div key={lk.id} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,.12)', borderRadius: 20, padding: '4px 10px' }}>
+                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: lk.avatar_url ? '#444' : lkColor, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff' }}>
+                        {lk.avatar_url ? <img src={lk.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : lk.initials || lk.pseudo?.slice(0,2).toUpperCase()}
+                      </div>
+                      <span style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}>@{lk.pseudo}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+          <button onClick={() => setLightbox(null)} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: '#fff', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+        </div>
+      )}
 
       {cropSrc && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
@@ -510,12 +553,18 @@ export default function Profile() {
                 <div style={{ fontSize: 28, marginBottom: 8 }}>📷</div>Aucune photo ajoutée
               </div>
             : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10 }}>
-                {(profile.photos || []).map((url, i) => (
-                  <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', border: '1px solid #e8e0c8' }}>
-                    <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    <button onClick={() => removePhoto(url)} style={{ position: 'absolute', top: 6, right: 6, width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.65)', color: '#fff', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-                  </div>
-                ))}
+                {(profile.photos || []).map((url, i) => {
+                  const likers = photoLikes[String(i)] || []
+                  return (
+                    <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', border: '1px solid #e8e0c8', cursor: 'zoom-in' }}>
+                      <img src={url} alt="" onClick={() => openLightbox(url, i)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      {likers.length > 0 && (
+                        <div style={{ position: 'absolute', bottom: 6, left: 8, fontSize: 11, color: '#fff', fontWeight: 700, textShadow: '0 1px 3px rgba(0,0,0,.8)' }}>❤️ {likers.length}</div>
+                      )}
+                      <button onClick={() => removePhoto(url)} style={{ position: 'absolute', top: 6, right: 6, width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.65)', color: '#fff', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                    </div>
+                  )
+                })}
               </div>
           }
         </div>
