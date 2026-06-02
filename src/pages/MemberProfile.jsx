@@ -137,7 +137,6 @@ export default function MemberProfile() {
     loadFriendsList()
   }, [id])
 
-  // Notif visite profil — une seule fois par session, max 1 toutes les 10min via localStorage
   useEffect(() => {
     if (!user || !id || user.id === id) return
     if (notifSentRef.current) return
@@ -391,14 +390,14 @@ export default function MemberProfile() {
 
       {(member.badges || []).length > 0 && (
         <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid #c8a200`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
-          <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 14 }}>🎖️ Badges obtenus</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 16 }}>🎖️ Badges obtenus</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
             {BADGES_DEF.filter(b => (member.badges || []).includes(b.key)).map(b => (
-              <div key={b.key} title={b.desc} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '8px 6px', background: b.bg || '#fffae6', border: `1.5px solid ${b.color || '#c8a200'}`, borderRadius: 10, minWidth: 52, textAlign: 'center', cursor: 'help' }}>
-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,.5)', border: `1.5px solid ${b.color || '#c8a200'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
+              <div key={b.key} title={b.desc} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'help' }}>
+                <div style={{ width: 58, height: 58, borderRadius: '50%', background: `radial-gradient(circle at 35% 35%, ${b.color || '#c8a200'}bb, ${b.color || '#c8a200'})`, border: `3px solid ${b.color || '#c8a200'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, boxShadow: `0 4px 16px ${b.color || '#c8a200'}55, inset 0 1px 2px rgba(255,255,255,.35)` }}>
                   {b.emoji}
                 </div>
-                <span style={{ fontSize: 10, fontWeight: 700, color: b.color || '#7a6200', lineHeight: 1.2 }}>{b.label}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: b.color || '#7a6200', textAlign: 'center', maxWidth: 64, lineHeight: 1.2 }}>{b.label}</span>
               </div>
             ))}
           </div>

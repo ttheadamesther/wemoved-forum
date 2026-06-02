@@ -84,7 +84,7 @@ export default function Profile() {
   const navigate = useNavigate()
   const [friendsList,    setFriendsList]    = useState([])
   const [friendsLoading, setFriendsLoading] = useState(false)
-  const [pendingRequests, setPendingRequests] = useState([]) // demandes reçues en attente
+  const [pendingRequests, setPendingRequests] = useState([])
   const [pendingProfiles, setPendingProfiles] = useState([])
 
   useEffect(() => {
@@ -112,7 +112,6 @@ export default function Profile() {
 
     const loadPending = async () => {
       const h = { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
-      // Demandes reçues (user_b = moi, status = pending)
       const rp = await fetch(`${SUPABASE_URL}/rest/v1/friendships?user_b=eq.${user.id}&status=eq.pending&select=*`, { headers: h })
       const dp = await rp.json()
       if (Array.isArray(dp) && dp.length > 0) {
@@ -254,7 +253,6 @@ export default function Profile() {
   return (
     <div style={{ maxWidth: 860, margin: '0 auto', paddingBottom: 32 }}>
 
-      {/* MODAL CROP AVATAR */}
       {cropSrc && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
           <div style={{ background: C.white, borderRadius: 12, overflow: 'hidden', width: '100%', maxWidth: 400, boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
@@ -273,7 +271,6 @@ export default function Profile() {
         </div>
       )}
 
-      {/* MODAL CROP BANNIÈRE */}
       {bannerCropSrc && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
           <div style={{ background: C.white, borderRadius: 12, overflow: 'hidden', width: '100%', maxWidth: 600, boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
@@ -292,7 +289,6 @@ export default function Profile() {
         </div>
       )}
 
-      {/* BANNIÈRE */}
       <div style={{ position: 'relative', height: 180, ...bannerStyle }}>
         <div style={{ position: 'absolute', top: 12, right: 12 }}>
           <button onClick={() => setShowBannerPicker(p => !p)} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
@@ -317,7 +313,6 @@ export default function Profile() {
         )}
       </div>
 
-      {/* HEADER */}
       <div style={{ background: C.white, borderBottom: '1px solid #e8e0c8', padding: '0 20px 20px', marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: -44 }}>
           <div style={{ position: 'relative' }}>
@@ -354,10 +349,8 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* CONTENU */}
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-        {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
           {[
             { icon: '👥', label: 'Amis',       value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
@@ -372,7 +365,6 @@ export default function Profile() {
           ))}
         </div>
 
-        {/* BIO */}
         <div style={PANEL}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>✍️ Bio</div>
@@ -393,24 +385,22 @@ export default function Profile() {
           )}
         </div>
 
-        {/* BADGES */}
         {(profile.badges || []).length > 0 && (
           <div style={{ ...PANEL, borderTop: '3px solid #c8a200' }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>🎖️ Badges obtenus</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
               {BADGES_DEF.filter(b => (profile.badges || []).includes(b.key)).map(b => (
-                <div key={b.key} title={b.desc} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '8px 6px', background: b.bg || '#fffae6', border: `1.5px solid ${b.color || '#c8a200'}`, borderRadius: 10, minWidth: 52, textAlign: 'center', cursor: 'help' }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,.5)', border: `1.5px solid ${b.color || '#c8a200'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
+                <div key={b.key} title={b.desc} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'help' }}>
+                  <div style={{ width: 58, height: 58, borderRadius: '50%', background: `radial-gradient(circle at 35% 35%, ${b.color || '#c8a200'}bb, ${b.color || '#c8a200'})`, border: `3px solid ${b.color || '#c8a200'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, boxShadow: `0 4px 16px ${b.color || '#c8a200'}55, inset 0 1px 2px rgba(255,255,255,.35)` }}>
                     {b.emoji}
                   </div>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: b.color || '#7a6200', lineHeight: 1.2 }}>{b.label}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: b.color || '#7a6200', textAlign: 'center', maxWidth: 64, lineHeight: 1.2 }}>{b.label}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* DEMANDES D'AMIS EN ATTENTE */}
         {pendingRequests.length > 0 && (
           <div style={{ ...PANEL, borderTop: '3px solid #e67e22' }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>
@@ -447,7 +437,6 @@ export default function Profile() {
           </div>
         )}
 
-        {/* AMIS */}
         <div style={{ ...PANEL, borderTop: '3px solid #3498db' }}>
           <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>👥 Amis ({friendsList.length})</div>
           {friendsLoading
@@ -473,7 +462,6 @@ export default function Profile() {
           }
         </div>
 
-        {/* INFOS PERSONNELLES */}
         <div style={PANEL}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>📍 Infos personnelles</div>
@@ -520,7 +508,6 @@ export default function Profile() {
           )}
         </div>
 
-        {/* VOTES REÇUS */}
         <div style={PANEL}>
           <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>🗳️ Votes reçus</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -543,7 +530,6 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* INTÉRÊTS */}
         <div style={PANEL}>
           <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>🎯 Intérêts</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 14, minHeight: 36 }}>
@@ -564,7 +550,6 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* PHOTOS */}
         <div style={PANEL}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>🖼️ Photos ({(profile.photos || []).length})</div>
