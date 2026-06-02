@@ -370,7 +370,7 @@ export default function MemberProfile() {
           </div>
 
           {/* Stats + Votes sur la même ligne */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}`, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
             <div style={{ display: 'flex', gap: 16 }}>
               {[
                 { icon: '👥', label: 'Amis',       value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
@@ -385,23 +385,24 @@ export default function MemberProfile() {
                 </div>
               ))}
             </div>
-            <div style={{ width: 1, height: 28, background: C.border, flexShrink: 0 }} />
-            {VOTES_DEF.map(v => {
-              const voted = myVotes[v.key]
-              const count = votes[v.key] || 0
-              return (
-                <button key={v.key} onClick={() => user && user.id !== id && !isBlocked && vote(v.key)}
-                  disabled={!!voting || !user || user.id === id || isBlocked}
-                  title={v.label}
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, border: `1px solid ${voted ? C.accentDk : C.border}`, background: voted ? '#fffae6' : C.surfaceB, color: voted ? C.accentTxt : C.textMid, fontWeight: voted ? 700 : 500, fontSize: 12, cursor: (!user || user.id === id || isBlocked || !!voting) ? 'default' : 'pointer', transition: 'all .15s', fontFamily: 'inherit' }}>
-                  <span style={{ fontSize: 15 }}>{v.emoji}</span>
-                  <span>{count}</span>
-                  {user && user.id !== id && !isBlocked && (
-                    <span style={{ fontSize: 10, opacity: .6 }}>{voting === v.key ? '…' : voted ? ' ✓' : ' +'}</span>
-                  )}
-                </button>
-              )
-            })}
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+              {VOTES_DEF.map(v => {
+                const voted = myVotes[v.key]
+                const count = votes[v.key] || 0
+                return (
+                  <button key={v.key} onClick={() => user && user.id !== id && !isBlocked && vote(v.key)}
+                    disabled={!!voting || !user || user.id === id || isBlocked}
+                    title={v.label}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, border: `1px solid ${voted ? C.accentDk : C.border}`, background: voted ? '#fffae6' : C.surfaceB, color: voted ? C.accentTxt : C.textMid, fontWeight: voted ? 700 : 500, fontSize: 12, cursor: (!user || user.id === id || isBlocked || !!voting) ? 'default' : 'pointer', transition: 'all .15s', fontFamily: 'inherit' }}>
+                    <span style={{ fontSize: 15 }}>{v.emoji}</span>
+                    <span>{count}</span>
+                    {user && user.id !== id && !isBlocked && (
+                      <span style={{ fontSize: 10, opacity: .6 }}>{voting === v.key ? '…' : voted ? ' ✓' : ' +'}</span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
           {/* Bio */}

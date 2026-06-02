@@ -353,7 +353,7 @@ export default function Profile() {
 
         <div style={PANEL}>
           {/* Stats + Votes sur la même ligne */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${C.border}`, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${C.border}` }}>
             <div style={{ display: 'flex', gap: 16 }}>
               {[
                 { icon: '👥', label: 'Amis',       value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
@@ -368,16 +368,17 @@ export default function Profile() {
                 </div>
               ))}
             </div>
-            <div style={{ width: 1, height: 28, background: C.border, flexShrink: 0 }} />
-            {VOTES_DEF.map(v => {
-              const val = votes[v.key] || 0
-              return (
-                <div key={v.key} title={v.label} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, background: val > 0 ? '#fffae6' : C.surfaceB, border: `1px solid ${val > 0 ? '#c8a20066' : C.border}` }}>
-                  <span style={{ fontSize: 15 }}>{v.emoji}</span>
-                  <span style={{ fontWeight: 700, fontSize: 12, color: val > 0 ? C.accentTxt : C.textDim }}>{val}</span>
-                </div>
-              )
-            })}
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+              {VOTES_DEF.map(v => {
+                const val = votes[v.key] || 0
+                return (
+                  <div key={v.key} title={v.label} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, background: val > 0 ? '#fffae6' : C.surfaceB, border: `1px solid ${val > 0 ? '#c8a20066' : C.border}` }}>
+                    <span style={{ fontSize: 15 }}>{v.emoji}</span>
+                    <span style={{ fontWeight: 700, fontSize: 12, color: val > 0 ? C.accentTxt : C.textDim }}>{val}</span>
+                  </div>
+                )
+              })}
+            </div>
           </div>
           {/* Bio */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
