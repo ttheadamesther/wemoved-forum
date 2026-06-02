@@ -226,7 +226,7 @@ export default function Navbar() {
     const active = path === to
     return (
       <Link to={to} style={{ textDecoration: 'none' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', height: 64, color: active ? C.accent : '#ccc', fontWeight: active ? 700 : 400, fontSize: 12, borderBottom: active ? `2px solid ${C.accent}` : '2px solid transparent', cursor: 'pointer', transition: 'all .15s', whiteSpace: 'nowrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 14px', height: 64, color: active ? C.accent : '#ccc', fontWeight: active ? 700 : 400, fontSize: 14, borderBottom: active ? `2px solid ${C.accent}` : '2px solid transparent', cursor: 'pointer', transition: 'all .15s', whiteSpace: 'nowrap' }}>
           <span style={{ fontSize: 14 }}>{icon}</span>
           {label}
         </div>
@@ -406,7 +406,7 @@ export default function Navbar() {
         <NavLink to="/members"    label="Membres"    icon="👥" />
         {user && (
           <Link to="/messages" style={{ textDecoration: 'none' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', height: 64, color: path === '/messages' ? C.accent : '#ccc', fontWeight: path === '/messages' ? 700 : 400, fontSize: 12, borderBottom: path === '/messages' ? `2px solid ${C.accent}` : '2px solid transparent', cursor: 'pointer', transition: 'all .15s', whiteSpace: 'nowrap', position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', height: 64, color: path === '/messages' ? C.accent : '#ccc', fontWeight: path === '/messages' ? 700 : 400, fontSize: 14, borderBottom: path === '/messages' ? `2px solid ${C.accent}` : '2px solid transparent', cursor: 'pointer', transition: 'all .15s', whiteSpace: 'nowrap', position: 'relative' }}>
               <span style={{ fontSize: 14 }}>✉️</span>
               Messages
               {unreadMessages > 0 && (
@@ -506,7 +506,7 @@ export default function Navbar() {
                     {profile && <div style={{ transform: 'scale(0.85)', transformOrigin: 'left center' }}><RoleBadge role={profile.role} /></div>}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ fontSize: 9, color: '#c8a200', fontWeight: 700 }}>Niv.{level}</span>
+                    <span style={{ fontSize: 12, color: '#c8a200', fontWeight: 700 }}>Niv.{level}</span>
                     <div style={{ width: 40, height: 3, background: '#333', borderRadius: 3, overflow: 'hidden' }}>
                       <div style={{ height: '100%', width: `${xpPercent}%`, background: 'linear-gradient(to right,#f0c800,#c8a200)', borderRadius: 3 }} />
                     </div>
