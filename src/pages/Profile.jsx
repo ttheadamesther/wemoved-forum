@@ -325,18 +325,6 @@ export default function Profile() {
             </div>
             <input ref={avatarRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadAvatar} />
           </div>
-          {/* Votes reçus horizontaux readonly */}
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'flex-end', paddingBottom: 4 }}>
-            {VOTES_DEF.map(v => {
-              const val = votes[v.key] || 0
-              return (
-                <div key={v.key} title={v.label} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 20, background: val > 0 ? '#fffae6' : C.surfaceB, border: `1px solid ${val > 0 ? '#c8a20066' : C.border}` }}>
-                  <span style={{ fontSize: 15 }}>{v.emoji}</span>
-                  <span style={{ fontWeight: 700, fontSize: 12, color: val > 0 ? C.accentTxt : C.textDim }}>{val}</span>
-                </div>
-              )
-            })}
-          </div>
         </div>
         <div style={{ marginTop: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
@@ -364,20 +352,32 @@ export default function Profile() {
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
         <div style={PANEL}>
-          {/* Stats Amis + Votes reçus */}
-          <div style={{ display: 'flex', gap: 20, marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${C.border}` }}>
-            {[
-              { icon: '👥', label: 'Amis',       value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
-              { icon: '⭐', label: 'Votes reçus', value: totalVotes,                                color: '#c8a200' },
-            ].map(s => (
-              <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 16 }}>{s.icon}</span>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: s.color, lineHeight: 1 }}>{s.value}</div>
-                  <div style={{ fontSize: 9, color: C.textDim, textTransform: 'uppercase', letterSpacing: .5 }}>{s.label}</div>
+          {/* Stats + Votes sur la même ligne */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${C.border}`, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 16 }}>
+              {[
+                { icon: '👥', label: 'Amis',       value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
+                { icon: '⭐', label: 'Votes reçus', value: totalVotes,                                color: '#c8a200' },
+              ].map(s => (
+                <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 16 }}>{s.icon}</span>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: s.color, lineHeight: 1 }}>{s.value}</div>
+                    <div style={{ fontSize: 9, color: C.textDim, textTransform: 'uppercase', letterSpacing: .5 }}>{s.label}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            <div style={{ width: 1, height: 28, background: C.border, flexShrink: 0 }} />
+            {VOTES_DEF.map(v => {
+              const val = votes[v.key] || 0
+              return (
+                <div key={v.key} title={v.label} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, background: val > 0 ? '#fffae6' : C.surfaceB, border: `1px solid ${val > 0 ? '#c8a20066' : C.border}` }}>
+                  <span style={{ fontSize: 15 }}>{v.emoji}</span>
+                  <span style={{ fontWeight: 700, fontSize: 12, color: val > 0 ? C.accentTxt : C.textDim }}>{val}</span>
+                </div>
+              )
+            })}
           </div>
           {/* Bio */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -393,9 +393,9 @@ export default function Profile() {
               </div>
             </>
           ) : (
-            <p style={{ fontSize: 13, color: profile.bio ? C.text : C.textDim, lineHeight: 1.7, margin: 0, fontStyle: profile.bio ? 'normal' : 'italic' }}>
+            <div style={{ fontSize: 13, color: profile.bio ? C.text : C.textDim, lineHeight: 1.7, margin: 0, fontStyle: profile.bio ? 'normal' : 'italic', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
               {profile.bio || 'Aucune bio — clique sur Modifier pour en ajouter une.'}
-            </p>
+            </div>
           )}
         </div>
 

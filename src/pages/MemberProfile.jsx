@@ -329,25 +329,6 @@ export default function MemberProfile() {
                   </button>
                 </div>
               )}
-              {/* Boutons de vote horizontaux */}
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                {VOTES_DEF.map(v => {
-                  const voted = myVotes[v.key]
-                  const count = votes[v.key] || 0
-                  return (
-                    <button key={v.key} onClick={() => user && user.id !== id && !isBlocked && vote(v.key)}
-                      disabled={!!voting || !user || user.id === id || isBlocked}
-                      title={v.label}
-                      style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 20, border: `1px solid ${voted ? C.accentDk : C.border}`, background: voted ? '#fffae6' : C.surfaceB, color: voted ? C.accentTxt : C.textMid, fontWeight: voted ? 700 : 500, fontSize: 12, cursor: (!user || user.id === id || isBlocked || !!voting) ? 'default' : 'pointer', transition: 'all .15s', fontFamily: 'inherit' }}>
-                      <span style={{ fontSize: 15 }}>{v.emoji}</span>
-                      <span>{count}</span>
-                      {user && user.id !== id && !isBlocked && (
-                        <span style={{ fontSize: 10, opacity: .7 }}>{voting === v.key ? '…' : voted ? '✓' : '+'}</span>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
             </div>
           </div>
 
@@ -388,28 +369,47 @@ export default function MemberProfile() {
             {statut        && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>{statut}</span>}
           </div>
 
-          {/* Stats Amis + Votes reçus */}
-          <div style={{ display: 'flex', gap: 20, marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
-            {[
-              { icon: '👥', label: 'Amis',       value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
-              { icon: '⭐', label: 'Votes reçus', value: totalVotes,                                color: '#c8a200' },
-            ].map(s => (
-              <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 16 }}>{s.icon}</span>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: s.color, lineHeight: 1 }}>{s.value}</div>
-                  <div style={{ fontSize: 9, color: C.textDim, textTransform: 'uppercase', letterSpacing: .5 }}>{s.label}</div>
+          {/* Stats + Votes sur la même ligne */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}`, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 16 }}>
+              {[
+                { icon: '👥', label: 'Amis',       value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
+                { icon: '⭐', label: 'Votes reçus', value: totalVotes,                                color: '#c8a200' },
+              ].map(s => (
+                <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 16 }}>{s.icon}</span>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: s.color, lineHeight: 1 }}>{s.value}</div>
+                    <div style={{ fontSize: 9, color: C.textDim, textTransform: 'uppercase', letterSpacing: .5 }}>{s.label}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            <div style={{ width: 1, height: 28, background: C.border, flexShrink: 0 }} />
+            {VOTES_DEF.map(v => {
+              const voted = myVotes[v.key]
+              const count = votes[v.key] || 0
+              return (
+                <button key={v.key} onClick={() => user && user.id !== id && !isBlocked && vote(v.key)}
+                  disabled={!!voting || !user || user.id === id || isBlocked}
+                  title={v.label}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, border: `1px solid ${voted ? C.accentDk : C.border}`, background: voted ? '#fffae6' : C.surfaceB, color: voted ? C.accentTxt : C.textMid, fontWeight: voted ? 700 : 500, fontSize: 12, cursor: (!user || user.id === id || isBlocked || !!voting) ? 'default' : 'pointer', transition: 'all .15s', fontFamily: 'inherit' }}>
+                  <span style={{ fontSize: 15 }}>{v.emoji}</span>
+                  <span>{count}</span>
+                  {user && user.id !== id && !isBlocked && (
+                    <span style={{ fontSize: 10, opacity: .6 }}>{voting === v.key ? '…' : voted ? ' ✓' : ' +'}</span>
+                  )}
+                </button>
+              )
+            })}
           </div>
 
           {/* Bio */}
           <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>✍️ Bio</div>
-            <p style={{ fontSize: 13, color: member.bio ? C.textMid : C.textDim, lineHeight: 1.7, margin: 0, fontStyle: member.bio ? 'normal' : 'italic' }}>
+            <div style={{ fontSize: 13, color: member.bio ? C.textMid : C.textDim, lineHeight: 1.7, margin: 0, fontStyle: member.bio ? 'normal' : 'italic', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
               {member.bio || 'Aucune bio renseignée.'}
-            </p>
+            </div>
           </div>
         </div>
       </div>
