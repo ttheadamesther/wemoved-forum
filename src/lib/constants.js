@@ -248,3 +248,12 @@ export const INIT_CONVOS = [
   { id:1, withId:1, messages:[{from:1,text:"Salut ! T'as vu le dernier Boiler Room ?",ts:"14:32"},{from:0,text:"Ouais incroyable ! Le set de Blawan était 🔥",ts:"14:35"}] },
   { id:2, withId:3, messages:[{from:3,text:"Hey, tu viens à Marseille ce week-end ?",ts:"hier"}] },
 ]
+
+// ─── COULEUR BORDURE AVATAR PAR RÔLE ─────────────────────────────────────────
+export const ROLE_RING = {
+  admin:      '#f0c800',  // doré
+  manager:    '#9b59b6',  // violet
+  moderateur: '#2ecc71',  // vert
+  animateur:  '#3498db',  // bleu
+  membre:     null,       // pas de cercle
+}

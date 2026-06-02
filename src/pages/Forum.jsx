@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { C, CATS } from '../lib/constants'
+import { C, CATS, ROLE_RING } from '../lib/constants'
 import { RoleBadge, Btn, Input } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
 import EmojiPicker from 'emoji-picker-react'
@@ -127,12 +127,16 @@ function RichInput({ value, onChange, placeholder, rows = 3 }) {
   )
 }
 
+// Avatar avec cercle de rôle
 function Avatar({ member, size = 36, onClick }) {
   const colors = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
   const color = colors[(member?.pseudo?.charCodeAt(0) || 0) % colors.length]
+  const ring = ROLE_RING[member?.role] || null
   return (
-    <div onClick={onClick} style={{ width: size, height: size, borderRadius: '50%', background: member?.avatar_url ? '#444' : color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * .32, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, border: '2px solid rgba(255,255,255,.3)', cursor: onClick ? 'pointer' : 'default' }}>
-      {member?.avatar_url ? <img src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : member?.initials || '??'}
+    <div onClick={onClick} style={{ position: 'relative', flexShrink: 0, cursor: onClick ? 'pointer' : 'default' }}>
+      <div style={{ width: size, height: size, borderRadius: '50%', background: member?.avatar_url ? '#444' : color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * .32, fontWeight: 700, color: '#fff', overflow: 'hidden', border: ring ? `3px solid ${ring}` : '2px solid rgba(255,255,255,.3)', boxShadow: ring ? `0 0 8px ${ring}88` : 'none' }}>
+        {member?.avatar_url ? <img src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : member?.initials || '??'}
+      </div>
     </div>
   )
 }
@@ -145,22 +149,15 @@ function extractMentions(text) {
 
 const REACTIONS = ['👍','❤️','😂','😮','😢','🔥']
 
-// ── Modale de signalement ──
 function ReportModal({ type, targetId, reporterId, onClose }) {
   const [reason, setReason] = useState('')
   const [sent,   setSent]   = useState(false)
   const REASONS = ['Contenu inapproprié', 'Spam ou pub', 'Harcèlement', 'Contenu haineux', 'Fausses informations', 'Autre']
-
   const submit = async () => {
     if (!reason) return
-    await apiAuth('/rest/v1/reports', {
-      method: 'POST',
-      body: JSON.stringify({ type, target_id: targetId, reporter_id: reporterId, reason, status: 'pending' })
-    })
-    setSent(true)
-    setTimeout(onClose, 1500)
+    await apiAuth('/rest/v1/reports', { method: 'POST', body: JSON.stringify({ type, target_id: targetId, reporter_id: reporterId, reason, status: 'pending' }) })
+    setSent(true); setTimeout(onClose, 1500)
   }
-
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, width: '100%', maxWidth: 400, boxShadow: '0 8px 32px rgba(0,0,0,.2)' }}>
@@ -221,8 +218,8 @@ export default function ForumPage() {
   const [myReactions,   setMyReactions]   = useState({})
   const [showReactionPicker, setShowReactionPicker] = useState(null)
   const [page,          setPage]          = useState(1)
-  const [reporting,     setReporting]     = useState(null) // { type, targetId }
-  const [confirmDel,    setConfirmDel]    = useState(null) // { type: 'thread'|'reply', id }
+  const [reporting,     setReporting]     = useState(null)
+  const [confirmDel,    setConfirmDel]    = useState(null)
   const [spamError,     setSpamError]     = useState('')
   const lastPostTime = useRef(0)
 
@@ -248,7 +245,6 @@ export default function ForumPage() {
     loadThreads()
   }, [])
 
-  // Reset page quand filtre change
   useEffect(() => { setPage(1) }, [cat, sortBy, searchQuery])
 
   const loadThreads = async () => {
@@ -280,13 +276,8 @@ export default function ForumPage() {
     if (!nTitle.trim() || !nBody.trim() || !user) return
     if (nCat === '+18' && !isAdult && !canMod) return
     const now = Date.now()
-    if (now - lastPostTime.current < 30000) {
-      setSpamError(`Attends encore ${Math.ceil((30000 - (now - lastPostTime.current)) / 1000)}s avant de poster.`)
-      return
-    }
-    setSpamError('')
-    setPosting(true)
-    lastPostTime.current = now
+    if (now - lastPostTime.current < 30000) { setSpamError(`Attends encore ${Math.ceil((30000 - (now - lastPostTime.current)) / 1000)}s avant de poster.`); return }
+    setSpamError(''); setPosting(true); lastPostTime.current = now
     await apiAuth('/rest/v1/threads', { method: 'POST', body: JSON.stringify({ author_id: user.id, cat: nCat, title: nTitle.trim(), body: nBody.trim(), likes: 0, views: 0, pinned: false, locked: false, hidden: false }) })
     await awardXP(user.id, 10)
     setNTitle(''); setNBody(''); setComposing(false); loadThreads(); setPosting(false)
@@ -295,13 +286,8 @@ export default function ForumPage() {
   const postReply = async () => {
     if (!replyText.trim() || !openId || !user) return
     const now = Date.now()
-    if (now - lastPostTime.current < 30000) {
-      setSpamError(`Attends encore ${Math.ceil((30000 - (now - lastPostTime.current)) / 1000)}s avant de poster.`)
-      return
-    }
-    setSpamError('')
-    setPosting(true)
-    lastPostTime.current = now
+    if (now - lastPostTime.current < 30000) { setSpamError(`Attends encore ${Math.ceil((30000 - (now - lastPostTime.current)) / 1000)}s avant de poster.`); return }
+    setSpamError(''); setPosting(true); lastPostTime.current = now
     const body = quoting
       ? `> @${quoting.pseudo} : ${quoting.body.slice(0, 100)}${quoting.body.length > 100 ? '…' : ''}\n\n${replyText.trim()}`
       : replyText.trim()
@@ -311,15 +297,9 @@ export default function ForumPage() {
     if (currentThread && currentThread.author_id !== user.id) {
       await sendNotif(currentThread.author_id, 'reply', `💬 @${profile?.pseudo || 'Quelqu\'un'} a répondu à votre topic "${currentThread.title.slice(0, 50)}"`, `/forum`)
     }
-    if (quoting && quoting.authorId && quoting.authorId !== user.id && quoting.authorId !== currentThread?.author_id) {
-      await sendNotif(quoting.authorId, 'mention', `💬 @${profile?.pseudo || 'Quelqu\'un'} a cité votre message dans "${currentThread?.title?.slice(0, 40) || 'un topic'}"`, `/forum`)
-    }
     const mentions = extractMentions(replyText)
-    if (mentions.length > 0) {
-      const mentionedMembers = members.filter(m => mentions.includes(m.pseudo?.toLowerCase()) && m.id !== user.id && m.id !== currentThread?.author_id && m.id !== quoting?.authorId)
-      for (const m of mentionedMembers) {
-        await sendNotif(m.id, 'mention', `🔔 @${profile?.pseudo || 'Quelqu\'un'} vous a mentionné dans "${currentThread?.title?.slice(0, 40) || 'un topic'}"`, `/forum`)
-      }
+    for (const m of members.filter(m => mentions.includes(m.pseudo?.toLowerCase()) && m.id !== user.id)) {
+      await sendNotif(m.id, 'mention', `🔔 @${profile?.pseudo || 'Quelqu\'un'} vous a mentionné`, `/forum`)
     }
     setReplyText(''); setQuoting(null); loadReplies(openId)
     setReplyCounts(prev => ({ ...prev, [openId]: (prev[openId] || 0) + 1 }))
@@ -347,17 +327,9 @@ export default function ForumPage() {
     const current = myReactions[replyId]
     const newMyReactions = { ...myReactions }
     const newReactions = { ...reactions, [replyId]: { ...(reactions[replyId] || {}) } }
-    if (current === emoji) {
-      delete newMyReactions[replyId]
-      newReactions[replyId][emoji] = Math.max(0, (newReactions[replyId][emoji] || 1) - 1)
-    } else {
-      if (current) newReactions[replyId][current] = Math.max(0, (newReactions[replyId][current] || 1) - 1)
-      newMyReactions[replyId] = emoji
-      newReactions[replyId][emoji] = (newReactions[replyId][emoji] || 0) + 1
-    }
-    setMyReactions(newMyReactions)
-    setReactions(newReactions)
-    setShowReactionPicker(null)
+    if (current === emoji) { delete newMyReactions[replyId]; newReactions[replyId][emoji] = Math.max(0, (newReactions[replyId][emoji] || 1) - 1) }
+    else { if (current) newReactions[replyId][current] = Math.max(0, (newReactions[replyId][current] || 1) - 1); newMyReactions[replyId] = emoji; newReactions[replyId][emoji] = (newReactions[replyId][emoji] || 0) + 1 }
+    setMyReactions(newMyReactions); setReactions(newReactions); setShowReactionPicker(null)
   }
 
   const updateThread = async (id, title, body) => {
@@ -370,18 +342,10 @@ export default function ForumPage() {
     loadReplies(openId)
   }
 
-  const deleteThread = async (id) => {
-    setConfirmDel({ type: 'thread', id })
-  }
-
   const doDeleteThread = async (id) => {
     await apiAuth(`/rest/v1/replies?thread_id=eq.${id}`, { method: 'DELETE' })
     await apiAuth(`/rest/v1/threads?id=eq.${id}`, { method: 'DELETE' })
     setOpenId(null); setReplies([]); loadThreads(); setConfirmDel(null)
-  }
-
-  const deleteReply = async (id) => {
-    setConfirmDel({ type: 'reply', id })
   }
 
   const doDeleteReply = async (id) => {
@@ -400,7 +364,6 @@ export default function ForumPage() {
   else if (sortBy === 'unanswered') filtered = filtered.filter(t => !replyCounts[t.id])
   else filtered = [...filtered].sort((a, b) => b.pinned - a.pinned || new Date(b.created_at) - new Date(a.created_at))
 
-  // Pagination
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
@@ -410,7 +373,24 @@ export default function ForumPage() {
       <Btn onClick={() => patchThread(thread.id, { pinned: !thread.pinned })} variant={thread.pinned ? 'yellow' : 'ghost'} style={{ fontSize: 10 }}>{thread.pinned ? '📌 Désépingler' : '📌 Épingler'}</Btn>
       <Btn onClick={() => patchThread(thread.id, { locked: !thread.locked })} variant={thread.locked ? 'yellow' : 'ghost'} style={{ fontSize: 10 }}>{thread.locked ? '🔓 Déverrouiller' : '🔒 Verrouiller'}</Btn>
       <Btn onClick={() => patchThread(thread.id, { hidden: !thread.hidden })} variant={thread.hidden ? 'green' : 'red'} style={{ fontSize: 10 }}>{thread.hidden ? '👁 Restaurer' : '🙈 Masquer'}</Btn>
-      <Btn onClick={() => deleteThread(thread.id)} variant="red" style={{ fontSize: 10 }}>🗑 Supprimer</Btn>
+      <Btn onClick={() => setConfirmDel({ type: 'thread', id: thread.id })} variant="red" style={{ fontSize: 10 }}>🗑 Supprimer</Btn>
+    </div>
+  )
+
+  const ConfirmModal = () => (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, width: '100%', maxWidth: 340, boxShadow: '0 8px 32px rgba(0,0,0,.25)' }}>
+        <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 12 }}>🗑️</div>
+        <div style={{ fontWeight: 700, fontSize: 15, color: C.text, textAlign: 'center', marginBottom: 6 }}>
+          {confirmDel.type === 'thread' ? 'Supprimer ce topic ?' : 'Supprimer cette réponse ?'}
+        </div>
+        <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', marginBottom: 20 }}>Cette action est définitive.</div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={() => setConfirmDel(null)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surfaceB, color: C.textMid, fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Annuler</button>
+          <button onClick={() => confirmDel.type === 'thread' ? doDeleteThread(confirmDel.id) : doDeleteReply(confirmDel.id)}
+            style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: C.red, color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Supprimer</button>
+        </div>
+      </div>
     </div>
   )
 
@@ -419,33 +399,8 @@ export default function ForumPage() {
     const catColor = CAT_COLORS[currentThread.cat] || C.accentDk
     return (
       <div ref={containerRef} style={{ maxWidth: 780, margin: '0 auto', padding: isMobile ? '12px' : '20px 16px' }}>
-        {reporting && (
-          <ReportModal type={reporting.type} targetId={reporting.targetId} reporterId={user?.id} onClose={() => setReporting(null)} />
-        )}
-
-        {confirmDel && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, width: '100%', maxWidth: 340, boxShadow: '0 8px 32px rgba(0,0,0,.25)' }}>
-              <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 12 }}>🗑️</div>
-              <div style={{ fontWeight: 700, fontSize: 15, color: C.text, textAlign: 'center', marginBottom: 6 }}>
-                {confirmDel.type === 'thread' ? 'Supprimer ce topic ?' : 'Supprimer cette réponse ?'}
-              </div>
-              <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', marginBottom: 20 }}>
-                Cette action est définitive et irréversible.
-              </div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={() => setConfirmDel(null)}
-                  style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surfaceB, color: C.textMid, fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  Annuler
-                </button>
-                <button onClick={() => confirmDel.type === 'thread' ? doDeleteThread(confirmDel.id) : doDeleteReply(confirmDel.id)}
-                  style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: C.red, color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  Supprimer
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {reporting && <ReportModal type={reporting.type} targetId={reporting.targetId} reporterId={user?.id} onClose={() => setReporting(null)} />}
+        {confirmDel && <ConfirmModal />}
 
         <button onClick={() => { setOpenId(null); setReplies([]); setEditingThread(null); setEditingReply(null) }}
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: C.textMid, cursor: 'pointer', fontSize: 13, fontWeight: 600, marginBottom: 16, padding: 0 }}>
@@ -453,7 +408,6 @@ export default function ForumPage() {
         </button>
 
         {currentThread.hidden && <div style={{ background: '#ffe0e0', border: '1px solid #c0392b', borderRadius: 10, padding: '8px 14px', marginBottom: 12, fontSize: 12, color: C.red, fontWeight: 600 }}>🗑 Discussion masquée</div>}
-        {currentThread.cat === '+18' && <div style={{ background: '#fff0f0', border: `1px solid ${C.red}`, borderRadius: 10, padding: '8px 14px', marginBottom: 12, fontSize: 12, color: C.red, fontWeight: 600 }}>🔞 Contenu réservé aux +18 ans</div>}
 
         <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid ${catColor}`, borderRadius: 16, padding: isMobile ? '14px' : '20px', marginBottom: 12, boxShadow: '0 2px 12px rgba(0,0,0,.06)' }}>
           <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
@@ -498,9 +452,6 @@ export default function ForumPage() {
                 {user?.id === currentThread.author_id && !editingThread && (
                   <Btn onClick={() => setEditingThread({ title: currentThread.title, body: currentThread.body })} variant="ghost" style={{ fontSize: 11 }}>✏️ Modifier</Btn>
                 )}
-                {visReplies.length > 0 && (
-                  <Btn onClick={() => repliesEndRef.current?.scrollIntoView({ behavior: 'smooth' })} variant="ghost" style={{ fontSize: 11 }}>⬇ Dernière réponse</Btn>
-                )}
               </div>
               {canMod && <ModBar thread={currentThread} />}
             </div>
@@ -509,9 +460,7 @@ export default function ForumPage() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
           {visReplies.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '24px', background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, fontSize: 12, color: C.textDim }}>
-              Aucune réponse — soyez le premier !
-            </div>
+            <div style={{ textAlign: 'center', padding: '24px', background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, fontSize: 12, color: C.textDim }}>Aucune réponse — soyez le premier !</div>
           )}
           {visReplies.map((r, idx) => {
             const ru = getMember(r.author_id)
@@ -520,7 +469,7 @@ export default function ForumPage() {
             const myEmoji = myReactions[r.id]
             const isLast = idx === visReplies.length - 1
             return (
-              <div key={r.id} ref={isLast ? repliesEndRef : null} style={{ background: r.hidden ? '#fff8f8' : C.white, border: `1px solid ${r.hidden ? '#f5c0c0' : C.border}`, borderRadius: 14, padding: isMobile ? '12px' : '14px 16px', display: 'flex', gap: 12, boxShadow: '0 1px 3px rgba(0,0,0,.03)', transition: 'all .2s' }}>
+              <div key={r.id} ref={isLast ? repliesEndRef : null} style={{ background: r.hidden ? '#fff8f8' : C.white, border: `1px solid ${r.hidden ? '#f5c0c0' : C.border}`, borderRadius: 14, padding: isMobile ? '12px' : '14px 16px', display: 'flex', gap: 12, boxShadow: '0 1px 3px rgba(0,0,0,.03)' }}>
                 <Avatar member={ru} size={34} onClick={() => ru?.id && navigate(`/members/${ru.id}`)} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
@@ -558,11 +507,7 @@ export default function ForumPage() {
                           <div style={{ position: 'absolute', bottom: '110%', left: 0, background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: '6px 8px', display: 'flex', gap: 4, zIndex: 100, boxShadow: '0 4px 16px rgba(0,0,0,.1)' }}>
                             {REACTIONS.map(emoji => (
                               <button key={emoji} onClick={() => toggleReaction(r.id, emoji)}
-                                style={{ fontSize: 18, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 6, transition: 'all .15s' }}
-                                onMouseEnter={e => e.currentTarget.style.background = C.surfaceB}
-                                onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                                {emoji}
-                              </button>
+                                style={{ fontSize: 18, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 6 }}>{emoji}</button>
                             ))}
                           </div>
                         )}
@@ -576,12 +521,12 @@ export default function ForumPage() {
                         <Btn onClick={() => setReporting({ type: 'reply', targetId: r.id })} variant="ghost" style={{ fontSize: 10, color: C.red }}>🚩</Btn>
                       )}
                       {user?.id === r.author_id && !isEditingThis && (
-                        <Btn onClick={() => setEditingReply({ id: r.id, body: r.body })} variant="ghost" style={{ fontSize: 10 }}>✏️ Modifier</Btn>
+                        <Btn onClick={() => setEditingReply({ id: r.id, body: r.body })} variant="ghost" style={{ fontSize: 10 }}>✏️</Btn>
                       )}
                       {canMod && (
                         <>
                           <Btn onClick={async () => { await apiAuth(`/rest/v1/replies?id=eq.${r.id}`, { method: 'PATCH', body: JSON.stringify({ hidden: !r.hidden }) }); loadReplies(openId) }} variant={r.hidden ? 'green' : 'red'} style={{ fontSize: 10 }}>{r.hidden ? '👁' : '🙈'}</Btn>
-                          <Btn onClick={() => deleteReply(r.id)} variant="red" style={{ fontSize: 10 }}>🗑</Btn>
+                          <Btn onClick={() => setConfirmDel({ type: 'reply', id: r.id })} variant="red" style={{ fontSize: 10 }}>🗑</Btn>
                         </>
                       )}
                     </div>
@@ -599,12 +544,12 @@ export default function ForumPage() {
               <div style={{ background: C.surfaceB, border: `1px solid ${C.border}`, borderLeft: `3px solid ${C.accentDk}`, borderRadius: 8, padding: '8px 12px', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.accentTxt, marginBottom: 3 }}>@{quoting.pseudo}</div>
-                  <div style={{ fontSize: 12, color: C.textMid, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{quoting.body.slice(0, 120)}{quoting.body.length > 120 ? '…' : ''}</div>
+                  <div style={{ fontSize: 12, color: C.textMid, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{quoting.body.slice(0, 120)}</div>
                 </div>
-                <button onClick={() => setQuoting(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, fontSize: 14, flexShrink: 0 }}>✕</button>
+                <button onClick={() => setQuoting(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, fontSize: 14 }}>✕</button>
               </div>
             )}
-            <RichInput value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Écris ta réponse… (liens, émojis et @mentions supportés)" rows={3} />
+            <RichInput value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Écris ta réponse…" rows={3} />
             {spamError && <div style={{ fontSize: 11, color: C.red, marginTop: 8, fontWeight: 600 }}>⏳ {spamError}</div>}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
               <Btn onClick={postReply} variant="yellow">{posting ? '…' : 'Publier ma réponse'}</Btn>
@@ -621,9 +566,7 @@ export default function ForumPage() {
 
   return (
     <div ref={containerRef} style={{ maxWidth: 780, margin: '0 auto', padding: isMobile ? '12px' : '20px 16px' }}>
-      {reporting && (
-        <ReportModal type={reporting.type} targetId={reporting.targetId} reporterId={user?.id} onClose={() => setReporting(null)} />
-      )}
+      {reporting && <ReportModal type={reporting.type} targetId={reporting.targetId} reporterId={user?.id} onClose={() => setReporting(null)} />}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>
           <h1 style={{ fontWeight: 700, fontSize: isMobile ? 18 : 22, color: C.text, marginBottom: 2 }}>Forum</h1>
@@ -667,8 +610,7 @@ export default function ForumPage() {
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 180 }}>
           <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="🔍 Rechercher dans le forum…"
-            style={{ width: '100%', padding: '8px 14px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.surfaceB, color: C.text, fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
-          />
+            style={{ width: '100%', padding: '8px 14px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.surfaceB, color: C.text, fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           {[{ key: 'recent', label: '🕐 Récents' }, { key: 'popular', label: '🔥 Populaires' }, { key: 'unanswered', label: '💬 Sans réponse' }].map(s => (
@@ -695,7 +637,6 @@ export default function ForumPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {paginated.map(t => {
           const author = getMember(t.author_id)
-          const isAdultCat = t.cat === '+18'
           const catColor = CAT_COLORS[t.cat] || C.accentDk
           const replyCount = replyCounts[t.id] || 0
           const novel = isNew(t.created_at)
@@ -703,14 +644,13 @@ export default function ForumPage() {
             <div key={t.id} onClick={() => openThread(t)}
               style={{ background: t.hidden ? '#fff8f8' : C.white, border: `1px solid ${t.hidden ? '#f5c0c0' : C.border}`, borderLeft: `4px solid ${catColor}`, borderRadius: 14, padding: isMobile ? '12px' : '14px 16px', cursor: 'pointer', display: 'flex', gap: 12, transition: 'all .2s', boxShadow: '0 1px 3px rgba(0,0,0,.03)' }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,.08)' }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,.03)' }}
-            >
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,.03)' }}>
               <Avatar member={author} size={isMobile ? 36 : 42} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 4, flexWrap: 'wrap' }}>
                   <strong style={{ fontSize: 12, color: C.text }}>@{author?.pseudo || 'Inconnu'}</strong>
                   <RoleBadge role={author?.role || 'membre'} />
-                  <span style={{ padding: '1px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: catColor + '22', color: catColor, border: `1px solid ${catColor}44` }}>{isAdultCat ? '🔞 +18' : t.cat}</span>
+                  <span style={{ padding: '1px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: catColor + '22', color: catColor, border: `1px solid ${catColor}44` }}>{t.cat === '+18' ? '🔞 +18' : t.cat}</span>
                   {novel && <span style={{ padding: '1px 7px', borderRadius: 20, fontSize: 9, fontWeight: 700, background: '#2ecc71', color: '#fff' }}>NOUVEAU</span>}
                   {t.pinned && <span style={{ fontSize: 10, color: C.accentTxt, fontWeight: 700 }}>📌</span>}
                   {t.locked && <span style={{ fontSize: 10, color: C.red, fontWeight: 700 }}>🔒</span>}
@@ -735,7 +675,6 @@ export default function ForumPage() {
         )}
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 20 }}>
           <button onClick={() => { setPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0 }) }} disabled={page === 1}
@@ -744,7 +683,7 @@ export default function ForumPage() {
           </button>
           {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
             <button key={p} onClick={() => { setPage(p); window.scrollTo({ top: 0 }) }}
-              style={{ width: 34, height: 34, borderRadius: '50%', border: `1px solid ${p === page ? C.accentDk : C.border}`, background: p === page ? '#fffae6' : C.white, color: p === page ? C.accentTxt : C.text, fontWeight: p === page ? 700 : 400, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', transition: 'all .15s' }}>
+              style={{ width: 34, height: 34, borderRadius: '50%', border: `1px solid ${p === page ? C.accentDk : C.border}`, background: p === page ? '#fffae6' : C.white, color: p === page ? C.accentTxt : C.text, fontWeight: p === page ? 700 : 400, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>
               {p}
             </button>
           ))}

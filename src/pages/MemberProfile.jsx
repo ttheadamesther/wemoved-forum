@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { C, VOTES_DEF } from '../lib/constants'
+import { C, VOTES_DEF, ROLE_RING } from '../lib/constants'
 import { BADGES_DEF } from '../lib/xp'
 import { RoleBadge, Btn } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
@@ -315,7 +315,7 @@ export default function MemberProfile() {
         <div style={{ height: 160, background: member.banner_url ? `url(${member.banner_url}) center/cover no-repeat` : 'linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)' }} />
         <div style={{ padding: '0 24px 24px', position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div style={{ width: 90, height: 90, borderRadius: '50%', background: member.avatar_url ? '#444' : avatarColor, border: '4px solid #fff', marginTop: -45, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, boxShadow: '0 2px 12px rgba(0,0,0,.15)' }}>
+            <div style={{ width: 90, height: 90, borderRadius: '50%', background: member.avatar_url ? '#444' : avatarColor, border: ROLE_RING[member.role] ? `4px solid ${ROLE_RING[member.role]}` : '4px solid #fff', boxShadow: ROLE_RING[member.role] ? `0 0 16px ${ROLE_RING[member.role]}99` : 'none', marginTop: -45, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, boxShadow: '0 2px 12px rgba(0,0,0,.15)' }}>
               {member.avatar_url ? <img src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
             </div>
             {user && user.id !== id && (
@@ -353,6 +353,7 @@ export default function MemberProfile() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
             <h1 style={{ fontWeight: 700, fontSize: 20, color: C.text, margin: 0 }}>@{member.pseudo}</h1>
             <RoleBadge role={member.role} />
+            <span style={{ fontSize: 12, color: '#c8a200', fontWeight: 700, background: 'rgba(200,162,0,.1)', padding: '2px 10px', borderRadius: 20, border: '1px solid #c8a20044' }}>Niv. {member.level || 1}</span>
             {member.online && <span style={{ fontSize: 11, color: '#2ecc71', fontWeight: 600 }}>● En ligne</span>}
           </div>
 

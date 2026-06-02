@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Cropper from 'react-easy-crop'
 import { useAuth } from '../hooks/useAuth'
-import { C, VOTES_DEF } from '../lib/constants'
+import { C, VOTES_DEF, ROLE_RING } from '../lib/constants'
 import { BADGES_DEF } from '../lib/xp'
 import { RoleBadge, Btn, Input, Textarea } from '../components/UI'
 import { GeoSelects } from '../components/GeoSelects'
@@ -316,7 +316,7 @@ export default function Profile() {
       <div style={{ background: C.white, borderBottom: '1px solid #e8e0c8', padding: '0 20px 20px', marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: -44 }}>
           <div style={{ position: 'relative' }}>
-            <div onClick={() => avatarRef.current.click()} style={{ width: 88, height: 88, borderRadius: '50%', background: profile.avatar_url ? '#444' : avatarColor, border: '4px solid #fff', boxShadow: '0 4px 16px rgba(0,0,0,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 28, color: '#fff', cursor: 'pointer', overflow: 'hidden', position: 'relative' }}>
+            <div onClick={() => avatarRef.current.click()} style={{ width: 88, height: 88, borderRadius: '50%', background: profile.avatar_url ? '#444' : avatarColor, border: ROLE_RING[profile.role] ? `4px solid ${ROLE_RING[profile.role]}` : '4px solid #fff', boxShadow: ROLE_RING[profile.role] ? `0 0 16px ${ROLE_RING[profile.role]}99, 0 4px 16px rgba(0,0,0,.2)` : '0 4px 16px rgba(0,0,0,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 28, color: '#fff', cursor: 'pointer', overflow: 'hidden', position: 'relative' }}>
               {profile.avatar_url ? <img src={profile.avatar_url} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : profile.initials || profile.pseudo?.slice(0, 2).toUpperCase()}
               <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: '.2s', borderRadius: '50%' }}
                 onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0}>
@@ -331,6 +331,7 @@ export default function Profile() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 700, fontSize: 20, color: C.text }}>@{profile.pseudo}</span>
             <RoleBadge role={profile.role} />
+            <span style={{ fontSize: 12, color: '#c8a200', fontWeight: 700, background: 'rgba(200,162,0,.1)', padding: '2px 10px', borderRadius: 20, border: '1px solid #c8a20044' }}>Niv. {profile.level || 1}</span>
             {topVote && totalVotes > 0 && (
               <span style={{ padding: '2px 10px', borderRadius: 20, fontSize: 11, background: '#fffae6', color: '#7a6200', border: '1px solid #c8a20066', fontWeight: 700 }}>
                 {topVote.emoji} {topVote.label}

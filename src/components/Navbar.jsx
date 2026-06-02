@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { C } from '../lib/constants'
+import { C, ROLE_RING } from '../lib/constants'
 import { RoleBadge } from './UI'
 import { Logo } from './Logo'
 import { useAuth } from '../hooks/useAuth'
@@ -497,7 +497,7 @@ export default function Navbar() {
           {user && (
             <div ref={userMenuRef} style={{ position: 'relative' }}>
               <div onClick={() => setShowUserMenu(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px', height: 42, background: '#1a1a1a', borderRadius: 22, border: `1px solid ${showUserMenu ? '#c8a200' : '#2a2a2a'}`, cursor: 'pointer', transition: 'all .15s' }}>
-                <div style={{ width: 26, height: 26, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
+                <div style={{ width: 26, height: 26, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, border: ROLE_RING[profile?.role] ? `2px solid ${ROLE_RING[profile?.role]}` : '2px solid #333', boxShadow: ROLE_RING[profile?.role] ? `0 0 6px ${ROLE_RING[profile?.role]}88` : 'none' }}>
                   {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
                 </div>
                 <div style={{ lineHeight: 1.2 }}>
