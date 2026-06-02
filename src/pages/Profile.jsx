@@ -325,6 +325,18 @@ export default function Profile() {
             </div>
             <input ref={avatarRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadAvatar} />
           </div>
+          {/* Votes reçus horizontaux readonly */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'flex-end', paddingBottom: 4 }}>
+            {VOTES_DEF.map(v => {
+              const val = votes[v.key] || 0
+              return (
+                <div key={v.key} title={v.label} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 20, background: val > 0 ? '#fffae6' : C.surfaceB, border: `1px solid ${val > 0 ? '#c8a20066' : C.border}` }}>
+                  <span style={{ fontSize: 15 }}>{v.emoji}</span>
+                  <span style={{ fontWeight: 700, fontSize: 12, color: val > 0 ? C.accentTxt : C.textDim }}>{val}</span>
+                </div>
+              )
+            })}
+          </div>
         </div>
         <div style={{ marginTop: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
@@ -352,37 +364,20 @@ export default function Profile() {
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
         <div style={PANEL}>
-          {/* Stats + Votes sur la même ligne */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${C.border}`, flexWrap: 'wrap' }}>
-            {/* Compteurs */}
-            <div style={{ display: 'flex', gap: 20 }}>
-              {[
-                { icon: '👥', label: 'Amis',       value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
-                { icon: '⭐', label: 'Votes reçus', value: totalVotes,                                color: '#c8a200' },
-              ].map(s => (
-                <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 16 }}>{s.icon}</span>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 16, color: s.color, lineHeight: 1 }}>{s.value}</div>
-                    <div style={{ fontSize: 9, color: C.textDim, textTransform: 'uppercase', letterSpacing: .5 }}>{s.label}</div>
-                  </div>
+          {/* Stats Amis + Votes reçus */}
+          <div style={{ display: 'flex', gap: 20, marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${C.border}` }}>
+            {[
+              { icon: '👥', label: 'Amis',       value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
+              { icon: '⭐', label: 'Votes reçus', value: totalVotes,                                color: '#c8a200' },
+            ].map(s => (
+              <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 16 }}>{s.icon}</span>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: s.color, lineHeight: 1 }}>{s.value}</div>
+                  <div style={{ fontSize: 9, color: C.textDim, textTransform: 'uppercase', letterSpacing: .5 }}>{s.label}</div>
                 </div>
-              ))}
-            </div>
-            {/* Séparateur */}
-            <div style={{ width: 1, height: 32, background: C.border, flexShrink: 0 }} />
-            {/* Votes readonly (propre profil) */}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {VOTES_DEF.map(v => {
-                const val = votes[v.key] || 0
-                return (
-                  <div key={v.key} title={v.label} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 20, background: val > 0 ? '#fffae6' : C.surfaceB, border: `1px solid ${val > 0 ? '#c8a20066' : C.border}` }}>
-                    <span style={{ fontSize: 15 }}>{v.emoji}</span>
-                    <span style={{ fontWeight: 700, fontSize: 12, color: val > 0 ? C.accentTxt : C.textDim }}>{val}</span>
-                  </div>
-                )
-              })}
-            </div>
+              </div>
+            ))}
           </div>
           {/* Bio */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -402,25 +397,25 @@ export default function Profile() {
               {profile.bio || 'Aucune bio — clique sur Modifier pour en ajouter une.'}
             </p>
           )}
-          {/* Intérêts juste après la bio */}
-          <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
-            <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 10 }}>🎯 Intérêts</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 12, minHeight: 28 }}>
-              {(profile.interests || []).length === 0
-                ? <span style={{ fontSize: 12, color: C.textDim, fontStyle: 'italic' }}>Ajoutes-en ci-dessous</span>
-                : (profile.interests || []).map(i => (
-                  <span key={i} onClick={() => removeInterest(i)}
-                    style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, background: '#fffae6', color: '#7a6200', border: '1px solid #c8a20066', cursor: 'pointer', fontWeight: 600, transition: 'all .15s' }}
-                    onMouseEnter={e => e.currentTarget.style.opacity = '.7'}
-                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                    title="Cliquer pour supprimer">{i} ✕</span>
-                ))
-              }
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Input value={interest} onChange={e => setInterest(e.target.value)} placeholder="Ajouter un intérêt…" onKeyDown={e => e.key === 'Enter' && addInterest()} style={{ flex: 1 }} />
-              <Btn onClick={addInterest} variant="yellow">+</Btn>
-            </div>
+        </div>
+
+        <div style={PANEL}>
+          <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 12 }}>🎯 Intérêts</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 12, minHeight: 28 }}>
+            {(profile.interests || []).length === 0
+              ? <span style={{ fontSize: 12, color: C.textDim, fontStyle: 'italic' }}>Ajoutes-en ci-dessous</span>
+              : (profile.interests || []).map(i => (
+                <span key={i} onClick={() => removeInterest(i)}
+                  style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, background: '#fffae6', color: '#7a6200', border: '1px solid #c8a20066', cursor: 'pointer', fontWeight: 600, transition: 'all .15s' }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '.7'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                  title="Cliquer pour supprimer">{i} ✕</span>
+              ))
+            }
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Input value={interest} onChange={e => setInterest(e.target.value)} placeholder="Ajouter un intérêt…" onKeyDown={e => e.key === 'Enter' && addInterest()} style={{ flex: 1 }} />
+            <Btn onClick={addInterest} variant="yellow">+</Btn>
           </div>
         </div>
 

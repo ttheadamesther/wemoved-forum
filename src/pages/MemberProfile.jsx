@@ -318,17 +318,37 @@ export default function MemberProfile() {
             <div style={{ width: 90, height: 90, borderRadius: '50%', background: member.avatar_url ? '#444' : avatarColor, border: ROLE_RING[member.role] ? `4px solid ${ROLE_RING[member.role]}` : '4px solid #fff', boxShadow: ROLE_RING[member.role] ? `0 0 16px ${ROLE_RING[member.role]}99` : 'none', marginTop: -45, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, boxShadow: '0 2px 12px rgba(0,0,0,.15)' }}>
               {member.avatar_url ? <img src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
             </div>
-            {user && user.id !== id && (
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                {canManageRoles && <Btn onClick={() => setShowRolePanel(v => !v)} variant="ghost" style={{ fontSize: 12 }}>🛡️ Gérer le rôle</Btn>}
-                <FriendBtn user={user} id={id} friendship={friendship} friendLoading={friendLoading} onAdd={sendFriendRequest} onAccept={acceptFriendRequest} onRemove={removeFriend} />
-                {!isBlocked && <Btn onClick={() => navigate('/messages')} variant="yellow" style={{ fontSize: 12 }}>✉️ Message</Btn>}
-                <button onClick={toggleBlock} disabled={blocking} style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${isBlocked ? C.border : C.red}`, background: isBlocked ? C.surfaceB : 'transparent', color: isBlocked ? C.textMid : C.red, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
-                  {blocking ? '…' : isBlocked ? '🔓 Débloquer' : '🚫 Bloquer'}
-                </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+              {user && user.id !== id && (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  {canManageRoles && <Btn onClick={() => setShowRolePanel(v => !v)} variant="ghost" style={{ fontSize: 12 }}>🛡️ Gérer le rôle</Btn>}
+                  <FriendBtn user={user} id={id} friendship={friendship} friendLoading={friendLoading} onAdd={sendFriendRequest} onAccept={acceptFriendRequest} onRemove={removeFriend} />
+                  {!isBlocked && <Btn onClick={() => navigate('/messages')} variant="yellow" style={{ fontSize: 12 }}>✉️ Message</Btn>}
+                  <button onClick={toggleBlock} disabled={blocking} style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${isBlocked ? C.border : C.red}`, background: isBlocked ? C.surfaceB : 'transparent', color: isBlocked ? C.textMid : C.red, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
+                    {blocking ? '…' : isBlocked ? '🔓 Débloquer' : '🚫 Bloquer'}
+                  </button>
+                </div>
+              )}
+              {/* Boutons de vote horizontaux */}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                {VOTES_DEF.map(v => {
+                  const voted = myVotes[v.key]
+                  const count = votes[v.key] || 0
+                  return (
+                    <button key={v.key} onClick={() => user && user.id !== id && !isBlocked && vote(v.key)}
+                      disabled={!!voting || !user || user.id === id || isBlocked}
+                      title={v.label}
+                      style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 20, border: `1px solid ${voted ? C.accentDk : C.border}`, background: voted ? '#fffae6' : C.surfaceB, color: voted ? C.accentTxt : C.textMid, fontWeight: voted ? 700 : 500, fontSize: 12, cursor: (!user || user.id === id || isBlocked || !!voting) ? 'default' : 'pointer', transition: 'all .15s', fontFamily: 'inherit' }}>
+                      <span style={{ fontSize: 15 }}>{v.emoji}</span>
+                      <span>{count}</span>
+                      {user && user.id !== id && !isBlocked && (
+                        <span style={{ fontSize: 10, opacity: .7 }}>{voting === v.key ? '…' : voted ? '✓' : '+'}</span>
+                      )}
+                    </button>
+                  )
+                })}
               </div>
-            )}
-            {/* Votes à droite si pas connecté ou propre profil — supprimé, géré dans la card */}
+            </div>
           </div>
 
           {canManageRoles && showRolePanel && (
@@ -368,45 +388,20 @@ export default function MemberProfile() {
             {statut        && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>{statut}</span>}
           </div>
 
-          {/* Stats + Votes sur la même ligne */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}`, flexWrap: 'wrap' }}>
-            {/* Compteurs Amis / Votes reçus */}
-            <div style={{ display: 'flex', gap: 20 }}>
-              {[
-                { icon: '👥', label: 'Amis',       value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
-                { icon: '⭐', label: 'Votes reçus', value: totalVotes,                                color: '#c8a200' },
-              ].map(s => (
-                <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 16 }}>{s.icon}</span>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 16, color: s.color, lineHeight: 1 }}>{s.value}</div>
-                    <div style={{ fontSize: 9, color: C.textDim, textTransform: 'uppercase', letterSpacing: .5 }}>{s.label}</div>
-                  </div>
+          {/* Stats Amis + Votes reçus */}
+          <div style={{ display: 'flex', gap: 20, marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+            {[
+              { icon: '👥', label: 'Amis',       value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
+              { icon: '⭐', label: 'Votes reçus', value: totalVotes,                                color: '#c8a200' },
+            ].map(s => (
+              <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 16 }}>{s.icon}</span>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: s.color, lineHeight: 1 }}>{s.value}</div>
+                  <div style={{ fontSize: 9, color: C.textDim, textTransform: 'uppercase', letterSpacing: .5 }}>{s.label}</div>
                 </div>
-              ))}
-            </div>
-            {/* Séparateur */}
-            <div style={{ width: 1, height: 32, background: C.border, flexShrink: 0 }} />
-            {/* Boutons de vote horizontaux */}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>
-              {VOTES_DEF.map(v => {
-                const voted = myVotes[v.key]
-                const count = votes[v.key] || 0
-                return (
-                  <button key={v.key} onClick={() => user && user.id !== id && !isBlocked && vote(v.key)}
-                    disabled={!!voting || !user || user.id === id || isBlocked}
-                    title={v.label}
-                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 20, border: `1px solid ${voted ? C.accentDk : C.border}`, background: voted ? '#fffae6' : C.surfaceB, color: voted ? C.accentTxt : C.textMid, fontWeight: voted ? 700 : 500, fontSize: 12, cursor: (!user || user.id === id || isBlocked || !!voting) ? 'default' : 'pointer', transition: 'all .15s', fontFamily: 'inherit' }}>
-                    <span style={{ fontSize: 15 }}>{v.emoji}</span>
-                    <span>{count}</span>
-                    {user && user.id !== id && !isBlocked && (
-                      <span style={{ fontSize: 10, opacity: .7 }}>{voting === v.key ? '…' : voted ? '✓' : '+'}</span>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-            {!user && <span style={{ fontSize: 11, color: C.textDim, fontStyle: 'italic' }}>Connecte-toi pour voter</span>}
+              </div>
+            ))}
           </div>
 
           {/* Bio */}
@@ -420,6 +415,18 @@ export default function MemberProfile() {
       </div>
 
 
+
+      {/* Intérêts */}
+      {(member.interests || []).length > 0 && (
+        <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.accentDk}`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>🎯 Intérêts</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {(member.interests || []).map(i => (
+              <span key={i} style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, background: C.surfaceB, color: C.text, border: `1px solid ${C.border}`, fontWeight: 600 }}>{i}</span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {(member.badges || []).length > 0 && (
         <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid #c8a200`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
@@ -464,17 +471,7 @@ export default function MemberProfile() {
 
 
 
-      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.accentDk}`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
-        <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>🎯 Intérêts</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {(member.interests || []).length === 0
-            ? <span style={{ fontSize: 13, color: C.textDim, fontStyle: 'italic' }}>Aucun intérêt renseigné.</span>
-            : (member.interests || []).map(i => (
-              <span key={i} style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, background: C.surfaceB, color: C.text, border: `1px solid ${C.border}`, fontWeight: 600 }}>{i}</span>
-            ))
-          }
-        </div>
-      </div>
+
 
       {(member.photos || []).length > 0 && (
         <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.accentDk}`, borderRadius: 14, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
