@@ -368,7 +368,7 @@ export default function ForumPage() {
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const ModBar = ({ thread }) => (
-    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '8px 12px', background: '#fffae6', border: `1px solid ${C.accentDk}`, borderRadius: 10, marginTop: 10 }}>
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '8px 12px', background: C.accentBg, border: `1px solid ${C.accentDk}`, borderRadius: 10, marginTop: 10 }}>
       <span style={{ fontSize: 10, color: C.accentTxt, fontWeight: 700, alignSelf: 'center' }}>🛡 Modération :</span>
       <Btn onClick={() => patchThread(thread.id, { pinned: !thread.pinned })} variant={thread.pinned ? 'yellow' : 'ghost'} style={{ fontSize: 10 }}>{thread.pinned ? '📌 Désépingler' : '📌 Épingler'}</Btn>
       <Btn onClick={() => patchThread(thread.id, { locked: !thread.locked })} variant={thread.locked ? 'yellow' : 'ghost'} style={{ fontSize: 10 }}>{thread.locked ? '🔓 Déverrouiller' : '🔒 Verrouiller'}</Btn>
