@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { C } from '../lib/constants'
 import { Btn, Input } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
+import { GeoSelects } from '../components/GeoSelects'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -26,6 +27,13 @@ async function getToken() {
   } catch {}
   return ANON_KEY
 }
+
+const STATUTS = [
+  { value: '',            label: 'Non renseigné',   emoji: '—' },
+  { value: 'celibataire', label: 'Célibataire',     emoji: '💚' },
+  { value: 'couple',      label: 'En couple',       emoji: '❤️' },
+  { value: 'complique',   label: "C'est compliqué", emoji: '💛' },
+]
 
 const PANEL = { background: C.white, border: `1px solid ${C.border}`, borderTop: `3px solid ${C.accentDk}`, borderRadius: 14, padding: 24, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }
 
@@ -62,11 +70,19 @@ export default function Settings() {
   const [savingPwd,  setSavingPwd]  = useState(false)
   const [editPwd,    setEditPwd]    = useState(false)
 
-  // ── Âge ──
   const [editAge,    setEditAge]    = useState(false)
   const [birthDate,  setBirthDate]  = useState('')
   const [ageOk,      setAgeOk]      = useState(false)
   const [savingAge,  setSavingAge]  = useState(false)
+
+  // Infos perso
+  const [editInfos,   setEditInfos]   = useState(false)
+  const [infosRegion, setInfosRegion] = useState('')
+  const [infosDept,   setInfosDept]   = useState('')
+  const [infosCity,   setInfosCity]   = useState('')
+  const [infosStatut, setInfosStatut] = useState('')
+  const [savingInfos, setSavingInfos] = useState(false)
+  const [infosOk,     setInfosOk]     = useState(false)
 
   const [showDelete,    setShowDelete]    = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState('')
@@ -135,6 +151,25 @@ export default function Settings() {
     setSavingAge(false); setAgeOk(true); setEditAge(false); setBirthDate('')
   }
 
+  const openEditInfos = () => {
+    setInfosRegion(profile.region || '')
+    setInfosDept(profile.dept || '')
+    setInfosCity(profile.city || '')
+    setInfosStatut(profile.statut || '')
+    setEditInfos(true)
+  }
+
+  const saveInfos = async () => {
+    setSavingInfos(true)
+    await apiFetch(`/rest/v1/profiles?id=eq.${user.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ region: infosRegion, dept: infosDept, city: infosCity, statut: infosStatut })
+    })
+    await refreshProfile()
+    setSavingInfos(false); setInfosOk(true); setEditInfos(false)
+    setTimeout(() => setInfosOk(false), 3000)
+  }
+
   const deleteAccount = async () => {
     if (deleteConfirm !== profile.pseudo) return
     setDeleting(true)
@@ -142,6 +177,8 @@ export default function Settings() {
     await signOut()
     navigate('/')
   }
+
+  const statutDef = STATUTS.find(s => s.value === (profile.statut || '')) || STATUTS[0]
 
   return (
     <div style={{ maxWidth: 680, margin: '0 auto', padding: '24px 16px' }}>
@@ -181,14 +218,8 @@ export default function Settings() {
           {editAge ? (
             <div>
               <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
-                <input
-                  type="date"
-                  value={birthDate}
-                  onChange={e => setBirthDate(e.target.value)}
-                  min={MIN_DATE}
-                  max={MAX_DATE}
-                  style={{ flex: 1, padding: '7px 10px', border: `1px solid ${C.borderMid}`, borderRadius: 8, fontSize: 13, color: C.text, background: C.white, fontFamily: 'inherit' }}
-                />
+                <input type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} min={MIN_DATE} max={MAX_DATE}
+                  style={{ flex: 1, padding: '7px 10px', border: `1px solid ${C.borderMid}`, borderRadius: 8, fontSize: 13, color: C.text, background: C.white, fontFamily: 'inherit' }} />
                 <Btn onClick={saveAge} variant="yellow" style={{ fontSize: 12 }} disabled={!birthDate}>{savingAge ? '…' : 'OK'}</Btn>
                 <Btn onClick={() => { setEditAge(false); setBirthDate('') }} variant="ghost" style={{ fontSize: 12 }}>✕</Btn>
               </div>
@@ -206,6 +237,54 @@ export default function Settings() {
           )}
           {ageOk && <div style={{ fontSize: 11, color: '#2ecc71', marginTop: 4 }}>✓ Âge mis à jour !</div>}
         </Row>
+      </div>
+
+      {/* Infos personnelles */}
+      <div style={PANEL}>
+        <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 4 }}>📍 Infos personnelles</div>
+        {editInfos ? (
+          <div style={{ paddingTop: 14 }}>
+            <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Localisation</div>
+            <GeoSelects region={infosRegion} dept={infosDept} city={infosCity}
+              onRegion={v => { setInfosRegion(v); setInfosDept(''); setInfosCity('') }}
+              onDept={v => { setInfosDept(v); setInfosCity('') }}
+              onCity={setInfosCity} />
+            <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, margin: '16px 0 8px' }}>Statut relationnel</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+              {STATUTS.map(s => (
+                <button key={s.value} onClick={() => setInfosStatut(s.value)}
+                  style={{ padding: '7px 14px', borderRadius: 20, cursor: 'pointer', background: infosStatut === s.value ? '#fffae6' : C.surfaceB, border: `1px solid ${infosStatut === s.value ? C.accentDk : C.border}`, color: infosStatut === s.value ? C.accentTxt : C.textMid, fontSize: 12, fontFamily: 'inherit', fontWeight: infosStatut === s.value ? 700 : 400, transition: 'all .15s' }}>
+                  {s.emoji} {s.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Btn onClick={saveInfos} variant="yellow">{savingInfos ? '…' : 'Sauvegarder'}</Btn>
+              <Btn onClick={() => setEditInfos(false)} variant="ghost">Annuler</Btn>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+              {[
+                { icon: '🌍', label: 'Région',      value: profile.region },
+                { icon: '🗺️', label: 'Département',  value: profile.dept },
+                { icon: '📍', label: 'Ville',        value: profile.city },
+                { icon: statutDef.emoji, label: 'Statut', value: statutDef.value ? statutDef.label : null },
+              ].map(item => (
+                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: C.surfaceB, borderRadius: 10 }}>
+                  <span style={{ fontSize: 16, width: 24, textAlign: 'center' }}>{item.icon}</span>
+                  <span style={{ fontSize: 12, color: C.textMid, flex: 1 }}>{item.label}</span>
+                  <span style={{ fontSize: 13, color: item.value ? C.text : C.textDim, fontStyle: item.value ? 'normal' : 'italic', fontWeight: item.value ? 600 : 400 }}>
+                    {item.value || 'Non renseigné'}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <button onClick={openEditInfos} style={{ marginTop: 12, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.accentTxt, fontWeight: 600, padding: 0 }}>✏️ Modifier</button>
+            {infosOk && <div style={{ fontSize: 11, color: '#2ecc71', marginTop: 6 }}>✓ Infos mises à jour !</div>}
+          </div>
+        )}
       </div>
 
       {/* Email */}

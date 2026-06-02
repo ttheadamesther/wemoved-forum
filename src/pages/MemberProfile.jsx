@@ -328,6 +328,20 @@ export default function MemberProfile() {
                 </button>
               </div>
             )}
+            {/* Votes à droite si pas connecté ou propre profil */}
+            {(!user || user.id === id) && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center' }}>
+                {VOTES_DEF.map(v => {
+                  const val = votes[v.key] || 0
+                  return (
+                    <div key={v.key} title={v.label} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, background: val > 0 ? '#fffae6' : C.surfaceB, border: `1px solid ${val > 0 ? '#c8a20066' : C.border}` }}>
+                      <span style={{ fontSize: 14 }}>{v.emoji}</span>
+                      <span style={{ fontWeight: 700, fontSize: 13, color: val > 0 ? C.accentTxt : C.textDim }}>{val}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
           {canManageRoles && showRolePanel && (
@@ -390,6 +404,29 @@ export default function MemberProfile() {
               {member.bio || 'Aucune bio renseignée.'}
             </p>
           </div>
+          {/* Votes interactifs */}
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+            <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 10 }}>🏆 Votes</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {VOTES_DEF.map(v => {
+                const voted = myVotes[v.key]
+                const count = votes[v.key] || 0
+                return (
+                  <div key={v.key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 16 }}>{v.emoji}</span>
+                    <span style={{ fontSize: 12, color: C.textMid, flex: 1 }}>{v.label}</span>
+                    <span style={{ fontWeight: 700, fontSize: 13, color: C.text, minWidth: 24, textAlign: 'right' }}>{count}</span>
+                    {user && user.id !== id && !isBlocked && (
+                      <button onClick={() => vote(v.key)} disabled={!!voting} style={{ padding: '4px 12px', borderRadius: 20, border: `1px solid ${voted ? C.accentDk : C.borderMid}`, background: voted ? '#fffae6' : C.surfaceB, color: voted ? C.accentTxt : C.textMid, fontWeight: voted ? 700 : 400, fontSize: 11, cursor: voting ? 'wait' : 'pointer', transition: 'all .15s', fontFamily: 'inherit' }}>
+                        {voting === v.key ? '…' : voted ? '✓' : 'Voter'}
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+            {!user && <p style={{ fontSize: 11, color: C.textDim, marginTop: 10, fontStyle: 'italic' }}>Connecte-toi pour voter</p>}
+          </div>
         </div>
       </div>
 
@@ -436,28 +473,7 @@ export default function MemberProfile() {
         }
       </div>
 
-      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.accentDk}`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
-        <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 14 }}>🏆 Votes reçus</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {VOTES_DEF.map(v => {
-            const voted = myVotes[v.key]
-            const count = votes[v.key] || 0
-            return (
-              <div key={v.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: C.surfaceB, borderRadius: 10, border: `1px solid ${C.border}` }}>
-                <span style={{ fontSize: 20 }}>{v.emoji}</span>
-                <span style={{ fontSize: 13, color: C.textMid, flex: 1, fontWeight: 500 }}>{v.label}</span>
-                <span style={{ fontWeight: 700, fontSize: 15, color: C.text, minWidth: 28, textAlign: 'right' }}>{count}</span>
-                {user && user.id !== id && !isBlocked && (
-                  <button onClick={() => vote(v.key)} disabled={!!voting} style={{ padding: '5px 14px', borderRadius: 20, border: `1px solid ${voted ? C.accentDk : C.borderMid}`, background: voted ? '#fffae6' : C.white, color: voted ? C.accentTxt : C.textMid, fontWeight: voted ? 700 : 400, fontSize: 12, cursor: voting ? 'wait' : 'pointer', transition: 'all .15s', fontFamily: 'inherit' }}>
-                    {voting === v.key ? '…' : voted ? '✓ Voté' : 'Voter'}
-                  </button>
-                )}
-              </div>
-            )
-          })}
-        </div>
-        {!user && <p style={{ fontSize: 12, color: C.textDim, marginTop: 12, fontStyle: 'italic', textAlign: 'center' }}>Connecte-toi pour voter</p>}
-      </div>
+
 
       <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.accentDk}`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
         <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>🎯 Intérêts</div>

@@ -325,7 +325,18 @@ export default function Profile() {
             </div>
             <input ref={avatarRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadAvatar} />
           </div>
-
+          {/* Votes reçus à droite */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 4 }}>
+            {VOTES_DEF.map(v => {
+              const val = votes[v.key] || 0
+              return (
+                <div key={v.key} title={v.label} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, background: val > 0 ? '#fffae6' : C.surfaceB, border: `1px solid ${val > 0 ? '#c8a20066' : C.border}` }}>
+                  <span style={{ fontSize: 14 }}>{v.emoji}</span>
+                  <span style={{ fontWeight: 700, fontSize: 13, color: val > 0 ? C.accentTxt : C.textDim }}>{val}</span>
+                </div>
+              )
+            })}
+          </div>
         </div>
         <div style={{ marginTop: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
@@ -386,6 +397,26 @@ export default function Profile() {
               {profile.bio || 'Aucune bio — clique sur Modifier pour en ajouter une.'}
             </p>
           )}
+          {/* Intérêts juste après la bio */}
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+            <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 10 }}>🎯 Intérêts</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 12, minHeight: 28 }}>
+              {(profile.interests || []).length === 0
+                ? <span style={{ fontSize: 12, color: C.textDim, fontStyle: 'italic' }}>Ajoutes-en ci-dessous</span>
+                : (profile.interests || []).map(i => (
+                  <span key={i} onClick={() => removeInterest(i)}
+                    style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, background: '#fffae6', color: '#7a6200', border: '1px solid #c8a20066', cursor: 'pointer', fontWeight: 600, transition: 'all .15s' }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '.7'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                    title="Cliquer pour supprimer">{i} ✕</span>
+                ))
+              }
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Input value={interest} onChange={e => setInterest(e.target.value)} placeholder="Ajouter un intérêt…" onKeyDown={e => e.key === 'Enter' && addInterest()} style={{ flex: 1 }} />
+              <Btn onClick={addInterest} variant="yellow">+</Btn>
+            </div>
+          </div>
         </div>
 
         {(profile.badges || []).length > 0 && (
@@ -465,93 +496,7 @@ export default function Profile() {
           }
         </div>
 
-        <div style={PANEL}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>📍 Infos personnelles</div>
-            {!editingInfos && <button onClick={openEditInfos} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.accentTxt, fontWeight: 600 }}>Modifier</button>}
-          </div>
-          {editingInfos ? (
-            <div>
-              <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Localisation</div>
-              <GeoSelects region={infosRegion} dept={infosDept} city={infosCity}
-                onRegion={v => { setInfosRegion(v); setInfosDept(''); setInfosCity('') }}
-                onDept={v => { setInfosDept(v); setInfosCity('') }}
-                onCity={setInfosCity} />
-              <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, margin: '14px 0 8px' }}>Statut relationnel</div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {STATUTS.map(s => (
-                  <button key={s.value} onClick={() => setInfosStatut(s.value)}
-                    style={{ padding: '7px 14px', borderRadius: 20, cursor: 'pointer', background: infosStatut === s.value ? '#fffae6' : C.surfaceB, border: `1px solid ${infosStatut === s.value ? C.accentDk : C.border}`, color: infosStatut === s.value ? C.accentTxt : C.textMid, fontSize: 12, fontFamily: 'inherit', fontWeight: infosStatut === s.value ? 700 : 400, transition: 'all .15s' }}>
-                    {s.emoji} {s.label}
-                  </button>
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                <Btn onClick={saveInfos} variant="yellow">{savingInfos ? '…' : 'Sauvegarder'}</Btn>
-                <Btn onClick={() => setEditingInfos(false)} variant="ghost">Annuler</Btn>
-              </div>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {[
-                { icon: '🌍', label: 'Région',      value: profile.region },
-                { icon: '🗺️', label: 'Département',  value: profile.dept },
-                { icon: '📍', label: 'Ville',        value: profile.city },
-                { icon: statutDef.emoji, label: 'Statut', value: statutDef.value ? statutDef.label : null },
-              ].map(item => (
-                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: C.surfaceB, borderRadius: 10 }}>
-                  <span style={{ fontSize: 16, width: 24, textAlign: 'center' }}>{item.icon}</span>
-                  <span style={{ fontSize: 12, color: C.textMid, flex: 1 }}>{item.label}</span>
-                  <span style={{ fontSize: 13, color: item.value ? C.text : C.textDim, fontStyle: item.value ? 'normal' : 'italic', fontWeight: item.value ? 600 : 400 }}>
-                    {item.value || 'Non renseigné'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
 
-        <div style={PANEL}>
-          <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>🗳️ Votes reçus</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {VOTES_DEF.map(v => {
-              const val = votes[v.key] || 0
-              const pct = totalVotes > 0 ? (val / totalVotes) * 100 : 0
-              return (
-                <div key={v.key}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontSize: 16 }}>{v.emoji}</span>
-                    <span style={{ fontSize: 12, color: C.textMid, flex: 1 }}>{v.label}</span>
-                    <span style={{ fontWeight: 700, fontSize: 13, color: C.text }}>{val}</span>
-                  </div>
-                  <div style={{ height: 4, background: C.surfaceB, borderRadius: 4, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(to right, #f0c800, #c8a200)', borderRadius: 4, transition: 'width .5s' }} />
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        <div style={PANEL}>
-          <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>🎯 Intérêts</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 14, minHeight: 36 }}>
-            {(profile.interests || []).length === 0
-              ? <span style={{ fontSize: 12, color: C.textDim, fontStyle: 'italic' }}>Aucun intérêt — ajoutes-en ci-dessous</span>
-              : (profile.interests || []).map(i => (
-                <span key={i} onClick={() => removeInterest(i)}
-                  style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, background: '#fffae6', color: '#7a6200', border: '1px solid #c8a20066', cursor: 'pointer', fontWeight: 600, transition: 'all .15s' }}
-                  onMouseEnter={e => e.currentTarget.style.opacity = '.7'}
-                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                  title="Cliquer pour supprimer">{i} ✕</span>
-              ))
-            }
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Input value={interest} onChange={e => setInterest(e.target.value)} placeholder="Ajouter un intérêt…" onKeyDown={e => e.key === 'Enter' && addInterest()} style={{ flex: 1 }} />
-            <Btn onClick={addInterest} variant="yellow">+</Btn>
-          </div>
-        </div>
 
         <div style={PANEL}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
