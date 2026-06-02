@@ -393,7 +393,7 @@ export default function MemberProfile() {
                   <button key={v.key} onClick={() => user && user.id !== id && !isBlocked && vote(v.key)}
                     disabled={!!voting || !user || user.id === id || isBlocked}
                     title={v.label}
-                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, border: `1px solid ${voted ? C.accentDk : C.border}`, background: voted ? '#fffae6' : C.surfaceB, color: voted ? C.accentTxt : C.textMid, fontWeight: voted ? 700 : 500, fontSize: 12, cursor: (!user || user.id === id || isBlocked || !!voting) ? 'default' : 'pointer', transition: 'all .15s', fontFamily: 'inherit' }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, border: `1px solid ${voted ? C.accentDk : C.border}`, background: voted ? C.accentBg : C.surfaceB, color: voted ? C.accentTxt : C.textMid, fontWeight: voted ? 700 : 500, fontSize: 12, cursor: (!user || user.id === id || isBlocked || !!voting) ? 'default' : 'pointer', transition: 'all .15s', fontFamily: 'inherit' }}>
                     <span style={{ fontSize: 15 }}>{v.emoji}</span>
                     <span>{count}</span>
                     {user && user.id !== id && !isBlocked && (

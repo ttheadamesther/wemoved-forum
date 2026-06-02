@@ -372,7 +372,7 @@ export default function Profile() {
               {VOTES_DEF.map(v => {
                 const val = votes[v.key] || 0
                 return (
-                  <div key={v.key} title={v.label} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, background: val > 0 ? '#fffae6' : C.surfaceB, border: `1px solid ${val > 0 ? '#c8a20066' : C.border}` }}>
+                  <div key={v.key} title={v.label} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, background: val > 0 ? C.accentBg : C.surfaceB, border: `1px solid ${val > 0 ? C.accentDk : C.border}` }}>
                     <span style={{ fontSize: 15 }}>{v.emoji}</span>
                     <span style={{ fontWeight: 700, fontSize: 12, color: val > 0 ? C.accentTxt : C.textDim }}>{val}</span>
                   </div>
