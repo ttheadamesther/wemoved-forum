@@ -95,8 +95,8 @@ export default function MessagesPage() {
   const [blockedByIds, setBlockedByIds] = useState([])
   const [hoveredMsg, setHoveredMsg]   = useState(null)
   const [deletingMsg, setDeletingMsg] = useState(null)
-  const [confirmDelete, setConfirmDelete] = useState(null) // { type: 'msg'|'convo', id }
-  const [reporting, setReporting] = useState(null) // { id, pseudo }
+  const [confirmDelete, setConfirmDelete] = useState(null)
+  const [reporting, setReporting] = useState(null)
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -218,10 +218,6 @@ export default function MessagesPage() {
   const activeMember = getMember(activeId)
   const isActiveBlocked = activeId && (blockedIds.includes(activeId) || blockedByIds.includes(activeId))
   const convoMembers = convos.map(c => getMember(c.otherId)).filter(Boolean)
-  const newMembers = members
-    .filter(m => !convos.find(c => c.otherId === m.id))
-    .filter(m => !blockedByIds.includes(m.id))
-    .filter(m => !search || m.pseudo?.toLowerCase().includes(search.toLowerCase()))
 
   const openConvo = (id) => { setActiveId(id); if (isMobile) setShowSidebar(false) }
 
@@ -306,94 +302,53 @@ export default function MessagesPage() {
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto' }}>
-              {convoMembers.length > 0 && (
+              {convoMembers.length > 0 ? (
                 <div style={{ padding: '8px 0' }}>
-                  {convoMembers.map(m => {
-                    const convo = convos.find(c => c.otherId === m.id)
-                    const last  = convo?.messages?.[0]
-                    const unread = convo?.unread || 0
-                    const blocked = blockedIds.includes(m.id)
-                    const lastPreview = last?.body?.startsWith('__IMG__') ? '📷 Photo' : last?.body
-                    const isActive = activeId === m.id
-                    return (
-                      /* Ligne entière : zone clic + bouton 🗑 fixe à droite */
-                      <div key={m.id} style={{ display: 'flex', alignItems: 'stretch', borderLeft: isActive ? `3px solid ${C.accentDk}` : '3px solid transparent', opacity: blocked ? 0.5 : 1, background: isActive ? 'rgba(200,162,0,0.15)' : 'transparent', transition: 'background .15s' }}>
-
-                        {/* Zone cliquable : avatar + texte sur 3 lignes */}
-                        <div onClick={() => openConvo(m.id)} style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, padding: '10px 10px', cursor: 'pointer' }}>
-                          <Avatar member={m} size={38} showOnline />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            {/* ligne 1 : pseudo + badge */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginBottom: 1 }}>
-                              <span style={{ fontWeight: 700, fontSize: 13, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{m.pseudo}</span>
-                              {unread > 0 && !blocked && <span style={{ background: C.red, color: '#fff', borderRadius: 10, fontSize: 10, fontWeight: 700, padding: '1px 6px', flexShrink: 0 }}>{unread}</span>}
+                  {convoMembers
+                    .filter(m => !search || m.pseudo?.toLowerCase().includes(search.toLowerCase()))
+                    .map(m => {
+                      const convo = convos.find(c => c.otherId === m.id)
+                      const last  = convo?.messages?.[0]
+                      const unread = convo?.unread || 0
+                      const blocked = blockedIds.includes(m.id)
+                      const lastPreview = last?.body?.startsWith('__IMG__') ? '📷 Photo' : last?.body
+                      const isActive = activeId === m.id
+                      return (
+                        <div key={m.id} style={{ display: 'flex', alignItems: 'stretch', borderLeft: isActive ? `3px solid ${C.accentDk}` : '3px solid transparent', opacity: blocked ? 0.5 : 1, background: isActive ? 'rgba(200,162,0,0.15)' : 'transparent', transition: 'background .15s' }}>
+                          <div onClick={() => openConvo(m.id)} style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, padding: '10px 10px', cursor: 'pointer' }}>
+                            <Avatar member={m} size={38} showOnline />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginBottom: 1 }}>
+                                <span style={{ fontWeight: 700, fontSize: 13, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{m.pseudo}</span>
+                                {unread > 0 && !blocked && <span style={{ background: C.red, color: '#fff', borderRadius: 10, fontSize: 10, fontWeight: 700, padding: '1px 6px', flexShrink: 0 }}>{unread}</span>}
+                              </div>
+                              {blocked
+                                ? <div style={{ fontSize: 11, color: C.red, fontStyle: 'italic' }}>🚫 Bloqué</div>
+                                : last && <div style={{ fontSize: 12, color: unread > 0 ? C.text : C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: unread > 0 ? 600 : 400 }}>{last.from_id === user.id ? 'Vous : ' : ''}{lastPreview}</div>
+                              }
+                              {last && <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{formatTime(last.created_at)}</div>}
                             </div>
-                            {/* ligne 2 : aperçu */}
-                            {blocked
-                              ? <div style={{ fontSize: 11, color: C.red, fontStyle: 'italic' }}>🚫 Bloqué</div>
-                              : last && <div style={{ fontSize: 12, color: unread > 0 ? C.text : C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: unread > 0 ? 600 : 400 }}>{last.from_id === user.id ? 'Vous : ' : ''}{lastPreview}</div>
-                            }
-                            {/* ligne 3 : date */}
-                            {last && <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{formatTime(last.created_at)}</div>}
                           </div>
+                          <button
+                            onClick={e => { e.stopPropagation(); setReporting({ id: m.id, pseudo: m.pseudo }) }}
+                            title="Signaler"
+                            style={{ width: 36, flexShrink: 0, background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 15, color: '#e67e22', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(230,126,34,.12)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                          >🚩</button>
+                          <button
+                            onClick={e => { e.stopPropagation(); setConfirmDelete({ type: 'convo', id: m.id }) }}
+                            title="Supprimer"
+                            style={{ width: 36, flexShrink: 0, background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 15, color: C.red, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(231,76,60,.12)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                          >🗑</button>
                         </div>
-
-                        {/* Boutons actions */}
-                        <button
-                          onClick={e => { e.stopPropagation(); setReporting({ id: m.id, pseudo: m.pseudo }) }}
-                          title="Signaler"
-                          style={{ width: 36, flexShrink: 0, background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 15, color: '#e67e22', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(230,126,34,.12)'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                        >🚩</button>
-                        <button
-                          onClick={e => { e.stopPropagation(); setConfirmDelete({ type: 'convo', id: m.id }) }}
-                          title="Supprimer"
-                          style={{ width: 36, flexShrink: 0, background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 15, color: C.red, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(231,76,60,.12)'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                        >🗑</button>
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
                 </div>
-              )}
-
-              {newMembers.length > 0 && (
-                <div style={{ padding: '8px 0', borderTop: `1px solid ${C.border}` }}>
-                  <div style={{ padding: '8px 16px', fontSize: 11, fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>Nouveau message</div>
-                  {newMembers.slice(0, 8).map(m => (
-                    <div key={m.id} style={{ display: 'flex', alignItems: 'stretch', transition: 'background .15s' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                      <div onClick={() => openConvo(m.id)} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', cursor: 'pointer' }}>
-                        <Avatar member={m} size={32} showOnline />
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: 12, color: C.text }}>@{m.pseudo}</div>
-                          {m.city && <div style={{ fontSize: 11, color: C.textDim }}>📍 {m.city}</div>}
-                        </div>
-                      </div>
-                      <button
-                        onClick={e => { e.stopPropagation(); setReporting({ id: m.id, pseudo: m.pseudo }) }}
-                        title="Signaler"
-                        style={{ width: 36, flexShrink: 0, background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 15, color: '#e67e22', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(230,126,34,.12)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                      >🚩</button>
-                      <button
-                        onClick={e => { e.stopPropagation(); setConfirmDelete({ type: 'convo', id: m.id }) }}
-                        title="Supprimer"
-                        style={{ width: 36, flexShrink: 0, background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 15, color: C.red, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(231,76,60,.12)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                      >🗑</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {convoMembers.length === 0 && newMembers.length === 0 && (
-                <div style={{ padding: 24, textAlign: 'center', color: C.textDim, fontSize: 12 }}>Aucun membre trouvé</div>
+              ) : (
+                <div style={{ padding: 24, textAlign: 'center', color: C.textDim, fontSize: 12 }}>Aucune conversation</div>
               )}
             </div>
           </div>
@@ -426,7 +381,6 @@ export default function MessagesPage() {
                   const isMe = m.from_id === user.id
                   const isImg = m.body?.startsWith('__IMG__')
                   const showAvatar = !isMe && (i === 0 || messages[i - 1]?.from_id !== m.from_id)
-                  const isHovered = hoveredMsg === m.id
                   const isDeleting = deletingMsg === m.id
                   return (
                     <div key={i}
