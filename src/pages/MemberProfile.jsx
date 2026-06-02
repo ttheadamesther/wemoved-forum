@@ -366,28 +366,34 @@ export default function MemberProfile() {
             {member.region && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>🌍 {member.region}</span>}
             {statut        && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>{statut}</span>}
           </div>
+
+          {/* Stats inline */}
+          <div style={{ display: 'flex', gap: 24, marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+            {[
+              { icon: '👥', label: 'Amis',       value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
+              { icon: '⭐', label: 'Votes reçus', value: totalVotes,                                color: '#c8a200' },
+            ].map(s => (
+              <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 18 }}>{s.icon}</span>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 18, color: s.color, lineHeight: 1 }}>{s.value}</div>
+                  <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: .5 }}>{s.label}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Bio */}
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+            <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>✍️ Bio</div>
+            <p style={{ fontSize: 13, color: member.bio ? C.textMid : C.textDim, lineHeight: 1.7, margin: 0, fontStyle: member.bio ? 'normal' : 'italic' }}>
+              {member.bio || 'Aucune bio renseignée.'}
+            </p>
+          </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
-        {[
-          { label: 'AMIS',        value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
-          { label: 'POSTS',       value: member.posts || 0,                         color: '#2ecc71' },
-          { label: 'VOTES REÇUS', value: totalVotes,                                color: C.accentTxt },
-        ].map(s => (
-          <div key={s.label} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: '20px 16px', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,.04)', borderTop: `3px solid ${s.color}` }}>
-            <div style={{ fontWeight: 700, fontSize: 28, color: s.color }}>{s.value}</div>
-            <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, letterSpacing: .8, textTransform: 'uppercase', marginTop: 4 }}>{s.label}</div>
-          </div>
-        ))}
-      </div>
 
-      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.accentDk}`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
-        <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 10 }}>🔥 Bio</div>
-        <p style={{ fontSize: 13, color: member.bio ? C.textMid : C.textDim, lineHeight: 1.7, margin: 0, fontStyle: member.bio ? 'normal' : 'italic' }}>
-          {member.bio || 'Aucune bio renseignée.'}
-        </p>
-      </div>
 
       {(member.badges || []).length > 0 && (
         <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid #c8a200`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>

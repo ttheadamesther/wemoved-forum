@@ -325,7 +325,7 @@ export default function Profile() {
             </div>
             <input ref={avatarRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadAvatar} />
           </div>
-          <Btn onClick={() => { setBio(profile.bio || ''); setEditing(true) }} variant="ghost" style={{ marginBottom: 4, fontSize: 12 }}>✏️ Modifier bio</Btn>
+
         </div>
         <div style={{ marginTop: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
@@ -352,22 +352,24 @@ export default function Profile() {
 
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-          {[
-            { icon: '👥', label: 'Amis',       value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
-            { icon: '💬', label: 'Posts',       value: profile.posts || 0,                        color: '#2ecc71' },
-            { icon: '⭐', label: 'Votes reçus', value: totalVotes,                                color: '#c8a200' },
-          ].map(s => (
-            <div key={s.label} style={{ ...PANEL, borderTop: `3px solid ${s.color}`, padding: '14px 10px', textAlign: 'center' }}>
-              <div style={{ fontSize: 22, marginBottom: 4 }}>{s.icon}</div>
-              <div style={{ fontWeight: 700, fontSize: 24, color: C.text, lineHeight: 1 }}>{s.value}</div>
-              <div style={{ fontSize: 10, color: C.textMid, marginTop: 4, textTransform: 'uppercase', letterSpacing: .5 }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-
         <div style={PANEL}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          {/* Stats inline */}
+          <div style={{ display: 'flex', gap: 24, marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${C.border}` }}>
+            {[
+              { icon: '👥', label: 'Amis',       value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
+              { icon: '⭐', label: 'Votes reçus', value: totalVotes,                                color: '#c8a200' },
+            ].map(s => (
+              <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 18 }}>{s.icon}</span>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 18, color: s.color, lineHeight: 1 }}>{s.value}</div>
+                  <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: .5 }}>{s.label}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Bio */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>✍️ Bio</div>
             {!editing && <button onClick={() => { setBio(profile.bio || ''); setEditing(true) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.accentTxt, fontWeight: 600 }}>Modifier</button>}
           </div>
