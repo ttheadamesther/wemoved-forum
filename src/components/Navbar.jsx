@@ -276,7 +276,7 @@ export default function Navbar() {
             <span style={{ width: 18, height: 2, background: showMobileMenu ? C.accent : '#ccc', display: 'block', transition: 'all .2s', transform: showMobileMenu ? 'rotate(-45deg) translateY(-7px)' : 'none' }} />
           </button>
           <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
-            <Link to="/"><Logo height={44} /></Link>
+            <Link to="/"><Logo height={38} /></Link>
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
             <div ref={searchRef} style={{ position: 'relative' }}>
@@ -400,7 +400,7 @@ export default function Navbar() {
   return (
     <>
       <nav ref={navRef} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999, height: 64, display: 'flex', alignItems: 'center', padding: '0 12px', background: '#111', borderBottom: `2px solid ${C.navBorder}`, gap: 4 }}>
-        <Link to="/" style={{ flexShrink: 0, marginRight: 4 }}><Logo height={52} /></Link>
+        <Link to="/" style={{ flexShrink: 0, marginRight: 4 }}><Logo height={45} /></Link>
         <NavLink to="/"           label="Accueil"    icon="🏠" />
         <NavLink to="/forum"      label="Forum"      icon="💬" />
         <NavLink to="/members"    label="Membres"    icon="👥" />
