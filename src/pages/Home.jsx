@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { C, VOTES_DEF, CATS } from '../lib/constants'
+import { C, VOTES_DEF, CATS, ROLE_RING } from '../lib/constants'
 import { RoleBadge } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
 import { BADGES_DEF } from '../lib/xp'
@@ -15,7 +15,6 @@ function apiFetch(path) {
   }).then(r => r.json())
 }
 
-// Skeleton pour les discussions
 function SkeletonThread() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
@@ -29,7 +28,6 @@ function SkeletonThread() {
   )
 }
 
-// Skeleton pour activité
 function SkeletonActivity() {
   return (
     <div style={{ display: 'flex', gap: 10, padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
@@ -48,6 +46,27 @@ function formatTimeAgo(ts) {
   if (diff < 3600)  return `il y a ${Math.floor(diff / 60)} min`
   if (diff < 86400) return `il y a ${Math.floor(diff / 3600)} h`
   return new Date(ts).toLocaleDateString('fr-FR')
+}
+
+// Avatar réutilisable avec anneau de rôle
+function MemberAvatar({ member, size = 34, colors }) {
+  const ac = colors[(member?.pseudo?.charCodeAt(0) || 0) % colors.length]
+  const ring = ROLE_RING[member?.role] || null
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%',
+      background: member?.avatar_url ? '#444' : ac,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: size * 0.35, fontWeight: 700, color: '#fff',
+      overflow: 'hidden', flexShrink: 0,
+      border: ring ? `3px solid ${ring}` : '2px solid rgba(255,255,255,.2)',
+      boxShadow: ring ? `0 0 8px ${ring}88` : 'none',
+    }}>
+      {member?.avatar_url
+        ? <img src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+        : member?.initials || '?'}
+    </div>
+  )
 }
 
 export default function Home() {
@@ -102,7 +121,6 @@ export default function Home() {
     })
   }, [])
 
-  // Realtime statut en ligne
   useEffect(() => {
     if (!supabase) return
     const channel = supabase
@@ -120,7 +138,6 @@ export default function Home() {
     return () => { supabase.removeChannel(channel) }
   }, [])
 
-  // Realtime nouveaux threads dans l'activité
   useEffect(() => {
     if (!supabase) return
     const channel = supabase
@@ -176,14 +193,12 @@ export default function Home() {
             {topMembers.map((m, i) => {
               const tv  = getTopVoteType(m.votes)
               const tot = Object.values(m.votes || {}).reduce((a, b) => a + b, 0)
-              const ac  = colors[(m.pseudo?.charCodeAt(0) || 0) % colors.length]
               const medals = ['🥇','🥈','🥉']
               return (
-                <div key={m.id} onClick={() => navigate(`/members/${m.id}`)} className="row" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer' }}>
+                <div key={m.id} onClick={() => navigate(`/members/${m.id}`)} className="row"
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer' }}>
                   <span style={{ fontWeight: 700, fontSize: 14, width: 20, textAlign: 'center' }}>{medals[i] || i + 1}</span>
-                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: m.avatar_url ? '#444' : ac, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
-                    {m.avatar_url ? <img src={m.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : m.initials}
-                  </div>
+                  <MemberAvatar member={m} size={34} colors={colors} />
                   <span style={{ fontSize: 13, fontWeight: 600, color: C.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.pseudo}</span>
                   <span style={{ fontWeight: 700, fontSize: 13, color: C.accentTxt }}>{tot}</span>
                   {tv && <span title={tv.label}>{tv.emoji}</span>}
@@ -205,23 +220,20 @@ export default function Home() {
             </div>
             {members.filter(m => m.online).length === 0
               ? <div style={{ padding: '14px 16px', fontSize: 12, color: C.textDim, textAlign: 'center', fontStyle: 'italic' }}>Aucun membre en ligne</div>
-              : members.filter(m => m.online).slice(0, isMobile ? 3 : 6).map(m => {
-                  const ac = colors[(m.pseudo?.charCodeAt(0) || 0) % colors.length]
-                  return (
-                    <div key={m.id} onClick={() => navigate(`/members/${m.id}`)} className="row" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer' }}>
-                      <div style={{ position: 'relative' }}>
-                        <div style={{ width: 34, height: 34, borderRadius: '50%', background: m.avatar_url ? '#444' : ac, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden' }}>
-                          {m.avatar_url ? <img src={m.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : m.initials}
-                        </div>
-                        <div style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: C.online, border: '2px solid #fff' }} />
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{m.pseudo}</div>
-                        <div style={{ transform: 'scale(0.8)', transformOrigin: 'left center', marginTop: 1 }}><RoleBadge role={m.role} /></div>
-                      </div>
+              : members.filter(m => m.online).slice(0, isMobile ? 3 : 6).map(m => (
+                  <div key={m.id} onClick={() => navigate(`/members/${m.id}`)} className="row"
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer' }}>
+                    {/* Avatar avec anneau de rôle + pastille online */}
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                      <MemberAvatar member={m} size={34} colors={colors} />
+                      <div style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: C.online, border: '2px solid #fff' }} />
                     </div>
-                  )
-                })
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{m.pseudo}</div>
+                      <div style={{ transform: 'scale(0.8)', transformOrigin: 'left center', marginTop: 1 }}><RoleBadge role={m.role} /></div>
+                    </div>
+                  </div>
+                ))
             }
             <div onClick={() => navigate('/members')} className="row" style={{ padding: '8px 16px', textAlign: 'center', cursor: 'pointer', background: C.surfaceB }}>
               <span style={{ fontSize: 11, color: C.accentTxt, fontWeight: 700 }}>Voir tous les membres →</span>
@@ -232,10 +244,10 @@ export default function Home() {
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 12 }}>STATISTIQUES</div>
             {[
-              { icon: '👥', label: 'Membres',          value: stats.members },
-              { icon: '💬', label: 'Discussions',       value: stats.threads },
-              { icon: '✉️', label: 'Messages',          value: stats.messages },
-              { icon: '🟢', label: 'Membres en ligne',  value: stats.online },
+              { icon: '👥', label: 'Membres',         value: stats.members },
+              { icon: '💬', label: 'Discussions',      value: stats.threads },
+              { icon: '✉️', label: 'Messages',         value: stats.messages },
+              { icon: '🟢', label: 'Membres en ligne', value: stats.online },
             ].map(s => (
               <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: `1px solid ${C.border}` }}>
                 <span>{s.icon}</span>
@@ -283,20 +295,20 @@ export default function Home() {
                 ? <div style={{ padding: 30, textAlign: 'center', color: C.textDim, fontSize: 13 }}>Aucune discussion pour l'instant</div>
                 : threads.map(t => {
                     const author = getMember(t.author_id)
-                    const ac = author ? colors[(author.pseudo?.charCodeAt(0) || 0) % colors.length] : '#888'
                     return (
-                      <div key={t.id} onClick={() => navigate('/forum')} className="row" style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12, padding: isMobile ? '12px' : '14px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer' }}>
-                        {!isMobile && <div style={{ flexShrink: 0 }}>
-                          {t.pinned ? <span style={{ fontSize: 16 }}>📌</span> : t.locked ? <span style={{ fontSize: 16 }}>🔒</span> : <span style={{ fontSize: 16 }}>💬</span>}
-                        </div>}
+                      <div key={t.id} onClick={() => navigate('/forum')} className="row"
+                        style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12, padding: isMobile ? '12px' : '14px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer' }}>
+                        {!isMobile && (
+                          <div style={{ flexShrink: 0 }}>
+                            {t.pinned ? <span style={{ fontSize: 16 }}>📌</span> : t.locked ? <span style={{ fontSize: 16 }}>🔒</span> : <span style={{ fontSize: 16 }}>💬</span>}
+                          </div>
+                        )}
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                             <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: '#fffae6', color: '#7a6200', border: '1px solid #c8a20044' }}>{t.cat}</span>
                           </div>
                           <div style={{ fontWeight: 700, fontSize: isMobile ? 13 : 14, color: C.text, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</div>
-                          <div style={{ fontSize: 11, color: C.textMid }}>
-                            {author ? `@${author.pseudo}` : 'Inconnu'} · {formatTimeAgo(t.created_at)}
-                          </div>
+                          <div style={{ fontSize: 11, color: C.textMid }}>{author ? `@${author.pseudo}` : 'Inconnu'} · {formatTimeAgo(t.created_at)}</div>
                         </div>
                         {!isMobile && (
                           <div style={{ display: 'flex', gap: 16, flexShrink: 0, color: C.textMid, fontSize: 12 }}>
@@ -304,9 +316,8 @@ export default function Home() {
                             <span>❤️ {t.likes || 0}</span>
                           </div>
                         )}
-                        <div style={{ width: 30, height: 30, borderRadius: '50%', background: author?.avatar_url ? '#444' : ac, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
-                          {author?.avatar_url ? <img src={author.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : author?.initials || '?'}
-                        </div>
+                        {/* Avatar auteur thread avec anneau */}
+                        <MemberAvatar member={author} size={30} colors={colors} />
                       </div>
                     )
                   })
@@ -328,7 +339,8 @@ export default function Home() {
                 { cat: 'Voyages',    icon: '✈️', desc: 'Destinations, bons plans…' },
                 { cat: 'Divers',     icon: '💬', desc: "Tout ce qui n'entre pas ailleurs !" },
               ].map(c => (
-                <div key={c.cat} onClick={() => navigate('/forum')} className="row" style={{ display: 'flex', gap: 12, padding: '14px 16px', borderBottom: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}`, cursor: 'pointer' }}>
+                <div key={c.cat} onClick={() => navigate('/forum')} className="row"
+                  style={{ display: 'flex', gap: 12, padding: '14px 16px', borderBottom: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}`, cursor: 'pointer' }}>
                   <span style={{ fontSize: 24, flexShrink: 0 }}>{c.icon}</span>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 13, color: C.accentTxt, marginBottom: 2 }}>{c.cat}</div>
@@ -363,12 +375,10 @@ export default function Home() {
                 ? <div style={{ padding: 20, textAlign: 'center', color: C.textDim, fontSize: 12 }}>Aucune activité</div>
                 : activity.map((t, i) => {
                     const author = getMember(t.author_id)
-                    const ac = author ? colors[(author.pseudo?.charCodeAt(0) || 0) % colors.length] : '#888'
                     return (
-                      <div key={t.id} onClick={() => navigate('/forum')} className="row" style={{ display: 'flex', gap: 10, padding: '10px 14px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', animation: `fadein .${2 + i}s ease` }}>
-                        <div style={{ width: 34, height: 34, borderRadius: '50%', background: author?.avatar_url ? '#444' : ac, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
-                          {author?.avatar_url ? <img src={author.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : author?.initials || '?'}
-                        </div>
+                      <div key={t.id} onClick={() => navigate('/forum')} className="row"
+                        style={{ display: 'flex', gap: 10, padding: '10px 14px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', animation: `fadein .${2 + i}s ease` }}>
+                        <MemberAvatar member={author} size={34} colors={colors} />
                         <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5 }}>
                           <span style={{ fontWeight: 700, color: C.accentTxt }}>@{author?.pseudo || 'Inconnu'}</span>
                           {' '}a créé{' '}
