@@ -44,7 +44,6 @@ export default function Navbar() {
 
   useEffect(() => {
     setMenuOpen(false); setShowMobileMenu(false)
-    // Ne pas recharger si on vient de /notifications (le badge sera vidé par l'event notifs-read)
     if (path === '/notifications') return
     if (user) {
       const t = async () => {
@@ -121,7 +120,6 @@ export default function Navbar() {
     return () => { supabase.removeChannel(channel) }
   }, [user])
 
-  // Écouter l'event quand Notifications.jsx marque tout comme lu
   useEffect(() => {
     if (!user) return
     const handler = () => setNotifs([])
@@ -129,7 +127,6 @@ export default function Navbar() {
     return () => window.removeEventListener('notifs-read', handler)
   }, [user])
 
-  // Écouter l'event quand Messages.jsx marque des messages comme lus
   useEffect(() => {
     if (!user) return
     const handler = () => {
@@ -169,7 +166,6 @@ export default function Navbar() {
         setShowNotifs(false)
       }
       if (userMenuRef.current && !userMenuRef.current.contains(e.target)) setShowUserMenu(false)
-      // Ne pas fermer hamburger via mousedown - géré par les Links
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -279,8 +275,8 @@ export default function Navbar() {
             <span style={{ width: 18, height: 2, background: showMobileMenu ? 'transparent' : '#ccc', display: 'block', transition: 'all .2s' }} />
             <span style={{ width: 18, height: 2, background: showMobileMenu ? C.accent : '#ccc', display: 'block', transition: 'all .2s', transform: showMobileMenu ? 'rotate(-45deg) translateY(-7px)' : 'none' }} />
           </button>
-          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', marginTop: 4 }}>
-            <Link to="/"><Logo height={52} /></Link>
+          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+            <Link to="/"><Logo height={44} /></Link>
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
             <div ref={searchRef} style={{ position: 'relative' }}>
@@ -404,7 +400,7 @@ export default function Navbar() {
   return (
     <>
       <nav ref={navRef} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999, height: 64, display: 'flex', alignItems: 'center', padding: '0 12px', background: '#111', borderBottom: `2px solid ${C.navBorder}`, gap: 4 }}>
-        <Link to="/" style={{ flexShrink: 0, marginTop: 8, marginRight: 4 }}><Logo height={70} /></Link>
+        <Link to="/" style={{ flexShrink: 0, marginRight: 4 }}><Logo height={52} /></Link>
         <NavLink to="/"           label="Accueil"    icon="🏠" />
         <NavLink to="/forum"      label="Forum"      icon="💬" />
         <NavLink to="/members"    label="Membres"    icon="👥" />
@@ -459,7 +455,6 @@ export default function Navbar() {
               <button onClick={() => {
                 setShowNotifs(s => {
                   if (s && notifs.length > 0) {
-                    // Marquer tout comme lu quand on FERME le dropdown
                     getToken().then(token => {
                       fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, {
                         method: 'PATCH',
