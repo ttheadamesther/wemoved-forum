@@ -99,13 +99,26 @@ export default function MemberProfile() {
   const [friendsList, setFriendsList]     = useState([])
   const [friendsLoading, setFriendsLoading] = useState(false)
   const [likingPhoto, setLikingPhoto]     = useState(null)
-  const [lightbox, setLightbox]           = useState(null)
+  const [lightbox, setLightbox]           = useState(null) // { url, index }
+  const [likerProfiles, setLikerProfiles] = useState([])
   const notifSentRef = useRef(false)
 
   const isAdmin = profile?.role === 'admin'
   const isManager = profile?.role === 'manager'
   const canManageRoles = isAdmin || isManager
   const monthKey = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth()}` }
+
+  const openLightbox = async (url, index) => {
+    setLightbox({ url, index }); setLikerProfiles([])
+    const pl = member?.photo_likes || {}
+    const likerIds = pl[String(index)] || []
+    if (likerIds.length === 0) return
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=in.(${likerIds.join(',')})&select=id,pseudo,initials,avatar_url`, {
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+    })
+    const d = await r.json()
+    if (Array.isArray(d)) setLikerProfiles(d)
+  }
 
   useEffect(() => {
     notifSentRef.current = false
@@ -303,8 +316,28 @@ export default function MemberProfile() {
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px' }}>
 
       {lightbox && (
-        <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.92)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, cursor: 'zoom-out' }}>
-          <img src={lightbox} alt="" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 12, objectFit: 'contain', boxShadow: '0 8px 40px rgba(0,0,0,.6)' }} onClick={e => e.stopPropagation()} />
+        <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.92)', zIndex: 2000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px 20px 40px', gap: 16, cursor: 'zoom-out' }}>
+          <img src={lightbox.url} alt="" style={{ maxWidth: '88vw', maxHeight: '58vh', borderRadius: 12, objectFit: 'contain', boxShadow: '0 8px 40px rgba(0,0,0,.6)', flexShrink: 0 }} onClick={e => e.stopPropagation()} />
+          <div onClick={e => e.stopPropagation()} style={{ background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 14, padding: '12px 20px', maxWidth: 500, width: '100%', backdropFilter: 'blur(8px)', flexShrink: 0 }}>
+            <div style={{ fontSize: 13, color: '#fff', fontWeight: 700, marginBottom: (photoLikes[String(lightbox.index)] || []).length > 0 ? 10 : 0 }}>
+              ❤️ {(photoLikes[String(lightbox.index)] || []).length} j'aime{(photoLikes[String(lightbox.index)] || []).length !== 1 ? 's' : ''}
+            </div>
+            {likerProfiles.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {likerProfiles.map(lk => {
+                  const lkColor = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63'][(lk.pseudo?.charCodeAt(0) || 0) % 8]
+                  return (
+                    <div key={lk.id} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,.15)', borderRadius: 20, padding: '4px 10px' }}>
+                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: lk.avatar_url ? '#444' : lkColor, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff' }}>
+                        {lk.avatar_url ? <img src={lk.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : lk.initials || lk.pseudo?.slice(0,2).toUpperCase()}
+                      </div>
+                      <span style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}>@{lk.pseudo}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
           <button onClick={() => setLightbox(null)} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: '#fff', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
         </div>
       )}
@@ -484,7 +517,7 @@ export default function MemberProfile() {
               const count  = likers.length
               return (
                 <div key={i} style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.border}`, background: '#000' }}>
-                  <div style={{ aspectRatio: '1', cursor: 'zoom-in' }} onClick={() => setLightbox(url)}>
+                  <div style={{ aspectRatio: '1', cursor: 'zoom-in' }} onClick={() => openLightbox(url, i)}>
                     <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'opacity .2s' }}
                       onMouseEnter={e => e.currentTarget.style.opacity = '.85'}
                       onMouseLeave={e => e.currentTarget.style.opacity = '1'}
