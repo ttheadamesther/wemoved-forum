@@ -3,7 +3,8 @@ import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext(null)
 
-const ADMIN_ID = '5b9c6fb1-7a61-4a34-8bb0-ba89a0569e76'
+const ADMIN_ID  = '5b9c6fb1-7a61-4a34-8bb0-ba89a0569e76'
+const WAKIKI_ID = '59349492-13b2-482d-be42-c0d026f37fdd'
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
 
@@ -203,9 +204,21 @@ export function AuthProvider({ children }) {
         method: 'POST',
         headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from_id: ADMIN_ID,
+          from_id: WAKIKI_ID,
           to_id:   data.user.id,
           body:    `👋 Bienvenue sur WeMoved, @${pseudo.trim()} ! Nous sommes ravis de t'accueillir dans la communauté. N'hésite pas à compléter ton profil et à te présenter sur le forum. Bonne aventure ! 🚀`,
+          read:    false
+        })
+      })
+
+      await fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
+        method: 'POST',
+        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: data.user.id,
+          type:    'message',
+          content: `💬 Bienvenue ! Tu as reçu un message de @Wakiki`,
+          link:    `/messages?to=${WAKIKI_ID}`,
           read:    false
         })
       })
