@@ -303,7 +303,7 @@ export default function Chatroom() {
 
                 <div style={{ maxWidth: '70%', position: 'relative' }}>
                   {!sameAuthor && !isMe && (
-                    <div style={{ fontSize: 11, fontWeight: 700, color: C.accentTxt, marginBottom: 3, paddingLeft: 4 }}>@{author?.pseudo || 'Inconnu'}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.accentTxt, marginBottom: 3, paddingLeft: 4, display: 'flex', alignItems: 'center', gap: 4 }}>@{author?.pseudo || 'Inconnu'}{author?.is_bot && <span style={{ padding: '1px 5px', borderRadius: 4, fontSize: 8, fontWeight: 700, background: '#5865f2', color: '#fff' }}>BOT</span>}</div>
                   )}
                   <div onDoubleClick={() => user && setReactionPicker(reactionPicker === msg.id ? null : msg.id)}
                     style={{ background: isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.surfaceB, color: isMe ? '#3a2e00' : C.text, padding: '8px 12px', borderRadius: isMe ? '16px 4px 16px 16px' : '4px 16px 16px 16px', fontSize: 13, lineHeight: 1.5, wordBreak: 'break-word', boxShadow: '0 1px 2px rgba(0,0,0,.06)', cursor: user ? 'default' : 'default', userSelect: 'text' }}>

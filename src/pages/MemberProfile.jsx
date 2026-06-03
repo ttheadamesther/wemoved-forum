@@ -397,6 +397,7 @@ export default function MemberProfile() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
             <h1 style={{ fontWeight: 700, fontSize: 20, color: C.text, margin: 0 }}>@{member.pseudo}</h1>
+            {member.is_bot && <span style={{ padding: '1px 6px', borderRadius: 4, fontSize: 9, fontWeight: 700, background: '#5865f2', color: '#fff', letterSpacing: .5, flexShrink: 0 }}>BOT</span>}
             <RoleBadge role={member.role} />
             <span style={{ fontSize: 12, color: '#c8a200', fontWeight: 700, background: 'rgba(200,162,0,.1)', padding: '2px 10px', borderRadius: 20, border: '1px solid #c8a20044' }}>Niv. {member.level || 1}</span>
             {member.online && <span style={{ fontSize: 11, color: '#2ecc71', fontWeight: 600 }}>● En ligne</span>}

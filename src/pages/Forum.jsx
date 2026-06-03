@@ -487,6 +487,7 @@ export default function ForumPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
                     <strong onClick={() => ru?.id && navigate(`/members/${ru.id}`)} style={{ fontSize: 12, color: C.text, cursor: 'pointer' }}>@{ru?.pseudo || 'Inconnu'}</strong>
+                    {ru?.is_bot && <span style={{ padding: '1px 5px', borderRadius: 4, fontSize: 8, fontWeight: 700, background: '#5865f2', color: '#fff' }}>BOT</span>}
                     <RoleBadge role={ru?.role || 'membre'} />
                     <span style={{ fontSize: 11, color: C.textDim }}>{formatDate(r.created_at)}</span>
                     {r.hidden && <span style={{ fontSize: 10, color: C.red, fontWeight: 700 }}>🗑 Masqué</span>}

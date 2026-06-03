@@ -210,7 +210,7 @@ export default function MembersPage() {
                     </div>
                     <div style={{ position: 'absolute', bottom: 2, right: 2, width: 12, height: 12, borderRadius: '50%', background: u.online ? C.online : '#ccc', border: '2px solid #fff' }} />
                   </div>
-                  <div style={{ fontWeight: 700, fontSize: isMobile ? 12 : 13, color: u.banned ? C.red : C.text, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{u.pseudo}</div>
+                  <div style={{ fontWeight: 700, fontSize: isMobile ? 12 : 13, color: u.banned ? C.red : C.text, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{u.pseudo}{u.is_bot && <span style={{ marginLeft: 4, padding: '1px 5px', borderRadius: 4, fontSize: 8, fontWeight: 700, background: '#5865f2', color: '#fff' }}>BOT</span>}</div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginBottom: 6, flexWrap: 'wrap' }}>
                     <RoleBadge role={u.role} />
                     <LevelBadge level={u.level} />

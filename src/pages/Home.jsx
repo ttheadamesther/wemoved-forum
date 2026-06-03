@@ -380,7 +380,7 @@ export default function Home() {
                         style={{ display: 'flex', gap: 10, padding: '10px 14px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', animation: `fadein .${2 + i}s ease` }}>
                         <MemberAvatar member={author} size={34} colors={colors} />
                         <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5 }}>
-                          <span style={{ fontWeight: 700, color: C.accentTxt }}>@{author?.pseudo || 'Inconnu'}</span>
+                          <span style={{ fontWeight: 700, color: C.accentTxt }}>@{author?.pseudo || 'Inconnu'}</span>{author?.is_bot && <span style={{ marginLeft: 3, padding: '1px 5px', borderRadius: 4, fontSize: 8, fontWeight: 700, background: '#5865f2', color: '#fff' }}>BOT</span>}
                           {' '}a créé{' '}
                           <span style={{ fontWeight: 600 }}>"{t.title?.slice(0, 30)}{t.title?.length > 30 ? '…' : ''}"</span>
                           <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{formatTimeAgo(t.created_at)}</div>

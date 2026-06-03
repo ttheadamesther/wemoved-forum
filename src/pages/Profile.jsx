@@ -372,6 +372,7 @@ export default function Profile() {
         <div style={{ marginTop: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 700, fontSize: 20, color: C.text }}>@{profile.pseudo}</span>
+            {profile.is_bot && <span style={{ padding: '1px 6px', borderRadius: 4, fontSize: 9, fontWeight: 700, background: '#5865f2', color: '#fff', letterSpacing: .5, flexShrink: 0 }}>BOT</span>}
             <RoleBadge role={profile.role} />
             <span style={{ fontSize: 12, color: '#c8a200', fontWeight: 700, background: 'rgba(200,162,0,.1)', padding: '2px 10px', borderRadius: 20, border: '1px solid #c8a20044' }}>Niv. {profile.level || 1}</span>
             {topVote && totalVotes > 0 && (
