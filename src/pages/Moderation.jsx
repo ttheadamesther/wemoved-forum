@@ -245,7 +245,7 @@ export default function Moderation() {
                   ))}
                   {r.status !== 'pending' && (
                     <button onClick={() => deleteReport(r.id)}
-                      style={{ marginLeft: 'auto', padding: '5px 12px', borderRadius: 20, border: '1px solid #f5c0c0', background: '#fff0f0', color: '#e74c3c', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      style={{ marginLeft: 'auto', padding: '5px 12px', borderRadius: 20, border: '1px solid #e74c3c', background: 'transparent', color: '#e74c3c', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                       🗑 Supprimer
                     </button>
                   )}
@@ -287,7 +287,7 @@ export default function Moderation() {
                   ))}
                   {b.status === 'résolu' && (
                     <button onClick={() => deleteBug(b.id)}
-                      style={{ marginLeft: 'auto', padding: '5px 12px', borderRadius: 20, border: '1px solid #f5c0c0', background: '#fff0f0', color: '#e74c3c', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      style={{ marginLeft: 'auto', padding: '5px 12px', borderRadius: 20, border: '1px solid #e74c3c', background: 'transparent', color: '#e74c3c', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                       🗑 Supprimer
                     </button>
                   )}
