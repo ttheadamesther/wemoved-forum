@@ -314,9 +314,10 @@ export default function MemberProfile() {
 
   const assignRole = async (newRole) => {
     setUpdatingRole(true)
+    const token = await getToken()
     await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${id}`, {
       method: 'PATCH',
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
       body: JSON.stringify({ role: newRole })
     })
     setMember(m => ({ ...m, role: newRole }))
