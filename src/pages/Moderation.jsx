@@ -16,18 +16,10 @@ function api(path, opts = {}) {
 
 async function getToken() {
   try {
-    // Nouvelle clé Supabase configurée dans supabase.js
-    const newKey = localStorage.getItem('wemoved-auth')
-    if (newKey) {
-      const data = JSON.parse(newKey)
-      if (data?.access_token) return data.access_token
-    }
-    // Fallback ancienne clé
-    const keys = Object.keys(localStorage)
-    const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
-    if (authKey) {
-      const data = JSON.parse(localStorage.getItem(authKey))
-      if (data?.access_token) return data.access_token
+    const { supabase } = await import('../lib/supabase')
+    if (supabase) {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.access_token) return session.access_token
     }
   } catch {}
   return ANON_KEY
