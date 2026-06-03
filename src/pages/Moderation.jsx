@@ -171,7 +171,7 @@ export default function Moderation() {
             {filtered.map(m => {
               const avatarColor = colors[(m.pseudo?.charCodeAt(0) || 0) % colors.length]
               return (
-                <div key={m.id} style={{ background: m.banned ? '#fff8f8' : C.white, border: `1px solid ${m.banned ? '#f5c0c0' : C.border}`, borderLeft: `4px solid ${m.banned ? '#e74c3c' : C.accentDk}`, borderRadius: 14, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div key={m.id} style={{ background: C.white, border: `1px solid ${m.banned ? '#e74c3c66' : C.border}`, borderLeft: `4px solid ${m.banned ? '#e74c3c' : C.accentDk}`, borderRadius: 14, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 42, height: 42, borderRadius: '50%', background: m.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
                     {m.avatar_url ? <img src={m.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : m.initials}
                   </div>
