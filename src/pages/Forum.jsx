@@ -534,7 +534,10 @@ export default function ForumPage() {
                         <Btn onClick={() => setReporting({ type: 'reply', targetId: r.id })} variant="ghost" style={{ fontSize: 10, color: C.red }}>🚩</Btn>
                       )}
                       {user?.id === r.author_id && !isEditingThis && (
-                        <Btn onClick={() => setEditingReply({ id: r.id, body: r.body })} variant="ghost" style={{ fontSize: 10 }}>✏️</Btn>
+                        <>
+                          <Btn onClick={() => setEditingReply({ id: r.id, body: r.body })} variant="ghost" style={{ fontSize: 10 }}>✏️</Btn>
+                          <Btn onClick={() => setConfirmDel({ type: 'reply', id: r.id })} variant="red" style={{ fontSize: 10 }}>🗑</Btn>
+                        </>
                       )}
                       {canMod && (
                         <>
