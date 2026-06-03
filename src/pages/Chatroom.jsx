@@ -291,8 +291,8 @@ export default function Chatroom() {
             <div key={msg.id}
               style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', marginTop: sameAuthor ? 2 : 10 }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexDirection: isMe ? 'row-reverse' : 'row', width: '100%' }}
-                onMouseEnter={e => { const b = e.currentTarget.querySelector('.del-btn'); if (b) b.style.opacity = '1' }}
-                onMouseLeave={e => { const b = e.currentTarget.querySelector('.del-btn'); if (b) b.style.opacity = '0' }}>
+                onMouseEnter={e => { e.currentTarget.querySelector('.msg-actions').style.opacity = '1' }}
+                onMouseLeave={e => { e.currentTarget.querySelector('.msg-actions').style.opacity = '0' }}>
                 {/* Avatar */}
                 {!sameAuthor ? (
                   <div onClick={() => author && navigate(`/members/${author.id}`)}
@@ -311,22 +311,14 @@ export default function Chatroom() {
                   <div style={{ fontSize: 10, color: C.textDim, marginTop: 2, paddingLeft: 4, textAlign: isMe ? 'right' : 'left' }}>
                     {formatTime(msg.created_at)}
                   </div>
-                  {/* Bouton supprimer */}
-                  {canDelete && (
-                    <button className="del-btn" onClick={() => deleteMessage(msg.id)}
-                      style={{ position: 'absolute', top: 0, [isMe ? 'left' : 'right']: -28, width: 22, height: 22, borderRadius: '50%', border: 'none', background: '#e74c3c', color: '#fff', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity .2s' }}>
-                      ✕
-                    </button>
-                  )}
-                </div>
+                  </div>
 
-                {/* Bouton réaction rapide */}
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4, opacity: 0, transition: 'opacity .2s' }} className="msg-actions">
+                {/* Bouton réaction */}
                 {user && (
-                  <div style={{ position: 'relative', alignSelf: 'center' }}>
+                  <div style={{ position: 'relative' }}>
                     <button onClick={() => setReactionPicker(reactionPicker === msg.id ? null : msg.id)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, opacity: 0.4, padding: '2px 4px', borderRadius: 6, transition: 'opacity .2s' }}
-                      onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                      onMouseLeave={e => e.currentTarget.style.opacity = '0.4'}>
+                      style={{ background: C.surfaceB, border: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 13, padding: '3px 6px', borderRadius: 8, transition: 'all .2s' }}>
                       😊
                     </button>
                     {reactionPicker === msg.id && (
@@ -341,6 +333,14 @@ export default function Chatroom() {
                     )}
                   </div>
                 )}
+                {/* Bouton supprimer */}
+                {canDelete && (
+                  <button onClick={() => deleteMessage(msg.id)}
+                    style={{ background: 'transparent', border: `1px solid #e74c3c`, borderRadius: 8, color: '#e74c3c', fontSize: 11, cursor: 'pointer', padding: '3px 6px', transition: 'all .2s' }}>
+                    ✕
+                  </button>
+                )}
+              </div>
               </div>
 
               {/* Réactions affichées */}
