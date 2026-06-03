@@ -223,9 +223,19 @@ export default function ForumPage() {
   const lastPostTime = useRef(0)
 
   const myRole = profile?.role || 'membre'
+  const isAdmin = myRole === 'admin'
   const ROLES_RANK = { admin: 4, manager: 3, moderateur: 2, animateur: 1, membre: 0 }
   const myRank = ROLES_RANK[myRole] || 0
   const canMod = myRank >= 2
+
+  // Vérifie si on peut agir sur un contenu selon le rôle de son auteur
+  // Seul un admin peut toucher au contenu d'un autre admin
+  const canActOn = (authorId) => {
+    const author = members.find(m => m.id === authorId)
+    const authorRole = author?.role || 'membre'
+    if (authorRole === 'admin' && !isAdmin) return false
+    return true
+  }
 
   const isBanned = profile?.banned && (!profile.banned_until || new Date(profile.banned_until) > new Date())
   const bannedMsg = isBanned
@@ -251,7 +261,6 @@ export default function ForumPage() {
     loadThreads()
   }, [])
 
-  // Ouvrir le thread depuis l'URL (:threadId)
   useEffect(() => {
     if (!threadId || threads.length === 0) return
     const t = threads.find(th => String(th.id) === String(threadId))
@@ -287,7 +296,6 @@ export default function ForumPage() {
 
   const closeThread = () => {
     setOpenId(null); setReplies([]); setEditingThread(null); setEditingReply(null)
-    // Retirer le threadId de l'URL sans recharger
     navigate('/forum', { replace: true })
   }
 
@@ -389,15 +397,26 @@ export default function ForumPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
-  const ModBar = ({ thread }) => (
-    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '8px 12px', background: C.accentBg, border: `1px solid ${C.accentDk}`, borderRadius: 10, marginTop: 10 }}>
-      <span style={{ fontSize: 10, color: C.accentTxt, fontWeight: 700, alignSelf: 'center' }}>🛡 Modération :</span>
-      <Btn onClick={() => patchThread(thread.id, { pinned: !thread.pinned })} variant={thread.pinned ? 'yellow' : 'ghost'} style={{ fontSize: 10 }}>{thread.pinned ? '📌 Désépingler' : '📌 Épingler'}</Btn>
-      <Btn onClick={() => patchThread(thread.id, { locked: !thread.locked })} variant={thread.locked ? 'yellow' : 'ghost'} style={{ fontSize: 10 }}>{thread.locked ? '🔓 Déverrouiller' : '🔒 Verrouiller'}</Btn>
-      <Btn onClick={() => patchThread(thread.id, { hidden: !thread.hidden })} variant={thread.hidden ? 'green' : 'red'} style={{ fontSize: 10 }}>{thread.hidden ? '👁 Restaurer' : '🙈 Masquer'}</Btn>
-      <Btn onClick={() => setConfirmDel({ type: 'thread', id: thread.id })} variant="red" style={{ fontSize: 10 }}>🗑 Supprimer</Btn>
-    </div>
-  )
+  // ModBar : actions de modération sur un thread
+  // pinned/locked/hidden : canMod suffit SI l'auteur n'est pas admin (ou si on est admin)
+  // suppression : idem
+  const ModBar = ({ thread }) => {
+    const threadAuthorIsAdmin = getMember(thread.author_id)?.role === 'admin'
+    const canActOnThread = !threadAuthorIsAdmin || isAdmin
+    return (
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '8px 12px', background: C.accentBg, border: `1px solid ${C.accentDk}`, borderRadius: 10, marginTop: 10 }}>
+        <span style={{ fontSize: 10, color: C.accentTxt, fontWeight: 700, alignSelf: 'center' }}>🛡 Modération :</span>
+        <Btn onClick={() => patchThread(thread.id, { pinned: !thread.pinned })} variant={thread.pinned ? 'yellow' : 'ghost'} style={{ fontSize: 10 }}>{thread.pinned ? '📌 Désépingler' : '📌 Épingler'}</Btn>
+        <Btn onClick={() => patchThread(thread.id, { locked: !thread.locked })} variant={thread.locked ? 'yellow' : 'ghost'} style={{ fontSize: 10 }}>{thread.locked ? '🔓 Déverrouiller' : '🔒 Verrouiller'}</Btn>
+        {canActOnThread && (
+          <>
+            <Btn onClick={() => patchThread(thread.id, { hidden: !thread.hidden })} variant={thread.hidden ? 'green' : 'red'} style={{ fontSize: 10 }}>{thread.hidden ? '👁 Restaurer' : '🙈 Masquer'}</Btn>
+            <Btn onClick={() => setConfirmDel({ type: 'thread', id: thread.id })} variant="red" style={{ fontSize: 10 }}>🗑 Supprimer</Btn>
+          </>
+        )}
+      </div>
+    )
+  }
 
   const ConfirmModal = confirmDel ? (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
@@ -490,6 +509,8 @@ export default function ForumPage() {
             const rReactions = reactions[r.id] || {}
             const myEmoji = myReactions[r.id]
             const isLast = idx === visReplies.length - 1
+            // Un mod/manager ne peut pas agir sur les replies d'un admin
+            const canActOnReply = canActOn(r.author_id)
             return (
               <div key={r.id} ref={isLast ? repliesEndRef : null} style={{ background: r.hidden ? '#fff8f8' : C.white, border: `1px solid ${r.hidden ? '#f5c0c0' : C.border}`, borderRadius: 14, padding: isMobile ? '12px' : '14px 16px', display: 'flex', gap: 12, boxShadow: '0 1px 3px rgba(0,0,0,.03)' }}>
                 <Avatar member={ru} size={34} onClick={() => ru?.id && navigate(`/members/${ru.id}`)} />
@@ -549,7 +570,7 @@ export default function ForumPage() {
                           <Btn onClick={() => setConfirmDel({ type: 'reply', id: r.id })} variant="red" style={{ fontSize: 10 }}>🗑</Btn>
                         </>
                       )}
-                      {canMod && (
+                      {canMod && canActOnReply && (
                         <>
                           <Btn onClick={async () => { await apiAuth(`/rest/v1/replies?id=eq.${r.id}`, { method: 'PATCH', body: JSON.stringify({ hidden: !r.hidden }) }); loadReplies(openId) }} variant={r.hidden ? 'green' : 'red'} style={{ fontSize: 10 }}>{r.hidden ? '👁' : '🙈'}</Btn>
                           <Btn onClick={() => setConfirmDel({ type: 'reply', id: r.id })} variant="red" style={{ fontSize: 10 }}>🗑</Btn>
