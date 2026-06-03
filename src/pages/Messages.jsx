@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { C } from '../lib/constants'
 import { RoleBadge } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
+import EmojiPicker from 'emoji-picker-react'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -73,6 +74,8 @@ export default function MessagesPage() {
   const location = useLocation()
   const containerRef = useRef()
   const fileInputRef = useRef()
+  const inputRef = useRef()
+  const emojiRef = useRef()
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const [members,  setMembers]  = useState([])
   const [convos,   setConvos]   = useState([])
@@ -89,7 +92,17 @@ export default function MessagesPage() {
   const [deletingMsg, setDeletingMsg] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [reporting, setReporting] = useState(null)
+  const [showEmoji, setShowEmoji] = useState(false)
   const bottomRef = useRef(null)
+
+  // Fermer emoji picker au clic extérieur
+  useEffect(() => {
+    const handler = (e) => {
+      if (emojiRef.current && !emojiRef.current.contains(e.target)) setShowEmoji(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   useEffect(() => {
     const observer = new ResizeObserver(entries => {
@@ -112,7 +125,6 @@ export default function MessagesPage() {
 
   useEffect(() => {
     if (!user) return
-    // Charge tous les profils avec select limité pour éviter les timeouts
     api(`/rest/v1/profiles?id=neq.${user.id}&select=id,pseudo,initials,avatar_url,online,role`)
       .then(r => r.json()).then(d => { if (Array.isArray(d)) setMembers(d) })
     api(`/rest/v1/blocks?blocker_id=eq.${user.id}&select=blocked_id`)
@@ -155,6 +167,20 @@ export default function MessagesPage() {
   }, [activeId, user, sending])
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
+
+  const insertEmoji = (emojiData) => {
+    const el = inputRef.current
+    if (!el) { setText(t => t + emojiData.emoji); setShowEmoji(false); return }
+    const start = el.selectionStart
+    const end = el.selectionEnd
+    const newVal = text.slice(0, start) + emojiData.emoji + text.slice(end)
+    setText(newVal)
+    setShowEmoji(false)
+    setTimeout(() => {
+      el.focus()
+      el.setSelectionRange(start + emojiData.emoji.length, start + emojiData.emoji.length)
+    }, 0)
+  }
 
   const sendMessage = async (body) => {
     if (!body || !activeId || !user) return
@@ -222,7 +248,6 @@ export default function MessagesPage() {
   const activeMember = getMember(activeId)
   const isActiveBlocked = activeId && (blockedIds.includes(activeId) || blockedByIds.includes(activeId))
 
-  // Membres avec conversation existante
   const convoMembersWithData = convos
     .map(c => ({ convo: c, member: getMember(c.otherId) }))
     .filter(x => x.member)
@@ -310,8 +335,6 @@ export default function MessagesPage() {
 
             <div style={{ flex: 1, overflowY: 'auto' }}>
               {(() => {
-                // En mode recherche : tous les membres qui matchent
-                // Sans recherche : membres avec conversations existantes
                 const displayList = search
                   ? members.filter(m => m.pseudo?.toLowerCase().includes(search.toLowerCase()))
                       .map(m => ({ member: m, convo: convos.find(c => c.otherId === m.id) }))
@@ -447,17 +470,36 @@ export default function MessagesPage() {
                 <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}`, background: C.white, display: 'flex', gap: 8, alignItems: 'center' }}>
                   <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
                     onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.target.value = '' }} />
+
+                  {/* Bouton photo */}
                   <button onClick={() => fileInputRef.current?.click()} disabled={uploading} title="Envoyer une photo"
                     style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${C.borderMid}`, background: C.surfaceB, cursor: uploading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}
                     onMouseEnter={e => e.currentTarget.style.borderColor = '#c8a200'}
                     onMouseLeave={e => e.currentTarget.style.borderColor = C.borderMid}>
                     {uploading ? '⏳' : '📎'}
                   </button>
-                  <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
+
+                  {/* Bouton emoji */}
+                  <div ref={emojiRef} style={{ position: 'relative', flexShrink: 0 }}>
+                    <button onClick={() => setShowEmoji(s => !s)} title="Emojis"
+                      style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${showEmoji ? '#c8a200' : C.borderMid}`, background: showEmoji ? '#fffae6' : C.surfaceB, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0, transition: 'all .15s' }}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = '#c8a200'}
+                      onMouseLeave={e => { if (!showEmoji) e.currentTarget.style.borderColor = C.borderMid }}>
+                      😊
+                    </button>
+                    {showEmoji && (
+                      <div style={{ position: 'absolute', bottom: '110%', left: 0, zIndex: 1000 }}>
+                        <EmojiPicker onEmojiClick={insertEmoji} width={300} height={350} />
+                      </div>
+                    )}
+                  </div>
+
+                  <input ref={inputRef} value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
                     placeholder={`Message à @${activeMember.pseudo}…`}
                     style={{ flex: 1, border: `1px solid ${C.borderMid}`, borderRadius: 24, padding: '10px 18px', fontSize: 13, color: C.text, fontFamily: 'inherit', outline: 'none', background: C.surfaceB }}
                     onFocus={e => e.target.style.borderColor = '#c8a200'}
                     onBlur={e => e.target.style.borderColor = C.borderMid} />
+
                   <button onClick={send} disabled={sending || !text.trim()}
                     style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: text.trim() ? 'linear-gradient(135deg,#f0c800,#c8a200)' : '#e0e0e0', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
                     {sending ? '…' : '➤'}
