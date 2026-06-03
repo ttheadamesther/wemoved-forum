@@ -91,7 +91,8 @@ export default function App() {
             <Route path="/login"    element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
             <Route path="/register" element={<PublicOnlyRoute><Register /></PublicOnlyRoute>} />
             <Route path="/"         element={<Layout><Home /></Layout>} />
-            <Route path="/forum"    element={<Layout><Forum /></Layout>} />
+            <Route path="/forum"           element={<Layout><Forum /></Layout>} />
+            <Route path="/forum/:threadId" element={<Layout><Forum /></Layout>} />
             <Route path="/members"  element={<Layout><Members /></Layout>} />
             <Route path="/members/:id" element={<Layout><MemberProfile /></Layout>} />
             <Route path="/legal"    element={<Layout><Legal /></Layout>} />

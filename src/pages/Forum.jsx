@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { C, CATS, ROLE_RING } from '../lib/constants'
 import { RoleBadge, Btn, Input } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
@@ -126,7 +126,6 @@ function RichInput({ value, onChange, placeholder, rows = 3 }) {
   )
 }
 
-// Avatar avec cercle de rôle
 function Avatar({ member, size = 36, onClick }) {
   const colors = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
   const color = colors[(member?.pseudo?.charCodeAt(0) || 0) % colors.length]
@@ -192,6 +191,7 @@ function ReportModal({ type, targetId, reporterId, onClose }) {
 export default function ForumPage() {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
+  const { threadId } = useParams()
   const containerRef = useRef()
   const repliesEndRef = useRef()
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -227,10 +227,7 @@ export default function ForumPage() {
   const myRank = ROLES_RANK[myRole] || 0
   const canMod = myRank >= 2
 
-  // Vérification ban
-  const isBanned = profile?.banned && (
-    !profile.banned_until || new Date(profile.banned_until) > new Date()
-  )
+  const isBanned = profile?.banned && (!profile.banned_until || new Date(profile.banned_until) > new Date())
   const bannedMsg = isBanned
     ? profile.banned_until
       ? `Tu es banni jusqu'au ${new Date(profile.banned_until).toLocaleDateString('fr-FR')} à ${new Date(profile.banned_until).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}.`
@@ -253,6 +250,13 @@ export default function ForumPage() {
     api('/rest/v1/profiles?select=*').then(r => r.json()).then(d => { if (Array.isArray(d)) setMembers(d) })
     loadThreads()
   }, [])
+
+  // Ouvrir le thread depuis l'URL (:threadId)
+  useEffect(() => {
+    if (!threadId || threads.length === 0) return
+    const t = threads.find(th => String(th.id) === String(threadId))
+    if (t && openId !== t.id) openThread(t)
+  }, [threadId, threads])
 
   useEffect(() => { setPage(1) }, [cat, sortBy, searchQuery])
 
@@ -281,6 +285,12 @@ export default function ForumPage() {
     setThreads(prev => prev.map(th => th.id === t.id ? { ...th, views: (th.views || 0) + 1 } : th))
   }
 
+  const closeThread = () => {
+    setOpenId(null); setReplies([]); setEditingThread(null); setEditingReply(null)
+    // Retirer le threadId de l'URL sans recharger
+    navigate('/forum', { replace: true })
+  }
+
   const postThread = async () => {
     if (!nTitle.trim() || !nBody.trim() || !user) return
     if (isBanned) { setSpamError(bannedMsg); return }
@@ -306,11 +316,11 @@ export default function ForumPage() {
     await awardXP(user.id, 5)
     const currentThread = threads.find(t => t.id === openId)
     if (currentThread && currentThread.author_id !== user.id) {
-      await sendNotif(currentThread.author_id, 'reply', `💬 @${profile?.pseudo || 'Quelqu\'un'} a répondu à votre topic "${currentThread.title.slice(0, 50)}"`, `/forum`)
+      await sendNotif(currentThread.author_id, 'reply', `💬 @${profile?.pseudo || 'Quelqu\'un'} a répondu à votre topic "${currentThread.title.slice(0, 50)}"`, `/forum/${openId}`)
     }
     const mentions = extractMentions(replyText)
     for (const m of members.filter(m => mentions.includes(m.pseudo?.toLowerCase()) && m.id !== user.id)) {
-      await sendNotif(m.id, 'mention', `🔔 @${profile?.pseudo || 'Quelqu\'un'} vous a mentionné`, `/forum`)
+      await sendNotif(m.id, 'mention', `🔔 @${profile?.pseudo || 'Quelqu\'un'} vous a mentionné`, `/forum/${openId}`)
     }
     setReplyText(''); setQuoting(null); loadReplies(openId)
     setReplyCounts(prev => ({ ...prev, [openId]: (prev[openId] || 0) + 1 }))
@@ -331,7 +341,7 @@ export default function ForumPage() {
     setThreads(prev => prev.map(t => t.id === thread.id ? { ...t, likes: newCount } : t))
     await apiAuth(`/rest/v1/threads?id=eq.${thread.id}`, { method: 'PATCH', body: JSON.stringify({ likes: newCount }) })
     if (!liked && thread.author_id !== user?.id) {
-      await sendNotif(thread.author_id, 'like', `♥ @${profile?.pseudo || 'Quelqu\'un'} a aimé votre topic "${thread.title.slice(0, 50)}"`, `/forum`)
+      await sendNotif(thread.author_id, 'like', `♥ @${profile?.pseudo || 'Quelqu\'un'} a aimé votre topic "${thread.title.slice(0, 50)}"`, `/forum/${thread.id}`)
     }
   }
 
@@ -357,7 +367,7 @@ export default function ForumPage() {
   const doDeleteThread = async (id) => {
     await apiAuth(`/rest/v1/replies?thread_id=eq.${id}`, { method: 'DELETE' })
     await apiAuth(`/rest/v1/threads?id=eq.${id}`, { method: 'DELETE' })
-    setOpenId(null); setReplies([]); loadThreads(); setConfirmDel(null)
+    closeThread(); loadThreads(); setConfirmDel(null)
   }
 
   const doDeleteReply = async (id) => {
@@ -414,7 +424,7 @@ export default function ForumPage() {
         {reporting && <ReportModal type={reporting.type} targetId={reporting.targetId} reporterId={user?.id} onClose={() => setReporting(null)} />}
         {ConfirmModal}
 
-        <button onClick={() => { setOpenId(null); setReplies([]); setEditingThread(null); setEditingReply(null) }}
+        <button onClick={closeThread}
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: C.textMid, cursor: 'pointer', fontSize: 13, fontWeight: 600, marginBottom: 16, padding: 0 }}>
           ← Retour au forum
         </button>
