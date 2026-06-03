@@ -12,11 +12,11 @@ const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 async function getToken() {
   try {
-    const keys = Object.keys(localStorage)
-    const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
-    if (authKey) { const data = JSON.parse(localStorage.getItem(authKey)); if (data?.access_token) return data.access_token }
-    const oldKey = keys.find(k => k.includes('auth-token'))
-    if (oldKey) { const data = JSON.parse(localStorage.getItem(oldKey)); if (data?.access_token) return data.access_token }
+    const { supabase } = await import('../lib/supabase')
+    if (supabase) {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.access_token) return session.access_token
+    }
   } catch {}
   return ANON_KEY
 }
@@ -174,7 +174,7 @@ export default function Profile() {
   const [infosCity,    setInfosCity]    = useState('')
   const [infosStatut,  setInfosStatut]  = useState('')
   const [savingInfos,  setSavingInfos]  = useState(false)
-  const [lightbox,     setLightbox]     = useState(null) // { url, index }
+  const [lightbox,     setLightbox]     = useState(null)
   const [likerProfiles, setLikerProfiles] = useState([])
 
   const avatarRef = useRef()
@@ -396,14 +396,12 @@ export default function Profile() {
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
         <div style={PANEL}>
-          {/* Stats + Votes */}
           <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${C.border}` }}>
-            {/* Desktop : tout sur une ligne */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', gap: 12, flexShrink: 0 }}>
                 {[
-                  { icon: '👥', label: 'Amis',       value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
-                  { icon: '⭐', label: 'Votes',        value: totalVotes,                                color: '#c8a200' },
+                  { icon: '👥', label: 'Amis',  value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
+                  { icon: '⭐', label: 'Votes', value: totalVotes,                                 color: '#c8a200' },
                 ].map(s => (
                   <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <span style={{ fontSize: 13 }}>{s.icon}</span>
@@ -427,7 +425,7 @@ export default function Profile() {
               </div>
             </div>
           </div>
-          {/* Bio */}
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>✍️ Bio</div>
             {!editing && <button onClick={() => { setBio(profile.bio || ''); setEditing(true) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.accentTxt, fontWeight: 600 }}>Modifier</button>}
@@ -543,8 +541,6 @@ export default function Profile() {
                 </div>
           }
         </div>
-
-
 
         <div style={PANEL}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
