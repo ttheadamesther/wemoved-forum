@@ -274,7 +274,7 @@ export default function Profile() {
           <img src={lightbox.url} alt="" style={{ maxWidth: '88vw', maxHeight: '58vh', borderRadius: 12, objectFit: 'contain', boxShadow: '0 8px 40px rgba(0,0,0,.6)', flexShrink: 0 }} onClick={e => e.stopPropagation()} />
           <div onClick={e => e.stopPropagation()} style={{ background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 14, padding: '12px 20px', maxWidth: 500, width: '100%', backdropFilter: 'blur(8px)', flexShrink: 0 }}>
             <div style={{ fontSize: 13, color: '#fff', fontWeight: 700, marginBottom: (photoLikes[String(lightbox.index)] || []).length > 0 ? 10 : 0 }}>
-              ❤️ {(photoLikes[String(lightbox.index)] || []).length} j'aime{(photoLikes[String(lightbox.index)] || []).length !== 1 ? 's' : ''}
+              ❤️ {(photoLikes[String(lightbox.index)] || []).length} like{(photoLikes[String(lightbox.index)] || []).length !== 1 ? 's' : ''}
             </div>
             {likerProfiles.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
