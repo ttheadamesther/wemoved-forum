@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext(null)
@@ -11,6 +11,7 @@ export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(undefined)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const refreshIntervalRef = useRef(null)
 
   const calcAge = (birthDate) => {
     if (!birthDate) return null
@@ -31,11 +32,9 @@ export function AuthProvider({ children }) {
       const data = await res.json()
       if (!data || !data[0]) return null
       const p = data[0]
-      // Recalculer l'âge depuis birth_date si disponible
       if (p.birth_date) {
         const freshAge = calcAge(p.birth_date)
         if (freshAge !== null && freshAge !== p.age) {
-          // Mettre à jour silencieusement si l'âge a changé
           fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${uid}`, {
             method: 'PATCH',
             headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token || ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
@@ -69,6 +68,30 @@ export function AuthProvider({ children }) {
     } catch {}
   }
 
+  // Rafraîchir le profil toutes les 30 secondes pour détecter les bans
+  const startProfilePolling = (uid) => {
+    if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current)
+    refreshIntervalRef.current = setInterval(async () => {
+      if (!uid) return
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${uid}&select=banned,banned_until,role,xp,level,badges&limit=1`, {
+          headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+        })
+        const data = await res.json()
+        if (data && data[0]) {
+          setProfile(prev => prev ? { ...prev, ...data[0] } : data[0])
+        }
+      } catch {}
+    }, 30000) // toutes les 30 secondes
+  }
+
+  const stopProfilePolling = () => {
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current)
+      refreshIntervalRef.current = null
+    }
+  }
+
   useEffect(() => {
     if (!supabase) { setUser(null); setLoading(false); return }
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -78,6 +101,7 @@ export function AuthProvider({ children }) {
         const p = await fetchProfile(u.id, session.access_token)
         setProfile(p)
         await setOnlineStatus(u.id, session.access_token, true)
+        startProfilePolling(u.id)
       }
       setLoading(false)
     }).catch(() => { setUser(null); setLoading(false) })
@@ -89,8 +113,10 @@ export function AuthProvider({ children }) {
         const p = await fetchProfile(u.id, session.access_token)
         setProfile(p)
         await setOnlineStatus(u.id, session.access_token, true)
+        startProfilePolling(u.id)
       } else {
         setProfile(null)
+        stopProfilePolling()
       }
     })
 
@@ -99,7 +125,11 @@ export function AuthProvider({ children }) {
       if (session?.user) await setOnlineStatus(session.user.id, session.access_token, false)
     }
     window.addEventListener('beforeunload', handleUnload)
-    return () => { subscription.unsubscribe(); window.removeEventListener('beforeunload', handleUnload) }
+    return () => {
+      subscription.unsubscribe()
+      window.removeEventListener('beforeunload', handleUnload)
+      stopProfilePolling()
+    }
   }, [])
 
   const signIn = async (email, password) => {
@@ -110,7 +140,6 @@ export function AuthProvider({ children }) {
   const signUp = async (email, password, pseudo, extra = {}) => {
     if (!supabase) return { error: { message: 'Supabase non configuré.' } }
 
-    // ── 1. Vérification pseudo unique ──
     const pseudoCheck = await fetch(
       `${SUPABASE_URL}/rest/v1/profiles?pseudo=eq.${encodeURIComponent(pseudo.trim())}&select=id&limit=1`,
       { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` } }
@@ -120,7 +149,6 @@ export function AuthProvider({ children }) {
       return { error: { message: 'Ce pseudo est déjà pris. Choisis-en un autre.' } }
     }
 
-    // ── 2. Vérification email unique ──
     const emailCheck = await fetch(
       `${SUPABASE_URL}/rest/v1/profiles?email=eq.${encodeURIComponent(email.trim())}&select=id&limit=1`,
       { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` } }
@@ -130,10 +158,8 @@ export function AuthProvider({ children }) {
       return { error: { message: 'Un compte existe déjà avec cet email.' } }
     }
 
-    // ── 3. Création du compte Supabase Auth ──
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) {
-      // Traduire les erreurs Supabase en français
       if (error.message?.includes('already registered')) return { error: { message: 'Un compte existe déjà avec cet email.' } }
       if (error.message?.includes('Password should be')) return { error: { message: 'Le mot de passe doit faire au moins 6 caractères.' } }
       if (error.message?.includes('invalid email')) return { error: { message: 'Adresse email invalide.' } }
@@ -142,8 +168,6 @@ export function AuthProvider({ children }) {
 
     if (data.user) {
       const token = data.session?.access_token || ANON_KEY
-
-      // ── 4. Création du profil ──
       const profileRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
         method: 'POST',
         headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
@@ -171,12 +195,10 @@ export function AuthProvider({ children }) {
       })
 
       if (!profileRes.ok) {
-        // Si le profil n'a pas pu être créé, on supprime le compte auth pour éviter les orphelins
         await supabase.auth.admin?.deleteUser(data.user.id).catch(() => {})
         return { error: { message: 'Erreur lors de la création du profil. Réessaie.' } }
       }
 
-      // ── 5. Message de bienvenue ──
       await fetch(`${SUPABASE_URL}/rest/v1/messages`, {
         method: 'POST',
         headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -198,6 +220,7 @@ export function AuthProvider({ children }) {
       if (session) await setOnlineStatus(user.id, session.access_token, false)
       await supabase.auth.signOut()
     }
+    stopProfilePolling()
     setUser(null)
     setProfile(null)
   }
