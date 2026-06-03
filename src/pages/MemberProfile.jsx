@@ -31,7 +31,12 @@ async function api(path, opts = {}) {
   const token = await getToken()
   return fetch(`${SUPABASE_URL}${path}`, {
     ...opts,
-    headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', ...opts.headers }
+    headers: {
+      'apikey': ANON_KEY,
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...opts.headers
+    }
   })
 }
 
@@ -98,12 +103,12 @@ export default function MemberProfile() {
   const [friendsList, setFriendsList]     = useState([])
   const [friendsLoading, setFriendsLoading] = useState(false)
   const [likingPhoto, setLikingPhoto]     = useState(null)
-  const [lightbox, setLightbox]           = useState(null) // { url, index }
+  const [lightbox, setLightbox]           = useState(null)
   const [likerProfiles, setLikerProfiles] = useState([])
   const notifSentRef = useRef(false)
 
-  const isAdmin = profile?.role === 'admin'
-  const isManager = profile?.role === 'manager'
+  const isAdmin       = profile?.role === 'admin'
+  const isManager     = profile?.role === 'manager'
   const canManageRoles = isAdmin || isManager
   const monthKey = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth()}` }
 
@@ -119,8 +124,12 @@ export default function MemberProfile() {
     if (Array.isArray(d)) setLikerProfiles(d)
   }
 
+  // Chargement du profil membre + données non-auth
   useEffect(() => {
     notifSentRef.current = false
+    setLoading(true)
+    setFriendship(null)
+
     fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${id}&limit=1`, {
       headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
     }).then(r => r.json()).then(data => {
@@ -128,27 +137,35 @@ export default function MemberProfile() {
       setLoading(false)
     })
 
-    if (user) {
-      fetch(`${SUPABASE_URL}/rest/v1/votes?from_id=eq.${user.id}&to_id=eq.${id}&month_key=eq.${monthKey()}`, {
-        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
-      }).then(r => r.json()).then(data => {
-        if (Array.isArray(data)) {
-          const v = {}
-          data.forEach(d => { v[d.vote_type] = true })
-          setMyVotes(v)
-        }
-      })
-      fetch(`${SUPABASE_URL}/rest/v1/blocks?blocker_id=eq.${user.id}&blocked_id=eq.${id}&limit=1`, {
-        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
-      }).then(r => r.json()).then(data => { setIsBlocked(Array.isArray(data) && data.length > 0) })
-      fetch(`${SUPABASE_URL}/rest/v1/blocks?blocker_id=eq.${id}&blocked_id=eq.${user.id}&limit=1`, {
-        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
-      }).then(r => r.json()).then(data => { setBlockedByThem(Array.isArray(data) && data.length > 0) })
-      loadFriendship()
-    }
     loadFriendsList()
   }, [id])
 
+  // Chargement des données auth-dépendantes (séparé pour attendre que user soit dispo)
+  useEffect(() => {
+    if (!user || !id) return
+
+    fetch(`${SUPABASE_URL}/rest/v1/votes?from_id=eq.${user.id}&to_id=eq.${id}&month_key=eq.${monthKey()}`, {
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+    }).then(r => r.json()).then(data => {
+      if (Array.isArray(data)) {
+        const v = {}
+        data.forEach(d => { v[d.vote_type] = true })
+        setMyVotes(v)
+      }
+    })
+
+    fetch(`${SUPABASE_URL}/rest/v1/blocks?blocker_id=eq.${user.id}&blocked_id=eq.${id}&limit=1`, {
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+    }).then(r => r.json()).then(data => { setIsBlocked(Array.isArray(data) && data.length > 0) })
+
+    fetch(`${SUPABASE_URL}/rest/v1/blocks?blocker_id=eq.${id}&blocked_id=eq.${user.id}&limit=1`, {
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+    }).then(r => r.json()).then(data => { setBlockedByThem(Array.isArray(data) && data.length > 0) })
+
+    loadFriendship()
+  }, [id, user?.id])
+
+  // Notif visite de profil
   useEffect(() => {
     if (!user || !id || user.id === id) return
     if (notifSentRef.current) return
@@ -180,6 +197,7 @@ export default function MemberProfile() {
   }
 
   const loadFriendship = async () => {
+    if (!user?.id || !id) return
     try {
       const token = await getToken()
       const headers = { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
@@ -197,8 +215,14 @@ export default function MemberProfile() {
   const sendFriendRequest = async () => {
     if (friendLoading) return
     setFriendLoading(true)
-    await api('/rest/v1/friendships', { method: 'POST', body: JSON.stringify({ user_a: user.id, user_b: id, status: 'pending' }) })
-    await sendNotif(id, 'friend_request', `👥 @${profile?.pseudo || 'Quelqu\'un'} vous a envoyé une demande d'ami`, `/members/${user.id}`)
+    const res = await api('/rest/v1/friendships', {
+      method: 'POST',
+      body: JSON.stringify({ user_a: user.id, user_b: id, status: 'pending' })
+    })
+    // Envoie la notif seulement si l'INSERT a réussi (201) ou existait déjà (409)
+    if (res.ok || res.status === 409) {
+      await sendNotif(id, 'friend_request', `👥 @${profile?.pseudo || 'Quelqu\'un'} vous a envoyé une demande d'ami`, `/members/${user.id}`)
+    }
     await loadFriendship()
     setFriendLoading(false)
   }
@@ -273,7 +297,6 @@ export default function MemberProfile() {
       headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
       body: JSON.stringify({ photo_likes: newPhotoLikes })
     })
-    // Refetch pour avoir la vraie valeur en base
     const r = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${id}&select=photo_likes&limit=1`, {
       headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
     })
@@ -361,7 +384,7 @@ export default function MemberProfile() {
         <div style={{ height: 160, background: member.banner_url ? `url(${member.banner_url}) center/cover no-repeat` : 'linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)' }} />
         <div style={{ padding: '0 24px 24px', position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div style={{ width: 90, height: 90, borderRadius: '50%', background: member.avatar_url ? '#444' : avatarColor, border: ROLE_RING[member.role] ? `4px solid ${ROLE_RING[member.role]}` : '4px solid #fff', boxShadow: ROLE_RING[member.role] ? `0 0 16px ${ROLE_RING[member.role]}99` : 'none', marginTop: -45, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, boxShadow: '0 2px 12px rgba(0,0,0,.15)' }}>
+            <div style={{ width: 90, height: 90, borderRadius: '50%', background: member.avatar_url ? '#444' : avatarColor, border: ROLE_RING[member.role] ? `4px solid ${ROLE_RING[member.role]}` : '4px solid #fff', boxShadow: ROLE_RING[member.role] ? `0 0 16px ${ROLE_RING[member.role]}99` : '0 2px 12px rgba(0,0,0,.15)', marginTop: -45, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
               {member.avatar_url ? <img src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
@@ -416,13 +439,12 @@ export default function MemberProfile() {
             {statut        && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>{statut}</span>}
           </div>
 
-          {/* Stats + Votes */}
           <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', gap: 12, flexShrink: 0 }}>
                 {[
-                  { icon: '👥', label: 'Amis',       value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
-                  { icon: '⭐', label: 'Votes',        value: totalVotes,                                color: '#c8a200' },
+                  { icon: '👥', label: 'Amis',  value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
+                  { icon: '⭐', label: 'Votes', value: totalVotes,                                 color: '#c8a200' },
                 ].map(s => (
                   <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <span style={{ fontSize: 13 }}>{s.icon}</span>
@@ -454,7 +476,6 @@ export default function MemberProfile() {
             </div>
           </div>
 
-          {/* Bio */}
           <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>✍️ Bio</div>
             <div style={{ fontSize: 13, color: member.bio ? C.textMid : C.textDim, lineHeight: 1.7, margin: 0, fontStyle: member.bio ? 'normal' : 'italic', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
@@ -464,9 +485,6 @@ export default function MemberProfile() {
         </div>
       </div>
 
-
-
-      {/* Intérêts */}
       {(member.interests || []).length > 0 && (
         <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.accentDk}`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
           <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>🎯 Intérêts</div>
@@ -518,10 +536,6 @@ export default function MemberProfile() {
               </div>
         }
       </div>
-
-
-
-
 
       {(member.photos || []).length > 0 && (
         <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.accentDk}`, borderRadius: 14, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
