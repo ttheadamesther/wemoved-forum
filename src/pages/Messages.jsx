@@ -19,18 +19,10 @@ async function getToken() {
 }
 
 async function api(path, opts = {}) {
-  let token = ANON_KEY
-  try {
-    const keys = Object.keys(localStorage)
-    const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
-    if (authKey) {
-      const data = JSON.parse(localStorage.getItem(authKey))
-      if (data?.access_token) token = data.access_token
-    }
-  } catch {}
+  const token = await getToken()
   return fetch(`${SUPABASE_URL}${path}`, {
     ...opts,
-    headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, ...opts.headers }
+    headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', ...opts.headers }
   })
 }
 
@@ -109,7 +101,6 @@ export default function MessagesPage() {
 
   useEffect(() => { if (user === null) navigate('/login') }, [user])
 
-  // Ouvrir une conversation depuis un profil (?to=userId)
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     const toId = params.get('to')
@@ -121,7 +112,8 @@ export default function MessagesPage() {
 
   useEffect(() => {
     if (!user) return
-    api(`/rest/v1/profiles?id=neq.${user.id}&select=*`)
+    // Charge tous les profils avec select limité pour éviter les timeouts
+    api(`/rest/v1/profiles?id=neq.${user.id}&select=id,pseudo,initials,avatar_url,online,role`)
       .then(r => r.json()).then(d => { if (Array.isArray(d)) setMembers(d) })
     api(`/rest/v1/blocks?blocker_id=eq.${user.id}&select=blocked_id`)
       .then(r => r.json()).then(d => { if (Array.isArray(d)) setBlockedIds(d.map(b => b.blocked_id)) })
@@ -129,9 +121,9 @@ export default function MessagesPage() {
       .then(r => r.json()).then(d => { if (Array.isArray(d)) setBlockedByIds(d.map(b => b.blocker_id)) })
   }, [user])
 
-  useEffect(() => {
+  const loadConvos = () => {
     if (!user) return
-    api(`/rest/v1/messages?or=(from_id.eq.${user.id},to_id.eq.${user.id})&order=created_at.desc&limit=100`)
+    api(`/rest/v1/messages?or=(from_id.eq.${user.id},to_id.eq.${user.id})&order=created_at.desc&limit=200`)
       .then(r => r.json()).then(d => {
         if (!Array.isArray(d)) return
         const map = {}
@@ -143,7 +135,9 @@ export default function MessagesPage() {
         })
         setConvos(Object.values(map))
       })
-  }, [user, sending])
+  }
+
+  useEffect(() => { loadConvos() }, [user, sending])
 
   useEffect(() => {
     if (!activeId || !user) return
@@ -168,21 +162,21 @@ export default function MessagesPage() {
     setSending(true)
     await api(`/rest/v1/messages`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ from_id: user.id, to_id: activeId, body, read: false })
     })
     await api(`/rest/v1/notifications`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         user_id: activeId, type: 'message',
         content: `💬 @${profile?.pseudo || "Quelqu'un"} vous a envoyé un message`,
         link: '/messages', read: false
       })
     })
-    api(`/rest/v1/messages?or=(and(from_id.eq.${user.id},to_id.eq.${activeId}),and(from_id.eq.${activeId},to_id.eq.${user.id}))&order=created_at.asc`)
-      .then(r => r.json()).then(d => { if (Array.isArray(d)) setMessages(d) })
+    const msgs = await api(`/rest/v1/messages?or=(and(from_id.eq.${user.id},to_id.eq.${activeId}),and(from_id.eq.${activeId},to_id.eq.${user.id}))&order=created_at.asc`)
+      .then(r => r.json())
+    if (Array.isArray(msgs)) setMessages(msgs)
     setSending(false)
+    loadConvos()
   }
 
   const send = async () => {
@@ -227,7 +221,11 @@ export default function MessagesPage() {
   const getMember = (id) => members.find(m => m.id === id)
   const activeMember = getMember(activeId)
   const isActiveBlocked = activeId && (blockedIds.includes(activeId) || blockedByIds.includes(activeId))
-  const convoMembers = convos.map(c => getMember(c.otherId)).filter(Boolean)
+
+  // Membres avec conversation existante
+  const convoMembersWithData = convos
+    .map(c => ({ convo: c, member: getMember(c.otherId) }))
+    .filter(x => x.member)
 
   const openConvo = (id) => { setActiveId(id); if (isMobile) setShowSidebar(false) }
 
@@ -254,7 +252,6 @@ export default function MessagesPage() {
               <button onClick={async () => {
                 await api('/rest/v1/reports', {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ type: 'message', target_id: reporting.id, reporter_id: user.id, reason: 'Message privé signalé', status: 'pending' })
                 })
                 setReporting(null)
@@ -313,15 +310,17 @@ export default function MessagesPage() {
 
             <div style={{ flex: 1, overflowY: 'auto' }}>
               {(() => {
-                const displayedMembers = search
-                  ? members.filter(m => m.id !== user.id && m.pseudo?.toLowerCase().includes(search.toLowerCase()))
-                  : convoMembers
-                return displayedMembers.length > 0 ? (
-                <div style={{ padding: '8px 0' }}>
-                  {displayedMembers
-                    .map(m => {
-                      const convo = convos.find(c => c.otherId === m.id)
-                      const last  = convo?.messages?.[0]
+                // En mode recherche : tous les membres qui matchent
+                // Sans recherche : membres avec conversations existantes
+                const displayList = search
+                  ? members.filter(m => m.pseudo?.toLowerCase().includes(search.toLowerCase()))
+                      .map(m => ({ member: m, convo: convos.find(c => c.otherId === m.id) }))
+                  : convoMembersWithData
+
+                return displayList.length > 0 ? (
+                  <div style={{ padding: '8px 0' }}>
+                    {displayList.map(({ member: m, convo }) => {
+                      const last = convo?.messages?.[0]
                       const unread = convo?.unread || 0
                       const blocked = blockedIds.includes(m.id)
                       const lastPreview = last?.body?.startsWith('__IMG__') ? '📷 Photo' : last?.body
@@ -359,10 +358,10 @@ export default function MessagesPage() {
                         </div>
                       )
                     })}
-                </div>
-              ) : (
-                <div style={{ padding: 24, textAlign: 'center', color: C.textDim, fontSize: 12 }}>{search ? 'Aucun membre trouvé' : 'Aucune conversation'}</div>
-              )
+                  </div>
+                ) : (
+                  <div style={{ padding: 24, textAlign: 'center', color: C.textDim, fontSize: 12 }}>{search ? 'Aucun membre trouvé' : 'Aucune conversation'}</div>
+                )
               })()}
             </div>
           </div>
@@ -415,7 +414,6 @@ export default function MessagesPage() {
                           <button onClick={async () => {
                             await api('/rest/v1/reports', {
                               method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ type: 'message', target_id: m.id, reporter_id: user.id, reason: 'Message privé signalé', status: 'pending' })
                             })
                             alert('Message signalé aux modérateurs.')
