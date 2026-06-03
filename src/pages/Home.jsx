@@ -48,7 +48,6 @@ function formatTimeAgo(ts) {
   return new Date(ts).toLocaleDateString('fr-FR')
 }
 
-// Avatar réutilisable avec anneau de rôle
 function MemberAvatar({ member, size = 34, colors }) {
   const ac = colors[(member?.pseudo?.charCodeAt(0) || 0) % colors.length]
   const ring = ROLE_RING[member?.role] || null
@@ -223,7 +222,6 @@ export default function Home() {
               : members.filter(m => m.online).slice(0, isMobile ? 3 : 6).map(m => (
                   <div key={m.id} onClick={() => navigate(`/members/${m.id}`)} className="row"
                     style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer' }}>
-                    {/* Avatar avec anneau de rôle + pastille online */}
                     <div style={{ position: 'relative', flexShrink: 0 }}>
                       <MemberAvatar member={m} size={34} colors={colors} />
                       <div style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: C.online, border: '2px solid #fff' }} />
@@ -296,7 +294,7 @@ export default function Home() {
                 : threads.map(t => {
                     const author = getMember(t.author_id)
                     return (
-                      <div key={t.id} onClick={() => navigate('/forum')} className="row"
+                      <div key={t.id} onClick={() => navigate(`/forum/${t.id}`)} className="row"
                         style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12, padding: isMobile ? '12px' : '14px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer' }}>
                         {!isMobile && (
                           <div style={{ flexShrink: 0 }}>
@@ -316,7 +314,6 @@ export default function Home() {
                             <span>❤️ {t.likes || 0}</span>
                           </div>
                         )}
-                        {/* Avatar auteur thread avec anneau */}
                         <MemberAvatar member={author} size={30} colors={colors} />
                       </div>
                     )
@@ -339,7 +336,7 @@ export default function Home() {
                 { cat: 'Voyages',    icon: '✈️', desc: 'Destinations, bons plans…' },
                 { cat: 'Divers',     icon: '💬', desc: "Tout ce qui n'entre pas ailleurs !" },
               ].map(c => (
-                <div key={c.cat} onClick={() => navigate('/forum')} className="row"
+                <div key={c.cat} onClick={() => navigate(`/forum?cat=${c.cat}`)} className="row"
                   style={{ display: 'flex', gap: 12, padding: '14px 16px', borderBottom: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}`, cursor: 'pointer' }}>
                   <span style={{ fontSize: 24, flexShrink: 0 }}>{c.icon}</span>
                   <div>
@@ -376,11 +373,12 @@ export default function Home() {
                 : activity.map((t, i) => {
                     const author = getMember(t.author_id)
                     return (
-                      <div key={t.id} onClick={() => navigate('/forum')} className="row"
+                      <div key={t.id} onClick={() => navigate(`/forum/${t.id}`)} className="row"
                         style={{ display: 'flex', gap: 10, padding: '10px 14px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', animation: `fadein .${2 + i}s ease` }}>
                         <MemberAvatar member={author} size={34} colors={colors} />
                         <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5 }}>
-                          <span style={{ fontWeight: 700, color: C.accentTxt }}>@{author?.pseudo || 'Inconnu'}</span>{author?.is_bot && <span style={{ marginLeft: 3, padding: '1px 5px', borderRadius: 4, fontSize: 8, fontWeight: 700, background: '#5865f2', color: '#fff' }}>BOT</span>}
+                          <span style={{ fontWeight: 700, color: C.accentTxt }}>@{author?.pseudo || 'Inconnu'}</span>
+                          {author?.is_bot && <span style={{ marginLeft: 3, padding: '1px 5px', borderRadius: 4, fontSize: 8, fontWeight: 700, background: '#5865f2', color: '#fff' }}>BOT</span>}
                           {' '}a créé{' '}
                           <span style={{ fontWeight: 600 }}>"{t.title?.slice(0, 30)}{t.title?.length > 30 ? '…' : ''}"</span>
                           <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{formatTimeAgo(t.created_at)}</div>
