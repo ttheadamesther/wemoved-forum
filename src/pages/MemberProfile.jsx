@@ -301,7 +301,7 @@ export default function MemberProfile() {
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: C.textMid }}>Chargement…</div>
 
   if (blockedByThem) return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px' }}>
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px 80px' }}>
       <Btn onClick={() => navigate('/members')} variant="ghost" style={{ marginBottom: 16, fontSize: 12 }}>← Retour</Btn>
       <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 40, textAlign: 'center', boxShadow: '0 2px 12px rgba(0,0,0,.06)' }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>🚫</div>
@@ -323,7 +323,7 @@ export default function MemberProfile() {
   const photoLikes = member.photo_likes || {}
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px' }}>
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px 80px' }}>
 
       {lightbox && (
         <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.92)', zIndex: 2000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px 20px 40px', gap: 16, cursor: 'zoom-out' }}>
@@ -415,16 +415,16 @@ export default function MemberProfile() {
           {/* Stats + Votes */}
           <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', gap: 16, flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: 12, flexShrink: 0 }}>
                 {[
                   { icon: '👥', label: 'Amis',       value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
-                  { icon: '⭐', label: 'Votes reçus', value: totalVotes,                                color: '#c8a200' },
+                  { icon: '⭐', label: 'Votes',        value: totalVotes,                                color: '#c8a200' },
                 ].map(s => (
-                  <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 14 }}>{s.icon}</span>
+                  <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ fontSize: 13 }}>{s.icon}</span>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: 15, color: s.color, lineHeight: 1 }}>{s.value}</div>
-                      <div style={{ fontSize: 9, color: C.textDim, textTransform: 'uppercase', letterSpacing: .5 }}>{s.label}</div>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: s.color, lineHeight: 1 }}>{s.value}</div>
+                      <div style={{ fontSize: 8, color: C.textDim, textTransform: 'uppercase', letterSpacing: .4 }}>{s.label}</div>
                     </div>
                   </div>
                 ))}
@@ -437,7 +437,7 @@ export default function MemberProfile() {
                     <button key={v.key} onClick={() => user && user.id !== id && !isBlocked && vote(v.key)}
                       disabled={!!voting || !user || user.id === id || isBlocked}
                       title={v.label}
-                      style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '3px 8px', borderRadius: 20, border: `1px solid ${voted ? C.accentDk : C.border}`, background: voted ? C.accentBg : C.surfaceB, color: voted ? C.accentTxt : C.textMid, fontWeight: voted ? 700 : 500, fontSize: 12, cursor: (!user || user.id === id || isBlocked || !!voting) ? 'default' : 'pointer', transition: 'all .15s', fontFamily: 'inherit' }}>
+                      style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '3px 6px', borderRadius: 20, border: `1px solid ${voted ? C.accentDk : C.border}`, background: voted ? C.accentBg : C.surfaceB, color: voted ? C.accentTxt : C.textMid, fontWeight: voted ? 700 : 500, fontSize: 12, cursor: (!user || user.id === id || isBlocked || !!voting) ? 'default' : 'pointer', transition: 'all .15s', fontFamily: 'inherit' }}>
                       <span style={{ fontSize: 13 }}>{v.emoji}</span>
                       <span>{count}</span>
                       {user && user.id !== id && !isBlocked && (

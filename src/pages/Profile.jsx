@@ -267,7 +267,7 @@ export default function Profile() {
   const photoLikes = profile.photo_likes || {}
 
   return (
-    <div style={{ maxWidth: 860, margin: '0 auto', paddingBottom: 32 }}>
+    <div style={{ maxWidth: 860, margin: '0 auto', paddingBottom: 80 }}>
 
       {lightbox && (
         <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.92)', zIndex: 3000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px 20px 40px', gap: 16, cursor: 'zoom-out' }}>
@@ -399,16 +399,16 @@ export default function Profile() {
           <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${C.border}` }}>
             {/* Desktop : tout sur une ligne */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', gap: 16, flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: 12, flexShrink: 0 }}>
                 {[
                   { icon: '👥', label: 'Amis',       value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
-                  { icon: '⭐', label: 'Votes reçus', value: totalVotes,                                color: '#c8a200' },
+                  { icon: '⭐', label: 'Votes',        value: totalVotes,                                color: '#c8a200' },
                 ].map(s => (
-                  <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 14 }}>{s.icon}</span>
+                  <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ fontSize: 13 }}>{s.icon}</span>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: 15, color: s.color, lineHeight: 1 }}>{s.value}</div>
-                      <div style={{ fontSize: 9, color: C.textDim, textTransform: 'uppercase', letterSpacing: .5 }}>{s.label}</div>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: s.color, lineHeight: 1 }}>{s.value}</div>
+                      <div style={{ fontSize: 8, color: C.textDim, textTransform: 'uppercase', letterSpacing: .4 }}>{s.label}</div>
                     </div>
                   </div>
                 ))}
@@ -417,7 +417,7 @@ export default function Profile() {
                 {VOTES_DEF.map(v => {
                   const val = votes[v.key] || 0
                   return (
-                    <div key={v.key} title={v.label} style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '3px 8px', borderRadius: 20, background: val > 0 ? C.accentBg : C.surfaceB, border: `1px solid ${val > 0 ? C.accentDk : C.border}` }}>
+                    <div key={v.key} title={v.label} style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '3px 6px', borderRadius: 20, background: val > 0 ? C.accentBg : C.surfaceB, border: `1px solid ${val > 0 ? C.accentDk : C.border}` }}>
                       <span style={{ fontSize: 13 }}>{v.emoji}</span>
                       <span style={{ fontWeight: 700, fontSize: 11, color: val > 0 ? C.accentTxt : C.textDim }}>{val}</span>
                     </div>
