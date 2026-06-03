@@ -14,6 +14,26 @@ function api(path, opts = {}) {
   })
 }
 
+async function getToken() {
+  try {
+    const keys = Object.keys(localStorage)
+    const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
+    if (authKey) {
+      const data = JSON.parse(localStorage.getItem(authKey))
+      if (data?.access_token) return data.access_token
+    }
+  } catch {}
+  return ANON_KEY
+}
+
+async function apiAuth(path, opts = {}) {
+  const token = await getToken()
+  return fetch(`${SUPABASE_URL}${path}`, {
+    ...opts,
+    headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', ...opts.headers }
+  })
+}
+
 const BAN_OPTIONS = [
   { label: '1 heure',   value: '1h',        ms: 3600000 },
   { label: '1 jour',    value: '1d',        ms: 86400000 },
@@ -67,7 +87,7 @@ export default function Moderation() {
   const banMember = async (memberId) => {
     const opt = BAN_OPTIONS.find(o => o.value === banDuration)
     const bannedUntil = opt.ms ? new Date(Date.now() + opt.ms).toISOString() : null
-    await api(`/rest/v1/profiles?id=eq.${memberId}`, {
+    await apiAuth(`/rest/v1/profiles?id=eq.${memberId}`, {
       method: 'PATCH',
       body: JSON.stringify({ banned: true, banned_until: bannedUntil, ban_reason: banReason || null })
     })
@@ -76,7 +96,7 @@ export default function Moderation() {
   }
 
   const unbanMember = async (memberId) => {
-    await api(`/rest/v1/profiles?id=eq.${memberId}`, {
+    await apiAuth(`/rest/v1/profiles?id=eq.${memberId}`, {
       method: 'PATCH',
       body: JSON.stringify({ banned: false, banned_until: null, ban_reason: null })
     })
