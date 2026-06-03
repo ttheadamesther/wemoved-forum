@@ -264,12 +264,22 @@ export default function MemberProfile() {
     const alreadyLiked = likers.includes(user.id)
     const newLikers = alreadyLiked ? likers.filter(uid => uid !== user.id) : [...likers, user.id]
     const newPhotoLikes = { ...currentLikes, [key]: newLikers }
+    const token = await getToken()
     await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${id}`, {
       method: 'PATCH',
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${await getToken()}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
       body: JSON.stringify({ photo_likes: newPhotoLikes })
     })
-    setMember(m => ({ ...m, photo_likes: newPhotoLikes }))
+    // Refetch pour avoir la vraie valeur en base
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${id}&select=photo_likes&limit=1`, {
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
+    })
+    const d = await r.json()
+    if (Array.isArray(d) && d[0]) {
+      setMember(m => ({ ...m, photo_likes: d[0].photo_likes || newPhotoLikes }))
+    } else {
+      setMember(m => ({ ...m, photo_likes: newPhotoLikes }))
+    }
     if (!alreadyLiked && user.id !== id) {
       await sendNotif(id, 'photo_like', `❤️ @${profile?.pseudo || 'Quelqu\'un'} a aimé une de vos photos`, `/members/${id}`)
     }
