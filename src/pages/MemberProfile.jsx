@@ -536,8 +536,8 @@ export default function MemberProfile() {
                   <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,.7) 0%, transparent 100%)', padding: '20px 10px 8px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
                     {count > 0 && <span style={{ fontSize: 11, color: '#fff', fontWeight: 700 }}>{count}</span>}
                     <button
-                      onClick={() => user && user.id !== id && togglePhotoLike(url, i)}
-                      disabled={likingPhoto !== null || !user || user.id === id}
+                      onClick={() => user && user.id !== id && !isBlocked && togglePhotoLike(url, i)}
+                      disabled={likingPhoto !== null || !user || user.id === id || isBlocked}
                       style={{ background: liked ? 'rgba(231,76,60,.85)' : 'rgba(255,255,255,.2)', border: `1px solid ${liked ? '#e74c3c' : 'rgba(255,255,255,.4)'}`, borderRadius: 20, padding: '4px 10px', cursor: (!user || user.id === id || likingPhoto !== null) ? 'default' : 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', gap: 4, transition: 'all .2s', backdropFilter: 'blur(4px)', opacity: likingPhoto === i ? 0.6 : 1 }}>
                       {likingPhoto === i ? '…' : liked ? '❤️' : '🤍'}
                     </button>

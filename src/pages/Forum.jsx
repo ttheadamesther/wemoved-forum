@@ -227,6 +227,16 @@ export default function ForumPage() {
   const ROLES_RANK = { admin: 4, manager: 3, moderateur: 2, animateur: 1, membre: 0 }
   const myRank = ROLES_RANK[myRole] || 0
   const canMod = myRank >= 2
+
+  // Vérification ban
+  const isBanned = profile?.banned && (
+    !profile.banned_until || new Date(profile.banned_until) > new Date()
+  )
+  const bannedMsg = isBanned
+    ? profile.banned_until
+      ? `Tu es banni jusqu'au ${new Date(profile.banned_until).toLocaleDateString('fr-FR')} à ${new Date(profile.banned_until).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}.`
+      : 'Tu es banni définitivement.'
+    : null
   const userAge = profile?.age ? parseInt(profile.age) : null
   const isAdult = userAge !== null && userAge >= 18
   const getMember = (id) => members.find(m => m.id === id)
@@ -274,6 +284,7 @@ export default function ForumPage() {
 
   const postThread = async () => {
     if (!nTitle.trim() || !nBody.trim() || !user) return
+    if (isBanned) { setSpamError(bannedMsg); return }
     if (nCat === '+18' && !isAdult && !canMod) return
     const now = Date.now()
     if (now - lastPostTime.current < 30000) { setSpamError(`Attends encore ${Math.ceil((30000 - (now - lastPostTime.current)) / 1000)}s avant de poster.`); return }
@@ -285,6 +296,7 @@ export default function ForumPage() {
 
   const postReply = async () => {
     if (!replyText.trim() || !openId || !user) return
+    if (isBanned) { setSpamError(bannedMsg); return }
     const now = Date.now()
     if (now - lastPostTime.current < 30000) { setSpamError(`Attends encore ${Math.ceil((30000 - (now - lastPostTime.current)) / 1000)}s avant de poster.`); return }
     setSpamError(''); setPosting(true); lastPostTime.current = now
@@ -313,6 +325,7 @@ export default function ForumPage() {
   }
 
   const toggleLike = async (thread) => {
+    if (!user || isBanned) return
     const liked = likes[thread.id]
     const newCount = thread.likes + (liked ? -1 : 1)
     setLikes(l => ({ ...l, [thread.id]: !liked }))
@@ -557,6 +570,8 @@ export default function ForumPage() {
           </div>
         ) : currentThread.locked ? (
           <div style={{ textAlign: 'center', padding: '14px', background: C.surfaceB, border: `1px solid ${C.borderMid}`, borderRadius: 12, fontSize: 12, color: C.red, marginTop: 10 }}>🔒 Discussion verrouillée.</div>
+        ) : isBanned ? (
+          <div style={{ textAlign: 'center', padding: '14px', background: C.surfaceB, border: `1px solid ${C.red}`, borderRadius: 12, fontSize: 12, color: C.red, marginTop: 10 }}>⛔ {bannedMsg}</div>
         ) : (
           <div style={{ textAlign: 'center', padding: '14px', background: C.surfaceB, border: `1px solid ${C.border}`, borderRadius: 12, fontSize: 12, color: C.textDim, marginTop: 10 }}>Connecte-toi pour répondre.</div>
         )}
@@ -572,10 +587,13 @@ export default function ForumPage() {
           <h1 style={{ fontWeight: 700, fontSize: isMobile ? 18 : 22, color: C.text, marginBottom: 2 }}>Forum</h1>
           <p style={{ fontSize: 12, color: C.textDim }}>{filtered.length} discussion{filtered.length !== 1 ? 's' : ''}</p>
         </div>
-        {user && (
+        {user && !isBanned && (
           <button onClick={() => setComposing(v => !v)} style={{ padding: isMobile ? '8px 14px' : '10px 20px', background: 'linear-gradient(135deg,#f0c800,#c8a200)', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 13, color: '#3a2e00', boxShadow: '0 2px 8px rgba(200,162,0,.3)', fontFamily: 'inherit' }}>
             + Nouvelle discussion
           </button>
+        )}
+        {isBanned && (
+          <div style={{ fontSize: 12, color: C.red, fontWeight: 600, padding: '8px 14px', background: C.surfaceB, borderRadius: 10, border: `1px solid ${C.red}` }}>⛔ {bannedMsg}</div>
         )}
       </div>
 
