@@ -451,7 +451,7 @@ export default function ForumPage() {
                 </>
               )}
               <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                <button onClick={() => toggleLike(currentThread)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: likes[currentThread.id] ? '#fffae6' : C.surfaceB, border: `1px solid ${likes[currentThread.id] ? C.accentDk : C.border}`, color: likes[currentThread.id] ? C.accentTxt : C.textMid, borderRadius: 20, padding: '6px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', transition: 'all .15s' }}>
+                <button onClick={() => toggleLike(currentThread)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: likes[currentThread.id] ? C.accentBg : C.surfaceB, border: `1px solid ${likes[currentThread.id] ? C.accentDk : C.border}`, color: likes[currentThread.id] ? C.accentTxt : C.textMid, borderRadius: 20, padding: '6px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', transition: 'all .15s' }}>
                   ♥ {currentThread.likes} J'aime
                 </button>
                 <span style={{ fontSize: 11, color: C.textDim }}>👁 {currentThread.views || 0} vues</span>
