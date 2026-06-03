@@ -95,11 +95,14 @@ export default function Chatroom() {
   useEffect(() => {
     if (!supabase) return
 
-    // Messages en temps réel
+    // Un seul channel pour les messages
     const msgChannel = supabase
-      .channel(`chatroom-msgs-${Date.now()}`)
+      .channel('chatroom-main')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, (payload) => {
-        setMessages(prev => [...prev, payload.new].slice(-MAX_MSG))
+        setMessages(prev => {
+          if (prev.find(m => m.id === payload.new.id)) return prev
+          return [...prev, payload.new].slice(-MAX_MSG)
+        })
         if (payload.new.reactions) {
           setReactions(prev => ({ ...prev, [payload.new.id]: payload.new.reactions }))
         }
@@ -113,25 +116,27 @@ export default function Chatroom() {
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'chat_messages' }, (payload) => {
         setMessages(prev => prev.filter(m => m.id !== payload.old.id))
       })
-      .subscribe()
-
-    // Profils en ligne en temps réel
-    const profileChannel = supabase
-      .channel(`chatroom-online-${Date.now()}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
         if (payload.new && 'online' in payload.new) {
           setMembers(prev => ({ ...prev, [payload.new.id]: { ...prev[payload.new.id], ...payload.new } }))
           setOnline(prev => {
             const filtered = prev.filter(m => m.id !== payload.new.id)
-            return payload.new.online ? [...filtered, { ...prev.find(m => m.id === payload.new.id), ...payload.new }] : filtered
+            if (payload.new.online) {
+              const existing = Object.values(members).find(m => m.id === payload.new.id)
+              return [...filtered, { ...existing, ...payload.new }]
+            }
+            return filtered
           })
         }
       })
-      .subscribe()
+      .subscribe((status) => {
+        console.log('Chatroom realtime status:', status)
+      })
 
-    // Typing via Presence
-    const typingChannel = supabase.channel('chatroom-typing')
+    // Typing via Presence — channel séparé
+    let typingChannel = null
     if (user) {
+      typingChannel = supabase.channel('chatroom-presence')
       typingChannel
         .on('presence', { event: 'sync' }, () => {
           const state = typingChannel.presenceState()
@@ -146,8 +151,7 @@ export default function Chatroom() {
 
     return () => {
       supabase.removeChannel(msgChannel)
-      supabase.removeChannel(profileChannel)
-      if (user) supabase.removeChannel(typingChannel)
+      if (typingChannel) supabase.removeChannel(typingChannel)
     }
   }, [user])
 
@@ -160,7 +164,7 @@ export default function Chatroom() {
   const handleTyping = (val) => {
     setText(val)
     if (!user || !supabase) return
-    const ch = supabase.channel('chatroom-typing')
+    const ch = supabase.channel('chatroom-presence')
     if (!isTyping.current) {
       isTyping.current = true
       ch.track({ user_id: user.id, pseudo: profile?.pseudo, typing: true })
