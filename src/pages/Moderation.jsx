@@ -88,6 +88,11 @@ export default function Moderation() {
     setBugs(prev => prev.map(b => b.id === bugId ? { ...b, status } : b))
   }
 
+  const deleteBug = async (bugId) => {
+    await api(`/rest/v1/bug_reports?id=eq.${bugId}`, { method: 'DELETE' })
+    setBugs(prev => prev.filter(b => b.id !== bugId))
+  }
+
   const updateReportStatus = async (reportId, status) => {
     await api(`/rest/v1/reports?id=eq.${reportId}`, { method: 'PATCH', body: JSON.stringify({ status }) })
     setReports(prev => prev.map(r => r.id === reportId ? { ...r, status } : r))
@@ -112,7 +117,6 @@ export default function Moderation() {
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px' }}>
 
-      {/* Modal ban */}
       {banTarget && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
           <div style={{ background: C.white, borderRadius: 16, padding: 24, width: '100%', maxWidth: 440, boxShadow: '0 8px 32px rgba(0,0,0,.3)' }}>
@@ -120,7 +124,7 @@ export default function Moderation() {
             <div style={{ fontSize: 12, color: C.textDim, marginBottom: 20 }}>Choisir la durée du bannissement</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
               {BAN_OPTIONS.map(o => (
-                <button key={o.value} onClick={() => setBanDuration(o.value)} style={{ padding: '10px 8px', borderRadius: 10, border: `2px solid ${banDuration === o.value ? '#c8a200' : '#ddd'}`, background: banDuration === o.value ? '#fffae6' : C.surfaceB, color: banDuration === o.value ? '#7a6200' : C.textMid, fontWeight: banDuration === o.value ? 700 : 400, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                <button key={o.value} onClick={() => setBanDuration(o.value)} style={{ padding: '10px 8px', borderRadius: 10, border: `2px solid ${banDuration === o.value ? C.accentDk : C.border}`, background: banDuration === o.value ? C.accentBg : C.surfaceB, color: banDuration === o.value ? C.accentTxt : C.textMid, fontWeight: banDuration === o.value ? 700 : 400, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
                   {o.label}
                 </button>
               ))}
@@ -128,7 +132,7 @@ export default function Moderation() {
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 6 }}>Raison (optionnel)</div>
               <input value={banReason} onChange={e => setBanReason(e.target.value)} placeholder="Ex: Spam, comportement inapproprié…"
-                style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', background: C.surfaceB, color: C.text }} />
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <Btn onClick={() => { setBanTarget(null); setBanReason(''); setBanDuration('1d') }} variant="ghost">Annuler</Btn>
@@ -143,12 +147,11 @@ export default function Moderation() {
         <p style={{ fontSize: 13, color: C.textDim }}>Gestion des membres, signalements et bugs</p>
       </div>
 
-      {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: C.surfaceB, borderRadius: 12, padding: 4 }}>
         {[
           { key: 'members', label: `👥 Membres (${members.length})` },
           { key: 'reports', label: `🚩 Signalements${pendingReports > 0 ? ` (${pendingReports})` : ''}` },
-          { key: 'bugs',    label: `🐛 Bugs (${bugs.filter(b => b.status === 'ouvert').length})` },
+          { key: 'bugs',    label: `🐛 Bugs (${bugs.filter(b => b.status !== 'résolu').length})` },
         ].map(t => (
           <button key={t.key} onClick={() => setTab(t.key)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: tab === t.key ? C.white : 'transparent', color: tab === t.key ? C.text : C.textMid, fontWeight: tab === t.key ? 700 : 400, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', boxShadow: tab === t.key ? '0 1px 4px rgba(0,0,0,.08)' : 'none', transition: 'all .15s' }}>
             {t.label}
@@ -162,7 +165,7 @@ export default function Moderation() {
         <>
           <div style={{ marginBottom: 16 }}>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 Rechercher un membre…"
-              style={{ width: '100%', padding: '10px 16px', borderRadius: 12, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', background: C.white }} />
+              style={{ width: '100%', padding: '10px 16px', borderRadius: 12, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', background: C.white, color: C.text }} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {filtered.map(m => {
@@ -240,10 +243,12 @@ export default function Moderation() {
                       {REPORT_STATUS_LABELS[s]}
                     </button>
                   ))}
-                  <button onClick={() => deleteReport(r.id)}
-                    style={{ marginLeft: 'auto', padding: '5px 12px', borderRadius: 20, border: `1px solid #f5c0c0`, background: '#fff0f0', color: '#e74c3c', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                    🗑 Supprimer
-                  </button>
+                  {r.status !== 'pending' && (
+                    <button onClick={() => deleteReport(r.id)}
+                      style={{ marginLeft: 'auto', padding: '5px 12px', borderRadius: 20, border: '1px solid #f5c0c0', background: '#fff0f0', color: '#e74c3c', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      🗑 Supprimer
+                    </button>
+                  )}
                 </div>
               </div>
             )
@@ -273,13 +278,19 @@ export default function Moderation() {
                   </span>
                 </div>
                 <p style={{ fontSize: 13, color: C.textMid, lineHeight: 1.6, marginBottom: 12 }}>{b.description}</p>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                   {['ouvert', 'en cours', 'résolu'].map(s => (
                     <button key={s} onClick={() => updateBugStatus(b.id, s)}
-                      style={{ padding: '5px 12px', borderRadius: 20, border: `1px solid ${b.status === s ? STATUS_COLORS[s] : '#ddd'}`, background: b.status === s ? `${STATUS_COLORS[s]}22` : C.surfaceB, color: b.status === s ? STATUS_COLORS[s] : C.textMid, fontSize: 11, fontWeight: b.status === s ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      style={{ padding: '5px 12px', borderRadius: 20, border: `1px solid ${b.status === s ? STATUS_COLORS[s] : C.border}`, background: b.status === s ? `${STATUS_COLORS[s]}22` : C.surfaceB, color: b.status === s ? STATUS_COLORS[s] : C.textMid, fontSize: 11, fontWeight: b.status === s ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit' }}>
                       {s}
                     </button>
                   ))}
+                  {b.status === 'résolu' && (
+                    <button onClick={() => deleteBug(b.id)}
+                      style={{ marginLeft: 'auto', padding: '5px 12px', borderRadius: 20, border: '1px solid #f5c0c0', background: '#fff0f0', color: '#e74c3c', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      🗑 Supprimer
+                    </button>
+                  )}
                 </div>
               </div>
             )
