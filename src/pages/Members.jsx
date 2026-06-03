@@ -27,14 +27,14 @@ function LevelBadge({ level }) {
 
 function SkeletonCard() {
   return (
-    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 14px 14px', textAlign: 'center', overflow: 'hidden', position: 'relative' }}>
+    <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: '20px 14px 14px', textAlign: 'center', overflow: 'hidden', position: 'relative' }}>
       <div className="skeleton" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4 }} />
       <div className="skeleton" style={{ width: 64, height: 64, borderRadius: '50%', margin: '0 auto 12px' }} />
       <div className="skeleton" style={{ height: 13, width: '70%', margin: '0 auto 8px' }} />
       <div className="skeleton" style={{ height: 10, width: '40%', margin: '0 auto 12px' }} />
       <div className="skeleton" style={{ height: 10, width: '55%', margin: '0 auto 6px' }} />
       <div className="skeleton" style={{ height: 10, width: '45%', margin: '0 auto 14px' }} />
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 24, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 24, borderTop: `1px solid ${C.border}`, paddingTop: 10 }}>
         <div className="skeleton" style={{ height: 28, width: 36 }} />
         <div className="skeleton" style={{ height: 28, width: 36 }} />
       </div>
@@ -62,10 +62,10 @@ export default function MembersPage() {
   const [dept,    setDept]      = useState('')
   const [city,    setCity]      = useState('')
   const [sexe,    setSexe]      = useState('')
-  const [ageRange, setAgeRange] = useState(0) // index dans AGE_RANGES
+  const [ageRange, setAgeRange] = useState(0)
   const [onlineOnly, setOnlineOnly] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
-  const [sortBy, setSortBy]     = useState('recent') // recent | votes | friends
+  const [sortBy, setSortBy]     = useState('recent')
 
   useEffect(() => {
     const observer = new ResizeObserver(entries => {
@@ -118,7 +118,6 @@ export default function MembersPage() {
   return (
     <div ref={containerRef} style={{ maxWidth: 900, margin: '0 auto', padding: isMobile ? '16px 12px' : '24px 16px' }}>
 
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>
           <h1 style={{ fontWeight: 700, fontSize: isMobile ? 18 : 22, color: C.text, marginBottom: 2 }}>Membres</h1>
@@ -126,12 +125,11 @@ export default function MembersPage() {
             {loading ? 'Chargement…' : `${filtered.length} membre${filtered.length !== 1 ? 's' : ''} trouvé${filtered.length !== 1 ? 's' : ''}`}
           </p>
         </div>
-        <button onClick={() => setShowFilters(f => !f)} style={{ padding: '8px 16px', borderRadius: 10, border: `1px solid ${hasFilters ? C.accentDk : C.borderMid}`, background: hasFilters ? '#fffae6' : C.white, color: hasFilters ? C.accentTxt : C.textMid, fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <button onClick={() => setShowFilters(f => !f)} style={{ padding: '8px 16px', borderRadius: 10, border: `1px solid ${hasFilters ? C.accentDk : C.borderMid}`, background: hasFilters ? C.accentBg : C.white, color: hasFilters ? C.accentTxt : C.textMid, fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
           🔍 Filtres {hasFilters && <span style={{ background: C.accentDk, color: '#3a2e00', borderRadius: '50%', width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>!</span>}
         </button>
       </div>
 
-      {/* Recherche + tri */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 Rechercher un pseudo…" style={{ flex: 1, fontSize: 13, padding: '9px 14px', borderRadius: 10 }} />
         <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ padding: '8px 12px', borderRadius: 10, border: `1px solid ${C.borderMid}`, fontSize: 12, color: C.text, background: C.white, fontFamily: 'inherit', cursor: 'pointer' }}>
@@ -141,37 +139,33 @@ export default function MembersPage() {
         </select>
       </div>
 
-      {/* Filtres */}
       {showFilters && (
         <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 2px 8px rgba(0,0,0,.06)' }}>
 
-          {/* Sexe */}
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Sexe</div>
             <div style={{ display: 'flex', gap: 6 }}>
               {[{ v: '', l: 'Tous' }, { v: 'homme', l: '👨 Homme' }, { v: 'femme', l: '👩 Femme' }, { v: 'autre', l: '🌈 Autre' }].map(o => (
                 <button key={o.v} onClick={() => setSexe(o.v)}
-                  style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${sexe === o.v ? C.accentDk : C.border}`, background: sexe === o.v ? '#fffae6' : C.surfaceB, color: sexe === o.v ? C.accentTxt : C.textMid, fontSize: 12, fontWeight: sexe === o.v ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
+                  style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${sexe === o.v ? C.accentDk : C.border}`, background: sexe === o.v ? C.accentBg : C.surfaceB, color: sexe === o.v ? C.accentTxt : C.textMid, fontSize: 12, fontWeight: sexe === o.v ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
                   {o.l}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Âge */}
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Âge</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {AGE_RANGES.map((r, i) => (
                 <button key={i} onClick={() => setAgeRange(i)}
-                  style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${ageRange === i ? C.accentDk : C.border}`, background: ageRange === i ? '#fffae6' : C.surfaceB, color: ageRange === i ? C.accentTxt : C.textMid, fontSize: 12, fontWeight: ageRange === i ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
+                  style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${ageRange === i ? C.accentDk : C.border}`, background: ageRange === i ? C.accentBg : C.surfaceB, color: ageRange === i ? C.accentTxt : C.textMid, fontSize: 12, fontWeight: ageRange === i ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
                   {r.label}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* En ligne */}
           <div style={{ marginBottom: 14 }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: C.text, fontWeight: onlineOnly ? 700 : 400 }}>
               <input type="checkbox" checked={onlineOnly} onChange={e => setOnlineOnly(e.target.checked)} style={{ accentColor: C.accentDk, width: 16, height: 16 }} />
@@ -180,7 +174,6 @@ export default function MembersPage() {
             </label>
           </div>
 
-          {/* Localisation */}
           <div style={{ marginBottom: 8 }}>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Localisation</div>
             <GeoSelects region={region} dept={dept} city={city} onRegion={v => { setRegion(v); setDept(''); setCity('') }} onDept={v => { setDept(v); setCity('') }} onCity={setCity} />
@@ -194,7 +187,6 @@ export default function MembersPage() {
         </div>
       )}
 
-      {/* Grille */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(auto-fill,minmax(140px,1fr))' : 'repeat(auto-fill,minmax(180px,1fr))', gap: 12 }}>
         {loading
           ? Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
@@ -209,7 +201,7 @@ export default function MembersPage() {
               return (
                 <div key={u.id} onClick={() => navigate(`/members/${u.id}`)} className="lift"
                   style={{ background: u.banned ? '#fff8f8' : C.white, border: `1px solid ${u.banned ? '#f5c0c0' : C.border}`, borderRadius: 16, padding: '20px 14px 14px', cursor: 'pointer', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,.04)', position: 'relative', overflow: 'hidden' }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = u.banned ? '#f5c0c0' : '#c8a200'}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = u.banned ? '#f5c0c0' : C.accentDk}
                   onMouseLeave={e => e.currentTarget.style.borderColor = u.banned ? '#f5c0c0' : C.border}>
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: u.banned ? '#e74c3c' : avatarColor, opacity: .8 }} />
                   <div style={{ position: 'relative', display: 'inline-block', marginBottom: 10 }}>
@@ -227,18 +219,18 @@ export default function MembersPage() {
                   {u.city && <div style={{ fontSize: 10, color: C.textDim, marginBottom: 4 }}>📍 {u.city}</div>}
                   {u.banned && <div style={{ fontSize: 10, color: C.red, fontWeight: 700, marginBottom: 6 }}>⛔ Banni</div>}
                   {tv && !u.banned && (
-                    <div style={{ display: 'inline-block', background: '#fffae6', border: `1px solid ${C.accentDk}`, borderRadius: 20, padding: '2px 10px', marginBottom: 8, fontSize: 10, fontWeight: 700, color: C.accentTxt }}>
+                    <div style={{ display: 'inline-block', background: C.accentBg, border: `1px solid ${C.accentDk}`, borderRadius: 20, padding: '2px 10px', marginBottom: 8, fontSize: 10, fontWeight: 700, color: C.accentTxt }}>
                       {tv.emoji} {tv.label}
                     </div>
                   )}
                   {!u.banned && (
                     <div style={{ display: 'flex', justifyContent: 'center', gap: 16, borderTop: `1px solid ${C.border}`, paddingTop: 10, marginTop: 8 }}>
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: C.accentTxt }}>{u.friends || 0}</div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: C.text }}>{u.friends || 0}</div>
                         <div style={{ fontSize: 9, color: C.textDim, textTransform: 'uppercase', letterSpacing: .5 }}>Amis</div>
                       </div>
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: C.accentTxt }}>{tot}</div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: C.text }}>{tot}</div>
                         <div style={{ fontSize: 9, color: C.textDim, textTransform: 'uppercase', letterSpacing: .5 }}>Votes</div>
                       </div>
                     </div>
