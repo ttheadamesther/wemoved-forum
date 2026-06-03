@@ -395,10 +395,11 @@ export default function Profile() {
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
         <div style={PANEL}>
-          {/* Stats + Votes sur la même ligne */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${C.border}` }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', gap: 16 }}>
+          {/* Stats + Votes */}
+          <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${C.border}` }}>
+            {/* Desktop : tout sur une ligne */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 16, flexShrink: 0 }}>
                 {[
                   { icon: '👥', label: 'Amis',       value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
                   { icon: '⭐', label: 'Votes reçus', value: totalVotes,                                color: '#c8a200' },
@@ -412,17 +413,17 @@ export default function Profile() {
                   </div>
                 ))}
               </div>
-            </div>
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-              {VOTES_DEF.map(v => {
-                const val = votes[v.key] || 0
-                return (
-                  <div key={v.key} title={v.label} style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '3px 8px', borderRadius: 20, background: val > 0 ? C.accentBg : C.surfaceB, border: `1px solid ${val > 0 ? C.accentDk : C.border}` }}>
-                    <span style={{ fontSize: 13 }}>{v.emoji}</span>
-                    <span style={{ fontWeight: 700, fontSize: 11, color: val > 0 ? C.accentTxt : C.textDim }}>{val}</span>
-                  </div>
-                )
-              })}
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginLeft: 'auto' }}>
+                {VOTES_DEF.map(v => {
+                  const val = votes[v.key] || 0
+                  return (
+                    <div key={v.key} title={v.label} style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '3px 8px', borderRadius: 20, background: val > 0 ? C.accentBg : C.surfaceB, border: `1px solid ${val > 0 ? C.accentDk : C.border}` }}>
+                      <span style={{ fontSize: 13 }}>{v.emoji}</span>
+                      <span style={{ fontWeight: 700, fontSize: 11, color: val > 0 ? C.accentTxt : C.textDim }}>{val}</span>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           </div>
           {/* Bio */}
