@@ -396,7 +396,7 @@ export default function Profile() {
 
         <div style={PANEL}>
           {/* Stats + Votes sur la même ligne */}
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${C.border}`, flexWrap: 'wrap', gap: 8 }}>
             <div style={{ display: 'flex', gap: 16 }}>
               {[
                 { icon: '👥', label: 'Amis',       value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
@@ -411,13 +411,13 @@ export default function Profile() {
                 </div>
               ))}
             </div>
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end', flex: 1 }}>
               {VOTES_DEF.map(v => {
                 const val = votes[v.key] || 0
                 return (
-                  <div key={v.key} title={v.label} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, background: val > 0 ? C.accentBg : C.surfaceB, border: `1px solid ${val > 0 ? C.accentDk : C.border}` }}>
-                    <span style={{ fontSize: 15 }}>{v.emoji}</span>
-                    <span style={{ fontWeight: 700, fontSize: 12, color: val > 0 ? C.accentTxt : C.textDim }}>{val}</span>
+                  <div key={v.key} title={v.label} style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '3px 8px', borderRadius: 20, background: val > 0 ? C.accentBg : C.surfaceB, border: `1px solid ${val > 0 ? C.accentDk : C.border}` }}>
+                    <span style={{ fontSize: 13 }}>{v.emoji}</span>
+                    <span style={{ fontWeight: 700, fontSize: 11, color: val > 0 ? C.accentTxt : C.textDim }}>{val}</span>
                   </div>
                 )
               })}

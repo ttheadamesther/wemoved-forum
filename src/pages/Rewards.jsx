@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { C, VOTES_DEF } from '../lib/constants'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/ThemeContext'
@@ -55,6 +56,13 @@ const Card = ({ children, style = {} }) => (
 export default function Rewards() {
   const { profile } = useAuth()
   const { dark } = useTheme()
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 600)
+
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 600)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
 
   const xp           = profile?.xp || 0
   const level        = profile?.level || 1
@@ -63,35 +71,35 @@ export default function Rewards() {
   const xpToNext     = nextLevel ? nextLevel.xp - xp : null
   const xpPercent    = nextLevel ? Math.min(100, ((xp - currentLevel.xp) / (nextLevel.xp - currentLevel.xp)) * 100) : 100
 
-  const highlightBg   = dark ? '#2a2400' : '#fffae6'
-  const highlightText = dark ? '#f0c800' : '#7a6200'
+  const highlightBg   = dark ? '#2a2400' : C.accentBg
+  const highlightText = dark ? '#f0c800' : C.accentTxt
 
   return (
-    <div style={{ maxWidth: 760, margin: '0 auto', padding: '20px 16px 40px' }}>
+    <div style={{ maxWidth: 760, margin: '0 auto', padding: isMobile ? '16px 12px 80px' : '20px 16px 40px' }}>
 
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: C.text, marginBottom: 6 }}>🏆 Système de récompenses</h1>
-        <p style={{ fontSize: 14, color: C.textMid, lineHeight: 1.6 }}>
-          Gagne de l'XP en étant actif, monte en niveau et débloque des badges. Plus tu participes, plus tu évolues dans la communauté.
+        <h1 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 700, color: C.text, marginBottom: 6 }}>🏆 Système de récompenses</h1>
+        <p style={{ fontSize: 13, color: C.textMid, lineHeight: 1.6 }}>
+          Gagne de l'XP en étant actif, monte en niveau et débloque des badges.
         </p>
       </div>
 
       {/* Niveau actuel */}
       {profile && (
         <Card style={{ marginBottom: 28, borderTop: `4px solid ${currentLevel.color}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-            <div style={{ width: 56, height: 56, borderRadius: '50%', background: currentLevel.bg, border: `3px solid ${currentLevel.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+            <div style={{ width: 52, height: 52, borderRadius: '50%', background: currentLevel.bg, border: `3px solid ${currentLevel.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>
               {currentLevel.emoji}
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 12, color: C.textDim, fontWeight: 600, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 2 }}>Ton niveau actuel</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: currentLevel.color }}>Niveau {level} — {currentLevel.label}</div>
-              <div style={{ fontSize: 13, color: C.textMid }}>{xp} XP au total</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 11, color: C.textDim, fontWeight: 600, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 2 }}>Ton niveau actuel</div>
+              <div style={{ fontSize: isMobile ? 16 : 20, fontWeight: 700, color: currentLevel.color }}>Niveau {level} — {currentLevel.label}</div>
+              <div style={{ fontSize: 12, color: C.textMid }}>{xp} XP au total</div>
             </div>
             {nextLevel && (
-              <div style={{ textAlign: 'right' }}>
+              <div style={{ textAlign: isMobile ? 'left' : 'right' }}>
                 <div style={{ fontSize: 11, color: C.textDim }}>Prochain niveau</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{nextLevel.emoji} Niv.{nextLevel.level}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{nextLevel.emoji} Niv.{nextLevel.level}</div>
                 <div style={{ fontSize: 11, color: C.textDim }}>{xpToNext} XP restants</div>
               </div>
             )}
@@ -110,13 +118,13 @@ export default function Rewards() {
 
       {/* Niveaux */}
       <Section title="📈 Les niveaux">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 10 }}>
           {LEVELS.map(l => {
             const isCurrent  = profile?.level === l.level
             const isUnlocked = (profile?.level || 1) >= l.level
             return (
-              <div key={l.level} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: isCurrent ? `${l.color}12` : C.white, border: `1px solid ${isCurrent ? l.color : C.border}`, borderRadius: 14, opacity: isUnlocked ? 1 : 0.45, transition: 'all .15s' }}>
-                <div style={{ width: 48, height: 48, borderRadius: '50%', background: l.bg, border: `2.5px solid ${l.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0, filter: isUnlocked ? 'none' : 'grayscale(80%)' }}>
+              <div key={l.level} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: isCurrent ? `${l.color}12` : C.white, border: `1px solid ${isCurrent ? l.color : C.border}`, borderRadius: 14, opacity: isUnlocked ? 1 : 0.45 }}>
+                <div style={{ width: 44, height: 44, borderRadius: '50%', background: l.bg, border: `2.5px solid ${l.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0, filter: isUnlocked ? 'none' : 'grayscale(80%)' }}>
                   {l.emoji}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -127,7 +135,7 @@ export default function Rewards() {
                   </div>
                   <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{l.xp.toLocaleString()} XP requis</div>
                 </div>
-                {isUnlocked && <span style={{ fontSize: 16 }}>✅</span>}
+                {isUnlocked && <span style={{ fontSize: 14 }}>✅</span>}
               </div>
             )
           })}
@@ -136,12 +144,12 @@ export default function Rewards() {
 
       {/* XP */}
       <Section title="⚡ Comment gagner de l'XP">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {XP_ACTIONS.map((a, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: C.white, border: `1px solid ${C.border}`, borderRadius: 12 }}>
-              <span style={{ fontSize: 22, flexShrink: 0 }}>{a.icon}</span>
+              <span style={{ fontSize: 20, flexShrink: 0 }}>{a.icon}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, color: C.text, fontWeight: 500, lineHeight: 1.4 }}>{a.action}</div>
+                <div style={{ fontSize: 13, color: C.text, fontWeight: 500 }}>{a.action}</div>
               </div>
               <div style={{ background: highlightBg, border: `1px solid ${C.accentDk}`, borderRadius: 20, padding: '3px 10px', flexShrink: 0 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: highlightText }}>+{a.xp} XP</span>
@@ -159,11 +167,11 @@ export default function Rewards() {
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
             {VOTES_DEF.map(v => (
-              <div key={v.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: C.surfaceB, borderRadius: 10, border: `1px solid ${C.border}` }}>
-                <span style={{ fontSize: 24 }}>{v.emoji}</span>
-                <div>
+              <div key={v.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: C.surfaceB, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                <span style={{ fontSize: 22, flexShrink: 0 }}>{v.emoji}</span>
+                <div style={{ minWidth: 0 }}>
                   <div style={{ fontWeight: 700, fontSize: 13, color: C.text }}>{v.label}</div>
-                  <div style={{ fontSize: 11, color: C.textDim }}>+2 XP par vote reçu</div>
+                  <div style={{ fontSize: 11, color: C.textDim }}>+2 XP par vote</div>
                 </div>
               </div>
             ))}
@@ -176,17 +184,17 @@ export default function Rewards() {
 
       {/* Badges */}
       <Section title="🎖️ Les badges">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
           {BADGES.map(b => {
             const unlocked = (profile?.badges || []).includes(b.id)
             return (
-              <div key={b.id} style={{ padding: '16px 12px', background: C.white, border: `1.5px solid ${unlocked ? b.color : C.border}`, borderRadius: 14, textAlign: 'center', opacity: unlocked ? 1 : 0.5, position: 'relative', transition: 'all .15s' }}>
-                {unlocked && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 13 }}>✅</div>}
-                <div style={{ width: 52, height: 52, borderRadius: '50%', background: b.bg, border: `2.5px solid ${b.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 10px', filter: unlocked ? 'none' : 'grayscale(100%)' }}>
+              <div key={b.id} style={{ padding: '14px 10px', background: C.white, border: `1.5px solid ${unlocked ? b.color : C.border}`, borderRadius: 14, textAlign: 'center', opacity: unlocked ? 1 : 0.5, position: 'relative' }}>
+                {unlocked && <div style={{ position: 'absolute', top: 6, right: 8, fontSize: 12 }}>✅</div>}
+                <div style={{ width: 48, height: 48, borderRadius: '50%', background: b.bg, border: `2.5px solid ${b.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, margin: '0 auto 8px', filter: unlocked ? 'none' : 'grayscale(100%)' }}>
                   {b.emoji}
                 </div>
-                <div style={{ fontWeight: 700, fontSize: 13, color: unlocked ? b.color : C.textMid, marginBottom: 4 }}>{b.label}</div>
-                <div style={{ fontSize: 11, color: C.textDim, lineHeight: 1.4 }}>{b.desc}</div>
+                <div style={{ fontWeight: 700, fontSize: 12, color: unlocked ? b.color : C.textMid, marginBottom: 3 }}>{b.label}</div>
+                <div style={{ fontSize: 10, color: C.textDim, lineHeight: 1.4 }}>{b.desc}</div>
               </div>
             )
           })}
@@ -200,11 +208,11 @@ export default function Rewards() {
       <Section title="🛡️ Les rôles">
         <Card>
           <p style={{ fontSize: 13, color: C.textMid, marginBottom: 16, lineHeight: 1.6 }}>
-            Les rôles sont attribués par les administrateurs en fonction de ton implication. Ils ne s'obtiennent pas automatiquement.
+            Les rôles sont attribués par les administrateurs en fonction de ton implication.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {ROLES.map(r => (
-              <div key={r.value} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.surfaceB, borderRadius: 10 }}>
+              <div key={r.value} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.surfaceB, borderRadius: 10, flexWrap: 'wrap' }}>
                 <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, color: r.color, background: r.bg, flexShrink: 0 }}>{r.label}</span>
                 <span style={{ fontSize: 13, color: C.textMid }}>{r.desc}</span>
               </div>
