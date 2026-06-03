@@ -375,7 +375,7 @@ export default function Profile() {
             <RoleBadge role={profile.role} />
             <span style={{ fontSize: 12, color: '#c8a200', fontWeight: 700, background: 'rgba(200,162,0,.1)', padding: '2px 10px', borderRadius: 20, border: '1px solid #c8a20044' }}>Niv. {profile.level || 1}</span>
             {topVote && totalVotes > 0 && (
-              <span style={{ padding: '2px 10px', borderRadius: 20, fontSize: 11, background: '#fffae6', color: '#7a6200', border: '1px solid #c8a20066', fontWeight: 700 }}>
+              <span style={{ padding: '2px 10px', borderRadius: 20, fontSize: 11, background: C.accentBg, color: C.accentTxt, border: `1px solid ${C.accentDk}`, fontWeight: 700 }}>
                 {topVote.emoji} {topVote.label}
               </span>
             )}
@@ -450,7 +450,7 @@ export default function Profile() {
               ? <span style={{ fontSize: 12, color: C.textDim, fontStyle: 'italic' }}>Ajoutes-en ci-dessous</span>
               : (profile.interests || []).map(i => (
                 <span key={i} onClick={() => removeInterest(i)}
-                  style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, background: '#fffae6', color: '#7a6200', border: '1px solid #c8a20066', cursor: 'pointer', fontWeight: 600, transition: 'all .15s' }}
+                  style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, background: C.accentBg, color: C.accentTxt, border: `1px solid ${C.accentDk}`, cursor: 'pointer', fontWeight: 600, transition: 'all .15s' }}
                   onMouseEnter={e => e.currentTarget.style.opacity = '.7'}
                   onMouseLeave={e => e.currentTarget.style.opacity = '1'}
                   title="Cliquer pour supprimer">{i} ✕</span>
@@ -490,7 +490,7 @@ export default function Profile() {
                 if (!sender) return null
                 const fColor = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63'][(sender.pseudo?.charCodeAt(0) || 0) % 8]
                 return (
-                  <div key={friendship.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#fffae6', border: `1px solid ${C.accentDk}`, borderRadius: 12 }}>
+                  <div key={friendship.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.accentBg, border: `1px solid ${C.accentDk}`, borderRadius: 12 }}>
                     <div style={{ width: 40, height: 40, borderRadius: '50%', background: sender.avatar_url ? '#444' : fColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
                       {sender.avatar_url ? <img src={sender.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : sender.initials || sender.pseudo?.slice(0,2).toUpperCase()}
                     </div>
