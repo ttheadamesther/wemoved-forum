@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { C } from '../lib/constants'
 import { RoleBadge } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
@@ -79,6 +79,7 @@ function MessageBody({ body, isMe }) {
 export default function MessagesPage() {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const containerRef = useRef()
   const fileInputRef = useRef()
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -108,6 +109,16 @@ export default function MessagesPage() {
   }, [])
 
   useEffect(() => { if (user === null) navigate('/login') }, [user])
+
+  // Ouvrir une conversation depuis un profil (?to=userId)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const toId = params.get('to')
+    if (toId && user && toId !== user.id) {
+      setActiveId(toId)
+      if (isMobile) setShowSidebar(false)
+    }
+  }, [location.search, user])
 
   useEffect(() => {
     if (!user) return
@@ -302,10 +313,13 @@ export default function MessagesPage() {
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto' }}>
-              {convoMembers.length > 0 ? (
+              {(() => {
+                const displayedMembers = search
+                  ? members.filter(m => m.id !== user.id && m.pseudo?.toLowerCase().includes(search.toLowerCase()))
+                  : convoMembers
+                return displayedMembers.length > 0 ? (
                 <div style={{ padding: '8px 0' }}>
-                  {convoMembers
-                    .filter(m => !search || m.pseudo?.toLowerCase().includes(search.toLowerCase()))
+                  {displayedMembers
                     .map(m => {
                       const convo = convos.find(c => c.otherId === m.id)
                       const last  = convo?.messages?.[0]
@@ -348,8 +362,9 @@ export default function MessagesPage() {
                     })}
                 </div>
               ) : (
-                <div style={{ padding: 24, textAlign: 'center', color: C.textDim, fontSize: 12 }}>Aucune conversation</div>
-              )}
+                <div style={{ padding: 24, textAlign: 'center', color: C.textDim, fontSize: 12 }}>{search ? 'Aucun membre trouvé' : 'Aucune conversation'}</div>
+              )
+              })()}
             </div>
           </div>
         )}

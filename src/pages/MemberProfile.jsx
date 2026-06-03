@@ -366,7 +366,7 @@ export default function MemberProfile() {
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                   {canManageRoles && <Btn onClick={() => setShowRolePanel(v => !v)} variant="ghost" style={{ fontSize: 12 }}>🛡️ Gérer le rôle</Btn>}
                   <FriendBtn user={user} id={id} friendship={friendship} friendLoading={friendLoading} onAdd={sendFriendRequest} onAccept={acceptFriendRequest} onRemove={removeFriend} />
-                  {!isBlocked && <Btn onClick={() => navigate('/messages')} variant="yellow" style={{ fontSize: 12 }}>✉️ Message</Btn>}
+                  {!isBlocked && <Btn onClick={() => navigate(`/messages?to=${id}`)} variant="yellow" style={{ fontSize: 12 }}>✉️ Message</Btn>}
                   <button onClick={toggleBlock} disabled={blocking} style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${isBlocked ? C.border : C.red}`, background: isBlocked ? C.surfaceB : 'transparent', color: isBlocked ? C.textMid : C.red, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
                     {blocking ? '…' : isBlocked ? '🔓 Débloquer' : '🚫 Bloquer'}
                   </button>
