@@ -390,7 +390,7 @@ export default function ForumPage() {
     </div>
   )
 
-  const ConfirmModal = () => (
+  const ConfirmModal = confirmDel ? (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, width: '100%', maxWidth: 340, boxShadow: '0 8px 32px rgba(0,0,0,.25)' }}>
         <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 12 }}>🗑️</div>
@@ -405,7 +405,7 @@ export default function ForumPage() {
         </div>
       </div>
     </div>
-  )
+  ) : null
 
   if (currentThread) {
     const author = getMember(currentThread.author_id)
@@ -413,7 +413,7 @@ export default function ForumPage() {
     return (
       <div ref={containerRef} style={{ maxWidth: 780, margin: '0 auto', padding: isMobile ? '12px' : '20px 16px' }}>
         {reporting && <ReportModal type={reporting.type} targetId={reporting.targetId} reporterId={user?.id} onClose={() => setReporting(null)} />}
-        {confirmDel && <ConfirmModal />}
+        {ConfirmModal}
 
         <button onClick={() => { setOpenId(null); setReplies([]); setEditingThread(null); setEditingReply(null) }}
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: C.textMid, cursor: 'pointer', fontSize: 13, fontWeight: 600, marginBottom: 16, padding: 0 }}>
