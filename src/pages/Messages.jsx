@@ -93,7 +93,29 @@ export default function MessagesPage() {
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [reporting, setReporting] = useState(null)
   const [showEmoji, setShowEmoji] = useState(false)
+  const [reactionPicker, setReactionPicker] = useState(null) // message id
   const bottomRef = useRef(null)
+
+  const QUICK_EMOJIS = ['❤️', '😂', '😮', '😢', '👍', '🔥']
+
+  const toggleReaction = async (msgId, emoji) => {
+    if (!user) return
+    setReactionPicker(null)
+    const msg = messages.find(m => m.id === msgId)
+    if (!msg) return
+    const reactions = msg.reactions || {}
+    const likers = reactions[emoji] || []
+    const alreadyLiked = likers.includes(user.id)
+    const newLikers = alreadyLiked ? likers.filter(id => id !== user.id) : [...likers, user.id]
+    const newReactions = { ...reactions, [emoji]: newLikers }
+    if (newLikers.length === 0) delete newReactions[emoji]
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, reactions: newReactions } : m))
+    await api(`/rest/v1/messages?id=eq.${msgId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reactions: newReactions }),
+      headers: { 'Prefer': 'return=minimal' }
+    })
+  }
 
   // Fermer emoji picker au clic extérieur
   useEffect(() => {
@@ -418,11 +440,13 @@ export default function MessagesPage() {
                   const isImg = m.body?.startsWith('__IMG__')
                   const showAvatar = !isMe && (i === 0 || messages[i - 1]?.from_id !== m.from_id)
                   const isDeleting = deletingMsg === m.id
+                  const reactions = m.reactions || {}
+                  const hasReactions = Object.keys(reactions).length > 0
                   return (
                     <div key={i}
                       onMouseEnter={() => setHoveredMsg(m.id)}
-                      onMouseLeave={() => setHoveredMsg(null)}
-                      style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: 8 }}>
+                      onMouseLeave={() => { setHoveredMsg(null); setReactionPicker(null) }}
+                      style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: 8, position: 'relative' }}>
                       {!isMe && <div style={{ width: 28, flexShrink: 0 }}>{showAvatar && <Avatar member={activeMember} size={28} />}</div>}
                       <div style={{ maxWidth: isMobile ? '80%' : '65%', display: 'flex', alignItems: 'center', gap: 6, flexDirection: isMe ? 'row-reverse' : 'row' }}>
                         {isMe && (
@@ -447,10 +471,45 @@ export default function MessagesPage() {
                             🚩
                           </button>
                         )}
-                        <div>
-                          <div style={{ background: isImg ? 'transparent' : isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.white, border: isImg ? 'none' : isMe ? 'none' : `1px solid ${C.border}`, borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px', padding: isImg ? 0 : '10px 14px', boxShadow: isImg ? 'none' : '0 1px 3px rgba(0,0,0,.08)' }}>
+                        <div style={{ position: 'relative' }}>
+                          {/* Bulle message — double-clic pour réagir */}
+                          <div
+                            onDoubleClick={() => setReactionPicker(reactionPicker === m.id ? null : m.id)}
+                            style={{ background: isImg ? 'transparent' : isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.white, border: isImg ? 'none' : isMe ? 'none' : `1px solid ${C.border}`, borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px', padding: isImg ? 0 : '10px 14px', boxShadow: isImg ? 'none' : '0 1px 3px rgba(0,0,0,.08)', cursor: 'default', userSelect: 'text' }}>
                             <MessageBody body={m.body} isMe={isMe} />
                           </div>
+
+                          {/* Picker rapide (6 emojis) */}
+                          {reactionPicker === m.id && (
+                            <div style={{ position: 'absolute', zIndex: 100, background: C.white, border: `1px solid ${C.border}`, borderRadius: 24, padding: '6px 10px', display: 'flex', gap: 4, boxShadow: '0 4px 16px rgba(0,0,0,.15)', bottom: '110%', [isMe ? 'right' : 'left']: 0 }}>
+                              {QUICK_EMOJIS.map(emoji => (
+                                <button key={emoji} onClick={() => toggleReaction(m.id, emoji)}
+                                  style={{ fontSize: 20, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 8, transition: 'transform .1s', lineHeight: 1 }}
+                                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.35)'}
+                                  onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+                                  {emoji}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Réactions existantes */}
+                          {hasReactions && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4, justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
+                              {Object.entries(reactions).map(([emoji, likers]) => {
+                                const iLiked = likers.includes(user.id)
+                                return (
+                                  <button key={emoji} onClick={() => toggleReaction(m.id, emoji)}
+                                    title={`${likers.length} réaction${likers.length > 1 ? 's' : ''}`}
+                                    style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 12, border: `1px solid ${iLiked ? 'rgba(200,162,0,.6)' : C.border}`, background: iLiked ? 'rgba(200,162,0,.12)' : C.white, cursor: 'pointer', fontSize: 13, fontWeight: iLiked ? 700 : 400, transition: 'all .15s', fontFamily: 'inherit' }}>
+                                    <span>{emoji}</span>
+                                    <span style={{ fontSize: 11, color: iLiked ? C.accentTxt : C.textMid }}>{likers.length}</span>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          )}
+
                           <div style={{ fontSize: 10, color: C.textDim, marginTop: 3, textAlign: isMe ? 'right' : 'left', paddingLeft: isMe ? 0 : 4 }}>
                             {new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                           </div>
