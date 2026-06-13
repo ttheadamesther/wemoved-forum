@@ -397,6 +397,11 @@ export default function ForumPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
+  const topAuthors = [...members]
+    .filter(m => threads.some(t => t.author_id === m.id))
+    .sort((a, b) => threads.filter(t => t.author_id === b.id).length - threads.filter(t => t.author_id === a.id).length)
+    .slice(0, 5)
+
   // ModBar : actions de modération sur un thread
   // pinned/locked/hidden : canMod suffit SI l'auteur n'est pas admin (ou si on est admin)
   // suppression : idem
@@ -814,18 +819,12 @@ export default function ForumPage() {
           </div>
 
           {/* Top contributeurs */}
-          {members.length > 0 && (() => {
-            const sorted = [...members]
-              .filter(m => threads.some(t => t.author_id === m.id))
-              .sort((a, b) => threads.filter(t => t.author_id === b.id).length - threads.filter(t => t.author_id === a.id).length)
-              .slice(0, 5)
-            if (sorted.length === 0) return null
-            return (
+          {topAuthors.length > 0 && (
               <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,.06)' }}>
                 <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, background: C.surfaceB }}>
                   <span style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: 1 }}>🏆 Top auteurs</span>
                 </div>
-                {sorted.map((m, i) => {
+                {topAuthors.map((m, i) => {
                   const threadCount = threads.filter(t => t.author_id === m.id).length
                   const colors = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
                   const ac = colors[(m.pseudo?.charCodeAt(0) || 0) % colors.length]
@@ -847,8 +846,7 @@ export default function ForumPage() {
                   )
                 })}
               </div>
-            )
-          })()}
+          )}
 
         </div>
       )}
