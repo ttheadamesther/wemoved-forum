@@ -261,7 +261,7 @@ export default function Navbar() {
             <span style={{ width: 18, height: 2, background: showMobileMenu ? C.accent : '#ccc', display: 'block', transition: 'all .2s', transform: showMobileMenu ? 'rotate(-45deg) translateY(-7px)' : 'none' }} />
           </button>
           <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
-            <Link to="/"><Logo height={38} /></Link>
+            <Link to="/"><Logo height={28} /></Link>
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
             <div ref={searchRef} style={{ position: 'relative' }}>
