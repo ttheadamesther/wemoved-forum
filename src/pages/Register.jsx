@@ -37,6 +37,36 @@ const MIN_DATE = (() => {
   return d.toISOString().split('T')[0]
 })()
 
+function SuccessScreen({ email }) {
+  return (
+    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
+      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: '48px 36px', width: '100%', maxWidth: 420, boxShadow: '0 4px 24px rgba(0,0,0,.10)', textAlign: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
+          <Logo height={44} />
+        </div>
+        <div style={{ fontSize: 52, marginBottom: 20 }}>📬</div>
+        <h2 style={{ fontWeight: 800, fontSize: 18, color: C.text, marginBottom: 10 }}>Vérifie ta boîte mail</h2>
+        <p style={{ fontSize: 13, color: C.textMid, lineHeight: 1.7, marginBottom: 6 }}>
+          On a envoyé un lien de confirmation à
+        </p>
+        <p style={{ fontSize: 14, fontWeight: 700, color: C.accentTxt, marginBottom: 20, wordBreak: 'break-all' }}>
+          {email}
+        </p>
+        <p style={{ fontSize: 12, color: C.textDim, lineHeight: 1.7, marginBottom: 28 }}>
+          Clique sur le lien dans le mail pour activer ton compte.<br />
+          Pense à vérifier tes spams si tu ne le vois pas.
+        </p>
+        <div style={{ background: C.surfaceB, border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 16px', fontSize: 12, color: C.textMid, marginBottom: 24 }}>
+          ⏳ Le lien expire dans <strong>24 heures</strong>
+        </div>
+        <Link to="/login" style={{ display: 'block', padding: '10px 0', background: 'linear-gradient(135deg,#f0c800,#c8a200)', borderRadius: 10, fontWeight: 700, fontSize: 13, color: '#3a2e00', textDecoration: 'none' }}>
+          Aller à la connexion
+        </Link>
+      </div>
+    </div>
+  )
+}
+
 export default function Register() {
   const [pseudo,     setPseudo]     = useState('')
   const [email,      setEmail]      = useState('')
@@ -49,20 +79,20 @@ export default function Register() {
   const [city,       setCity]       = useState('')
   const [error,      setError]      = useState('')
   const [loading,    setLoading]    = useState(false)
+  const [success,    setSuccess]    = useState(false)
   const { signUp } = useAuth()
-  const navigate   = useNavigate()
 
   const age = calcAge(birthDate)
 
   const handle = async () => {
     setError('')
-    if (!pseudo.trim())      return setError('Le pseudo est obligatoire.')
-    if (pseudo.length < 3)   return setError('Le pseudo doit faire au moins 3 caractères.')
-    if (!email.trim())       return setError("L'email est obligatoire.")
-    if (password.length < 6) return setError('Le mot de passe doit faire au moins 6 caractères.')
-    if (password !== confirm) return setError('Les mots de passe ne correspondent pas.')
-    if (!sexe)               return setError('Le sexe est obligatoire.')
-    if (!birthDate)          return setError('La date de naissance est obligatoire.')
+    if (!pseudo.trim())       return setError('Le pseudo est obligatoire.')
+    if (pseudo.length < 3)    return setError('Le pseudo doit faire au moins 3 caractères.')
+    if (!email.trim())        return setError("L'email est obligatoire.")
+    if (password.length < 6)  return setError('Le mot de passe doit faire au moins 6 caractères.')
+    if (password !== confirm)  return setError('Les mots de passe ne correspondent pas.')
+    if (!sexe)                return setError('Le sexe est obligatoire.')
+    if (!birthDate)           return setError('La date de naissance est obligatoire.')
     if (age === null || age < 18) return setError('Tu dois avoir au moins 18 ans.')
     setLoading(true)
     const { error: err } = await signUp(email, password, pseudo, {
@@ -72,12 +102,14 @@ export default function Register() {
     })
     setLoading(false)
     if (err) return setError(err.message)
-    navigate('/')
+    setSuccess(true)
   }
+
+  if (success) return <SuccessScreen email={email} />
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
-      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: '36px 32px', width: '100%', maxWidth: 420, boxShadow: '0 4px 24px rgba(0,0,0,.10)' }}>
+      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: '36px 32px', width: '100%', maxWidth: 420, boxShadow: '0 4px 24px rgba(0,0,0,.10)' }}>
 
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
           <Logo height={52} />
