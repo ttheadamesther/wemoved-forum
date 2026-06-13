@@ -631,7 +631,7 @@ export default function ForumPage() {
       }}>
 
       {/* ── COLONNE PRINCIPALE ── */}
-      <div>}
+      <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>
           <h1 style={{ fontWeight: 800, fontSize: isMobile ? 18 : 22, color: 'var(--text)', marginBottom: 2, letterSpacing: -.3 }}>Forum</h1>
