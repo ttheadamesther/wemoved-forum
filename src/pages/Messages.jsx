@@ -44,7 +44,7 @@ function Avatar({ member, size = 38, showOnline = false }) {
     <div style={{ position: 'relative', flexShrink: 0 }}>
       <div style={{ width: size, height: size, borderRadius: '50%', background: member?.avatar_url ? '#444' : color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * .32, fontWeight: 700, color: '#fff', overflow: 'hidden', border: '2px solid rgba(255,255,255,.2)' }}>
         {member?.avatar_url
-          ? <img src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+          ? <img loading="lazy" decoding="async" src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
           : member?.initials || '??'
         }
       </div>
@@ -61,7 +61,7 @@ function MessageBody({ body, isMe }) {
     const url = body.replace('__IMG__', '')
     return (
       <a href={url} target="_blank" rel="noopener noreferrer">
-        <img src={url} alt="photo" style={{ maxWidth: '100%', maxHeight: 220, borderRadius: 12, display: 'block', cursor: 'pointer', objectFit: 'cover' }} />
+        <img loading="lazy" decoding="async" src={url} alt="photo" style={{ maxWidth: '100%', maxHeight: 220, borderRadius: 12, display: 'block', cursor: 'pointer', objectFit: 'cover' }} />
       </a>
     )
   }

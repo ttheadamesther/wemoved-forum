@@ -206,7 +206,7 @@ export default function MembersPage() {
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: u.banned ? '#e74c3c' : avatarColor, opacity: .8 }} />
                   <div style={{ position: 'relative', display: 'inline-block', marginBottom: 10 }}>
                     <div className={ringClass} style={{ width: isMobile ? 52 : 64, height: isMobile ? 52 : 64, borderRadius: '50%', background: u.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: isMobile ? 18 : 22, color: '#fff', overflow: 'hidden', margin: '0 auto' }}>
-                      {u.avatar_url ? <img src={u.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : u.initials || u.pseudo?.slice(0, 2).toUpperCase()}
+                      {u.avatar_url ? <img loading="lazy" decoding="async" src={u.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : u.initials || u.pseudo?.slice(0, 2).toUpperCase()}
                     </div>
                     <div style={{ position: 'absolute', bottom: 2, right: 2, width: 12, height: 12, borderRadius: '50%', background: u.online ? C.online : '#ccc', border: '2px solid #fff' }} />
                   </div>

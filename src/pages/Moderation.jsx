@@ -251,7 +251,7 @@ export default function Moderation() {
                 <div key={m.id} style={{ background: C.white, border: `1px solid ${m.banned ? '#e74c3c66' : C.border}`, borderLeft: `4px solid ${m.banned ? '#e74c3c' : C.accentDk}`, borderRadius: 14, overflow: 'hidden' }}>
                   <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 42, height: 42, borderRadius: '50%', background: m.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
-                      {m.avatar_url ? <img src={m.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : m.initials}
+                      {m.avatar_url ? <img loading="lazy" decoding="async" src={m.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : m.initials}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>

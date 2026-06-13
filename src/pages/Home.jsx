@@ -62,7 +62,7 @@ function MemberAvatar({ member, size = 34, colors }) {
       boxShadow: ring ? `0 0 10px ${ring}66` : 'none',
     }}>
       {member?.avatar_url
-        ? <img src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+        ? <img loading="lazy" decoding="async" src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
         : member?.initials || '?'}
     </div>
   )

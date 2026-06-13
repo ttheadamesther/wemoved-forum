@@ -24,7 +24,7 @@ function getTimeLeft() {
 function Avatar({ member, size = 40, onClick }) {
   return (
     <div onClick={onClick} style={{ width: size, height: size, borderRadius: '50%', background: member?.avatar_url ? '#444' : avatarColor(member?.pseudo), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * .32, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, cursor: onClick ? 'pointer' : 'default' }}>
-      {member?.avatar_url ? <img src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : member?.initials || '??'}
+      {member?.avatar_url ? <img loading="lazy" decoding="async" src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : member?.initials || '??'}
     </div>
   )
 }

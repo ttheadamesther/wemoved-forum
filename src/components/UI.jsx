@@ -1,4 +1,35 @@
+import { useState } from 'react'
 import { C, ROLES } from '../lib/constants'
+
+/* ── LazyImage : image avec skeleton pendant le chargement ── */
+export const LazyImage = ({ src, alt = '', style = {}, skeletonStyle = {}, onClick }) => {
+  const [loaded, setLoaded] = useState(false)
+  const [error,  setError]  = useState(false)
+
+  if (!src || error) return null
+
+  return (
+    <div style={{ position: 'relative', width: style.width || '100%', height: style.height || '100%', ...skeletonStyle }}>
+      {!loaded && (
+        <div className="skeleton" style={{ position: 'absolute', inset: 0, borderRadius: style.borderRadius || 0 }} />
+      )}
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        onLoad={() => setLoaded(true)}
+        onError={() => setError(true)}
+        style={{
+          ...style,
+          opacity: loaded ? 1 : 0,
+          transition: 'opacity .25s ease',
+        }}
+        onClick={onClick}
+      />
+    </div>
+  )
+}
 
 export const Av = ({ u, size = 38 }) => {
   const colors = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
@@ -6,7 +37,7 @@ export const Av = ({ u, size = 38 }) => {
   return (
     <div style={{ width: size, height: size, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', background: u?.avatar_url ? '#444' : color, border: '2px solid rgba(255,255,255,.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: size * .32, color: '#fff', letterSpacing: .5 }}>
       {u?.avatar_url
-        ? <img src={u.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ? <LazyImage src={u.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         : u?.initials || '??'
       }
     </div>

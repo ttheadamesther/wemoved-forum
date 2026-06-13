@@ -1,14 +1,18 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { C, ROLE_RING } from '../lib/constants'
 import { useAuth } from '../hooks/useAuth'
-import { supabase } from '../lib/supabase'
-import EmojiPicker from 'emoji-picker-react'
+import { C } from '../lib/constants'
+import { RoleBadge, Btn } from '../components/UI'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
-const MAX_MSG      = 100
-const FLOOD_DELAY  = 3000
+
+function api(path, opts = {}) {
+  return fetch(`${SUPABASE_URL}${path}`, {
+    ...opts,
+    headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json', ...opts.headers }
+  })
+}
 
 async function getToken() {
   try {
@@ -21,396 +25,429 @@ async function getToken() {
   return ANON_KEY
 }
 
-function formatTime(ts) {
-  if (!ts) return ''
-  const d = new Date(ts)
-  const diff = Math.floor((Date.now() - d) / 1000)
-  if (diff < 60) return "à l'instant"
-  if (diff < 3600) return `${Math.floor(diff / 60)}min`
-  return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+async function apiAuth(path, opts = {}) {
+  const token = await getToken()
+  return fetch(`${SUPABASE_URL}${path}`, {
+    ...opts,
+    headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', ...opts.headers }
+  })
 }
 
-const COLORS = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
-const avatarColor = (pseudo) => COLORS[(pseudo?.charCodeAt(0) || 0) % COLORS.length]
+const BAN_OPTIONS = [
+  { label: '1 heure',   value: '1h',        ms: 3600000 },
+  { label: '1 jour',    value: '1d',        ms: 86400000 },
+  { label: '1 semaine', value: '1w',        ms: 604800000 },
+  { label: '1 mois',    value: '1m',        ms: 2592000000 },
+  { label: 'Définitif', value: 'permanent', ms: null },
+]
 
-const QUICK_REACTIONS = ['👍','❤️','😂','😮','🔥','🎉']
+const STATUS_COLORS = { ouvert: '#e74c3c', 'en cours': '#e67e22', résolu: '#2ecc71' }
+const REPORT_STATUS_COLORS = { pending: '#e67e22', resolved: '#2ecc71', rejected: '#95a5a6' }
+const REPORT_STATUS_LABELS = { pending: 'En attente', resolved: 'Résolu', rejected: 'Rejeté' }
 
-export default function Chatroom() {
+const LOG_LABELS = {
+  ban:           { icon: '🔨', label: 'Ban', color: '#e74c3c' },
+  unban:         { icon: '✅', label: 'Déban', color: '#2ecc71' },
+  delete_reply:  { icon: '🗑', label: 'Réponse supprimée', color: '#e67e22' },
+  delete_thread: { icon: '🗑', label: 'Topic supprimé', color: '#e67e22' },
+  hide_reply:    { icon: '🙈', label: 'Réponse masquée', color: '#95a5a6' },
+  hide_thread:   { icon: '🙈', label: 'Topic masqué', color: '#95a5a6' },
+}
+
+async function logAction(modId, targetId, action, details = {}) {
+  try {
+    await apiAuth('/rest/v1/mod_logs', {
+      method: 'POST',
+      body: JSON.stringify({ mod_id: modId, target_id: targetId, action, details })
+    })
+  } catch {}
+}
+
+export default function Moderation() {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
-  const [messages,   setMessages]   = useState([])
-  const [members,    setMembers]    = useState({})
-  const [text,       setText]       = useState('')
-  const [sending,    setSending]    = useState(false)
-  const [online,     setOnline]     = useState([])
-  const [floodMsg,   setFloodMsg]   = useState('')
-  const [typing,     setTyping]     = useState([])
-  const [showEmoji,  setShowEmoji]  = useState(false)
-  const [reactionPicker, setReactionPicker] = useState(null)
-  const [reactions,  setReactions]  = useState({})
-  const bottomRef    = useRef()
-  const inputRef     = useRef()
-  const emojiRef     = useRef()
-  const lastSentTime = useRef(0)
-  const typingTimeout = useRef(null)
-  const isTyping     = useRef(false)
+  const [tab,         setTab]        = useState('members')
+  const [members,     setMembers]    = useState([])
+  const [bugs,        setBugs]       = useState([])
+  const [reports,     setReports]    = useState([])
+  const [logs,        setLogs]       = useState([])
+  const [reportContents, setReportContents] = useState({}) // cache contenu signalé
+  const [search,      setSearch]     = useState('')
+  const [loading,     setLoading]    = useState(true)
+  const [banTarget,   setBanTarget]  = useState(null)
+  const [banDuration, setBanDuration]= useState('1d')
+  const [banReason,   setBanReason]  = useState('')
+  const [expandedMember, setExpandedMember] = useState(null) // pour historique ban
 
   const canMod = ['admin', 'manager', 'moderateur'].includes(profile?.role)
-  const isBanned = profile?.banned && (!profile.banned_until || new Date(profile.banned_until) > new Date())
 
   useEffect(() => {
-    const handler = (e) => {
-      if (emojiRef.current && !emojiRef.current.contains(e.target)) setShowEmoji(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
+    if (!user) { navigate('/login'); return }
+    if (profile && !canMod) { navigate('/'); return }
+  }, [user, profile])
 
   useEffect(() => {
-    fetch(`${SUPABASE_URL}/rest/v1/chat_messages?select=*&order=created_at.asc&limit=${MAX_MSG}`, {
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
-    }).then(r => r.json()).then(d => {
-      if (Array.isArray(d)) {
-        setMessages(d)
-        const rxMap = {}
-        d.forEach(msg => { if (msg.reactions) rxMap[msg.id] = msg.reactions })
-        setReactions(rxMap)
+    if (!canMod) return
+    setLoading(true)
+    Promise.all([
+      api('/rest/v1/profiles?select=*&order=created_at.desc').then(r => r.json()),
+      api('/rest/v1/bug_reports?select=*&order=created_at.desc').then(r => r.json()),
+      api('/rest/v1/reports?select=*&order=created_at.desc').then(r => r.json()),
+      apiAuth('/rest/v1/mod_logs?select=*&order=created_at.desc&limit=100').then(r => r.json()),
+    ]).then(([m, b, rp, lg]) => {
+      if (Array.isArray(m))  setMembers(m)
+      if (Array.isArray(b))  setBugs(b)
+      if (Array.isArray(rp)) {
+        setReports(rp)
+        // Charger le contenu des signalements
+        rp.forEach(r => fetchReportContent(r))
       }
+      if (Array.isArray(lg)) setLogs(lg)
+      setLoading(false)
     })
+  }, [canMod])
 
-    fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,pseudo,initials,avatar_url,online,role&order=created_at.desc`, {
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
-    }).then(r => r.json()).then(d => {
-      if (Array.isArray(d)) {
-        const map = {}
-        d.forEach(m => { map[m.id] = m })
-        setMembers(map)
-        setOnline(d.filter(m => m.online))
+  // Charger le contenu signalé (thread ou reply)
+  const fetchReportContent = async (report) => {
+    if (!report.target_id || reportContents[report.id]) return
+    try {
+      const table = report.type === 'thread' ? 'threads' : 'replies'
+      const r = await api(`/rest/v1/${table}?id=eq.${report.target_id}&select=title,body&limit=1`)
+      const d = await r.json()
+      if (Array.isArray(d) && d[0]) {
+        setReportContents(prev => ({ ...prev, [report.id]: d[0] }))
       }
-    })
-  }, [])
-
-  useEffect(() => {
-    if (!supabase) return
-
-    const msgChannel = supabase
-      .channel('chatroom-main')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, (payload) => {
-        setMessages(prev => {
-          if (prev.find(m => m.id === payload.new.id)) return prev
-          return [...prev, payload.new].slice(-MAX_MSG)
-        })
-        if (payload.new.reactions) {
-          setReactions(prev => ({ ...prev, [payload.new.id]: payload.new.reactions }))
-        }
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_messages' }, (payload) => {
-        setMessages(prev => prev.map(m => m.id === payload.new.id ? payload.new : m))
-        // Toujours mettre à jour les réactions depuis le realtime
-        setReactions(prev => ({ ...prev, [payload.new.id]: payload.new.reactions || {} }))
-      })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'chat_messages' }, (payload) => {
-        setMessages(prev => prev.filter(m => m.id !== payload.old.id))
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
-        if (payload.new && 'online' in payload.new) {
-          setMembers(prev => ({ ...prev, [payload.new.id]: { ...prev[payload.new.id], ...payload.new } }))
-          setOnline(prev => {
-            const filtered = prev.filter(m => m.id !== payload.new.id)
-            if (payload.new.online) {
-              const existing = Object.values(members).find(m => m.id === payload.new.id)
-              return [...filtered, { ...existing, ...payload.new }]
-            }
-            return filtered
-          })
-        }
-      })
-      .subscribe()
-
-    let typingChannel = null
-    if (user) {
-      typingChannel = supabase.channel('chatroom-presence')
-      typingChannel
-        .on('presence', { event: 'sync' }, () => {
-          const state = typingChannel.presenceState()
-          const typingUsers = Object.values(state)
-            .flat()
-            .filter(p => p.typing && p.user_id !== user?.id)
-            .map(p => p.pseudo)
-          setTyping([...new Set(typingUsers)])
-        })
-        .subscribe()
-    }
-
-    return () => {
-      supabase.removeChannel(msgChannel)
-      if (typingChannel) supabase.removeChannel(typingChannel)
-    }
-  }, [user])
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
-
-  const handleTyping = (val) => {
-    setText(val)
-    if (!user || !supabase) return
-    const ch = supabase.channel('chatroom-presence')
-    if (!isTyping.current) {
-      isTyping.current = true
-      ch.track({ user_id: user.id, pseudo: profile?.pseudo, typing: true })
-    }
-    clearTimeout(typingTimeout.current)
-    typingTimeout.current = setTimeout(() => {
-      isTyping.current = false
-      ch.track({ user_id: user.id, pseudo: profile?.pseudo, typing: false })
-    }, 2000)
+    } catch {}
   }
 
-  const send = async () => {
-    if (!text.trim() || !user || sending || isBanned) return
-    const now = Date.now()
-    if (now - lastSentTime.current < FLOOD_DELAY) {
-      const wait = Math.ceil((FLOOD_DELAY - (now - lastSentTime.current)) / 1000)
-      setFloodMsg(`Attends encore ${wait}s…`)
-      setTimeout(() => setFloodMsg(''), FLOOD_DELAY - (now - lastSentTime.current))
-      return
-    }
-    setFloodMsg('')
-    setSending(true)
-    lastSentTime.current = now
-    isTyping.current = false
-    clearTimeout(typingTimeout.current)
-    const token = await getToken()
-    await fetch(`${SUPABASE_URL}/rest/v1/chat_messages`, {
-      method: 'POST',
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ author_id: user.id, body: text.trim(), reactions: {} })
-    })
-    setText('')
-    setSending(false)
-    setShowEmoji(false)
-    inputRef.current?.focus()
-  }
+  const colors = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
+  const getMember = (id) => members.find(m => m.id === id)
 
-  const deleteMessage = async (msgId) => {
-    const token = await getToken()
-    await fetch(`${SUPABASE_URL}/rest/v1/chat_messages?id=eq.${msgId}`, {
-      method: 'DELETE',
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
-    })
-  }
-
-  const toggleReaction = async (msgId, emoji) => {
-    if (!user) return
-    const current = reactions[msgId] || {}
-    const likers = current[emoji] || []
-    const alreadyLiked = likers.includes(user.id)
-    const newLikers = alreadyLiked ? likers.filter(id => id !== user.id) : [...likers, user.id]
-    const newReactions = { ...current, [emoji]: newLikers }
-    if (newLikers.length === 0) delete newReactions[emoji]
-
-    // Optimistic update
-    setReactions(prev => ({ ...prev, [msgId]: newReactions }))
-    setReactionPicker(null)
-
-    const token = await getToken()
-    fetch(`${SUPABASE_URL}/rest/v1/chat_messages?id=eq.${msgId}`, {
+  const banMember = async (memberId) => {
+    const opt = BAN_OPTIONS.find(o => o.value === banDuration)
+    const bannedUntil = opt.ms ? new Date(Date.now() + opt.ms).toISOString() : null
+    await apiAuth(`/rest/v1/profiles?id=eq.${memberId}`, {
       method: 'PATCH',
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
-      body: JSON.stringify({ reactions: newReactions })
-    }).then(r => r.json()).then(d => {
-      if (Array.isArray(d) && d[0]?.reactions !== undefined) {
-        setReactions(prev => ({ ...prev, [msgId]: d[0].reactions }))
-      }
-    }).catch(() => {
-      // Rollback en cas d'erreur
-      setReactions(prev => ({ ...prev, [msgId]: current }))
+      body: JSON.stringify({ banned: true, banned_until: bannedUntil, ban_reason: banReason || null })
     })
+    await logAction(user.id, memberId, 'ban', {
+      duration: banDuration,
+      reason: banReason || null,
+      until: bannedUntil,
+      target_pseudo: getMember(memberId)?.pseudo
+    })
+    setMembers(prev => prev.map(m => m.id === memberId ? { ...m, banned: true, banned_until: bannedUntil } : m))
+    // Refresh logs
+    apiAuth('/rest/v1/mod_logs?select=*&order=created_at.desc&limit=100').then(r => r.json()).then(d => { if (Array.isArray(d)) setLogs(d) })
+    setBanTarget(null); setBanReason(''); setBanDuration('1d')
   }
 
-  const insertEmoji = (emojiData) => {
-    const el = inputRef.current
-    if (!el) return
-    const start = el.selectionStart; const end = el.selectionEnd
-    const newVal = text.slice(0, start) + emojiData.emoji + text.slice(end)
-    setText(newVal)
-    setShowEmoji(false)
-    setTimeout(() => { el.focus(); el.setSelectionRange(start + emojiData.emoji.length, start + emojiData.emoji.length) }, 0)
+  const unbanMember = async (memberId) => {
+    await apiAuth(`/rest/v1/profiles?id=eq.${memberId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ banned: false, banned_until: null, ban_reason: null })
+    })
+    await logAction(user.id, memberId, 'unban', { target_pseudo: getMember(memberId)?.pseudo })
+    setMembers(prev => prev.map(m => m.id === memberId ? { ...m, banned: false, banned_until: null } : m))
+    apiAuth('/rest/v1/mod_logs?select=*&order=created_at.desc&limit=100').then(r => r.json()).then(d => { if (Array.isArray(d)) setLogs(d) })
   }
 
-  const getMember = (id) => members[id] || null
+  const updateBugStatus = async (bugId, status) => {
+    await apiAuth(`/rest/v1/bug_reports?id=eq.${bugId}`, { method: 'PATCH', body: JSON.stringify({ status }) })
+    setBugs(prev => prev.map(b => b.id === bugId ? { ...b, status } : b))
+  }
+
+  const deleteBug = async (bugId) => {
+    await apiAuth(`/rest/v1/bug_reports?id=eq.${bugId}`, { method: 'DELETE' })
+    setBugs(prev => prev.filter(b => b.id !== bugId))
+  }
+
+  const updateReportStatus = async (reportId, status) => {
+    await apiAuth(`/rest/v1/reports?id=eq.${reportId}`, { method: 'PATCH', body: JSON.stringify({ status }) })
+    setReports(prev => prev.map(r => r.id === reportId ? { ...r, status } : r))
+  }
+
+  const deleteReport = async (reportId) => {
+    await apiAuth(`/rest/v1/reports?id=eq.${reportId}`, { method: 'DELETE' })
+    setReports(prev => prev.filter(r => r.id !== reportId))
+  }
+
+  const filtered = members.filter(m =>
+    m.id !== user?.id &&
+    (!search || m.pseudo?.toLowerCase().includes(search.toLowerCase()))
+  )
+
+  const pendingReports = reports.filter(r => r.status === 'pending').length
+
+  if (!canMod && profile) return (
+    <div style={{ padding: 40, textAlign: 'center', color: C.textDim }}>Accès refusé.</div>
+  )
 
   return (
-    <div style={{ maxWidth: 760, margin: '0 auto', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 140px)' }}>
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 28px' }}>
 
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexShrink: 0 }}>
-        <div>
-          <h1 style={{ fontWeight: 700, fontSize: 20, color: C.text, marginBottom: 2 }}>💬 Salon général</h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.textDim }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#2ecc71', display: 'inline-block', animation: 'pulse 2s infinite' }} />
-            {online.length} membre{online.length !== 1 ? 's' : ''} en ligne
+      {/* Modal ban */}
+      {banTarget && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
+          <div style={{ background: C.white, borderRadius: 16, padding: 24, width: '100%', maxWidth: 440, boxShadow: '0 8px 32px rgba(0,0,0,.3)' }}>
+            <div style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 6 }}>🔨 Bannir @{banTarget.pseudo}</div>
+            <div style={{ fontSize: 12, color: C.textDim, marginBottom: 20 }}>Choisir la durée du bannissement</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
+              {BAN_OPTIONS.map(o => (
+                <button key={o.value} onClick={() => setBanDuration(o.value)}
+                  style={{ padding: '10px 8px', borderRadius: 10, border: `2px solid ${banDuration === o.value ? C.accentDk : C.border}`, background: banDuration === o.value ? C.accentBg : C.surfaceB, color: banDuration === o.value ? C.accentTxt : C.textMid, fontWeight: banDuration === o.value ? 700 : 400, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 6 }}>Raison (optionnel)</div>
+              <input value={banReason} onChange={e => setBanReason(e.target.value)} placeholder="Ex: Spam, comportement inapproprié…"
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', background: C.surfaceB, color: C.text }} />
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <Btn onClick={() => { setBanTarget(null); setBanReason(''); setBanDuration('1d') }} variant="ghost">Annuler</Btn>
+              <Btn onClick={() => banMember(banTarget.id)} variant="red">🔨 Bannir</Btn>
+            </div>
           </div>
         </div>
-        <div style={{ display: 'flex' }}>
-          {online.slice(0, 6).map((m, i) => {
-            const ring = ROLE_RING[m.role] || null
+      )}
+
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontWeight: 700, fontSize: 22, color: C.text, marginBottom: 4 }}>🛡️ Modération</h1>
+        <p style={{ fontSize: 13, color: C.textDim }}>Gestion des membres, signalements et bugs</p>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: C.surfaceB, borderRadius: 12, padding: 4 }}>
+        {[
+          { key: 'members', label: `👥 Membres (${members.length})` },
+          { key: 'reports', label: `🚩 Signalements${pendingReports > 0 ? ` (${pendingReports})` : ''}` },
+          { key: 'bugs',    label: `🐛 Bugs (${bugs.filter(b => b.status !== 'résolu').length})` },
+          { key: 'logs',    label: `📋 Logs (${logs.length})` },
+        ].map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: tab === t.key ? C.white : 'transparent', color: tab === t.key ? C.text : C.textMid, fontWeight: tab === t.key ? 700 : 400, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', boxShadow: tab === t.key ? '0 1px 4px rgba(0,0,0,.08)' : 'none', transition: 'all .15s' }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: 40, color: C.textDim }}>Chargement…</div>
+
+      ) : tab === 'members' ? (
+        <>
+          <div style={{ marginBottom: 16 }}>
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 Rechercher un membre…"
+              style={{ width: '100%', padding: '10px 16px', borderRadius: 12, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', background: C.white, color: C.text }} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {filtered.map(m => {
+              const avatarColor = colors[(m.pseudo?.charCodeAt(0) || 0) % colors.length]
+              const memberLogs = logs.filter(l => l.target_id === m.id && l.action === 'ban')
+              const isExpanded = expandedMember === m.id
+              return (
+                <div key={m.id} style={{ background: C.white, border: `1px solid ${m.banned ? '#e74c3c66' : C.border}`, borderLeft: `4px solid ${m.banned ? '#e74c3c' : C.accentDk}`, borderRadius: 14, overflow: 'hidden' }}>
+                  <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 42, height: 42, borderRadius: '50%', background: m.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
+                      {m.avatar_url ? <img loading="lazy" decoding="async" src={m.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : m.initials}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 700, fontSize: 13, color: C.text }}>@{m.pseudo}</span>
+                        <RoleBadge role={m.role} />
+                        {m.banned && (
+                          <span style={{ fontSize: 10, fontWeight: 700, color: '#e74c3c', background: 'transparent', padding: '2px 8px', borderRadius: 20, border: '1px solid #e74c3c' }}>
+                            ⛔ Banni{m.banned_until ? ` jusqu'au ${new Date(m.banned_until).toLocaleDateString('fr-FR')}` : ' définitivement'}
+                          </span>
+                        )}
+                        {memberLogs.length > 0 && (
+                          <button onClick={() => setExpandedMember(isExpanded ? null : m.id)}
+                            style={{ fontSize: 10, color: C.textDim, background: C.surfaceB, border: `1px solid ${C.border}`, borderRadius: 20, padding: '2px 8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                            📋 {memberLogs.length} ban{memberLogs.length > 1 ? 's' : ''} {isExpanded ? '▲' : '▼'}
+                          </button>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11, color: C.textDim }}>
+                        {m.city && `📍 ${m.city} · `}Inscrit le {m.joined}
+                      </div>
+                      {m.ban_reason && <div style={{ fontSize: 11, color: '#e74c3c', marginTop: 2 }}>Raison : {m.ban_reason}</div>}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      <Btn onClick={() => navigate(`/members/${m.id}`)} variant="ghost" style={{ fontSize: 11 }}>👁</Btn>
+                      {m.banned
+                        ? <Btn onClick={() => unbanMember(m.id)} variant="green" style={{ fontSize: 11 }}>✅ Débannir</Btn>
+                        : <Btn onClick={() => setBanTarget(m)} variant="red" style={{ fontSize: 11 }}>🔨 Bannir</Btn>
+                      }
+                    </div>
+                  </div>
+                  {/* Historique des bans */}
+                  {isExpanded && memberLogs.length > 0 && (
+                    <div style={{ borderTop: `1px solid ${C.border}`, background: C.surfaceB, padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 4 }}>Historique des bans</div>
+                      {memberLogs.map(lg => {
+                        const mod = getMember(lg.mod_id)
+                        return (
+                          <div key={lg.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: C.textMid }}>
+                            <span style={{ color: '#e74c3c' }}>🔨</span>
+                            <span>Par <strong>@{mod?.pseudo || 'Inconnu'}</strong></span>
+                            {lg.details?.duration && <span style={{ background: C.border, borderRadius: 10, padding: '1px 6px' }}>{BAN_OPTIONS.find(o => o.value === lg.details.duration)?.label || lg.details.duration}</span>}
+                            {lg.details?.reason && <span style={{ color: C.textDim }}>— {lg.details.reason}</span>}
+                            <span style={{ marginLeft: 'auto', color: C.textDim }}>{new Date(lg.created_at).toLocaleDateString('fr-FR')} {new Date(lg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+            {filtered.length === 0 && (
+              <div style={{ textAlign: 'center', padding: 30, color: C.textDim, fontSize: 13, background: C.white, borderRadius: 14, border: `1px solid ${C.border}` }}>
+                Aucun membre trouvé.
+              </div>
+            )}
+          </div>
+        </>
+
+      ) : tab === 'reports' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {reports.length === 0 && (
+            <div style={{ textAlign: 'center', padding: 30, color: C.textDim, fontSize: 13, background: C.white, borderRadius: 14, border: `1px solid ${C.border}` }}>
+              🎉 Aucun signalement pour l'instant.
+            </div>
+          )}
+          {reports.map(r => {
+            const reporter = getMember(r.reporter_id)
+            const statusColor = REPORT_STATUS_COLORS[r.status] || '#888'
+            const content = reportContents[r.id]
             return (
-              <div key={m.id} onClick={() => navigate(`/members/${m.id}`)}
-                style={{ width: 32, height: 32, borderRadius: '50%', background: m.avatar_url ? '#444' : avatarColor(m.pseudo), border: ring ? `2px solid ${ring}` : '2px solid #fff', marginLeft: i > 0 ? -8 : 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', overflow: 'hidden', cursor: 'pointer', zIndex: 10 - i, boxShadow: ring ? `0 0 6px ${ring}88` : 'none' }}>
-                {m.avatar_url ? <img src={m.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : m.initials}
+              <div key={r.id} style={{ background: C.white, border: `1px solid ${C.border}`, borderLeft: `4px solid ${statusColor}`, borderRadius: 14, padding: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: C.textDim, background: C.surfaceB, padding: '2px 8px', borderRadius: 20, border: `1px solid ${C.border}` }}>
+                        {r.type === 'thread' ? '💬 Topic' : '↩️ Réponse'}
+                      </span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{r.reason}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: C.textDim }}>
+                      Signalé par <strong>@{reporter?.pseudo || 'Inconnu'}</strong> · {new Date(r.created_at).toLocaleDateString('fr-FR')}
+                    </div>
+                    {/* Contenu signalé */}
+                    {content && (
+                      <div style={{ marginTop: 10, padding: '10px 12px', background: C.surfaceB, borderRadius: 10, border: `1px solid ${C.border}`, borderLeft: `3px solid ${statusColor}` }}>
+                        {content.title && <div style={{ fontWeight: 700, fontSize: 12, color: C.text, marginBottom: 4 }}>{content.title}</div>}
+                        <div style={{ fontSize: 12, color: C.textMid, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                          {(content.body || '').slice(0, 300)}{(content.body || '').length > 300 ? '…' : ''}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: `${statusColor}22`, color: statusColor, border: `1px solid ${statusColor}44`, flexShrink: 0 }}>
+                    {REPORT_STATUS_LABELS[r.status] || r.status}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                  {['pending', 'resolved', 'rejected'].map(s => (
+                    <button key={s} onClick={() => updateReportStatus(r.id, s)}
+                      style={{ padding: '5px 12px', borderRadius: 20, border: `1px solid ${r.status === s ? REPORT_STATUS_COLORS[s] : C.border}`, background: r.status === s ? `${REPORT_STATUS_COLORS[s]}22` : C.surfaceB, color: r.status === s ? REPORT_STATUS_COLORS[s] : C.textMid, fontSize: 11, fontWeight: r.status === s ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      {REPORT_STATUS_LABELS[s]}
+                    </button>
+                  ))}
+                  {r.status !== 'pending' && (
+                    <button onClick={() => deleteReport(r.id)}
+                      style={{ marginLeft: 'auto', padding: '5px 12px', borderRadius: 20, border: '1px solid #e74c3c', background: 'transparent', color: '#e74c3c', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      🗑 Supprimer
+                    </button>
+                  )}
+                </div>
               </div>
             )
           })}
-          {online.length > 6 && (
-            <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.surfaceB, border: '2px solid #fff', marginLeft: -8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: C.textMid }}>
-              +{online.length - 6}
+        </div>
+
+      ) : tab === 'bugs' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {bugs.length === 0 && (
+            <div style={{ textAlign: 'center', padding: 30, color: C.textDim, fontSize: 13, background: C.white, borderRadius: 14, border: `1px solid ${C.border}` }}>
+              Aucun rapport de bug.
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: '16px', display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
-        {messages.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim, fontSize: 13, fontStyle: 'italic' }}>
-            Soyez le premier à écrire un message ! 👋
-          </div>
-        )}
-        {messages.map((msg, i) => {
-          const author   = getMember(msg.author_id)
-          const isMe     = msg.author_id === user?.id
-          const prevMsg  = messages[i - 1]
-          const sameAuthor = prevMsg && prevMsg.author_id === msg.author_id && (new Date(msg.created_at) - new Date(prevMsg.created_at)) < 60000
-          const canDelete = isMe || canMod
-          const msgReactions = reactions[msg.id] || {}
-          const hasReactions = Object.entries(msgReactions).some(([, likers]) => likers.length > 0)
-          return (
-            <div key={msg.id}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', marginTop: sameAuthor ? 2 : 10 }}>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexDirection: isMe ? 'row-reverse' : 'row', width: '100%' }}
-                onMouseEnter={e => { e.currentTarget.querySelector('.msg-actions').style.opacity = '1' }}
-                onMouseLeave={e => { e.currentTarget.querySelector('.msg-actions').style.opacity = '0' }}>
-                {/* Avatar */}
-                {!sameAuthor ? (
-                  <div onClick={() => author && navigate(`/members/${author.id}`)}
-                    style={{ width: 30, height: 30, borderRadius: '50%', background: author?.avatar_url ? '#444' : avatarColor(author?.pseudo), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, cursor: 'pointer', border: ROLE_RING[author?.role] ? `2px solid ${ROLE_RING[author?.role]}` : 'none' }}>
-                    {author?.avatar_url ? <img src={author.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : author?.initials || '?'}
-                  </div>
-                ) : <div style={{ width: 30, flexShrink: 0 }} />}
-
-                <div style={{ maxWidth: '70%', position: 'relative' }}>
-                  {!sameAuthor && !isMe && (
-                    <div style={{ fontSize: 11, fontWeight: 700, color: C.accentTxt, marginBottom: 3, paddingLeft: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      @{author?.pseudo || 'Inconnu'}
-                      {author?.is_bot && <span style={{ padding: '1px 5px', borderRadius: 4, fontSize: 8, fontWeight: 700, background: '#5865f2', color: '#fff' }}>BOT</span>}
+          {bugs.map(b => {
+            const author = getMember(b.author_id)
+            return (
+              <div key={b.id} style={{ background: C.white, border: `1px solid ${C.border}`, borderLeft: `4px solid ${STATUS_COLORS[b.status] || '#ccc'}`, borderRadius: 14, padding: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 8 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 4 }}>{b.title}</div>
+                    <div style={{ fontSize: 12, color: C.textDim }}>
+                      @{author?.pseudo || 'Inconnu'} · {new Date(b.created_at).toLocaleDateString('fr-FR')}
                     </div>
-                  )}
-                  <div onDoubleClick={() => user && setReactionPicker(reactionPicker === msg.id ? null : msg.id)}
-                    style={{ background: isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.surfaceB, color: isMe ? '#3a2e00' : C.text, padding: '8px 12px', borderRadius: isMe ? '16px 4px 16px 16px' : '4px 16px 16px 16px', fontSize: 13, lineHeight: 1.5, wordBreak: 'break-word', boxShadow: '0 1px 2px rgba(0,0,0,.06)', userSelect: 'text' }}>
-                    {msg.body}
                   </div>
-                  <div style={{ fontSize: 10, color: C.textDim, marginTop: 2, paddingLeft: 4, textAlign: isMe ? 'right' : 'left' }}>
-                    {formatTime(msg.created_at)}
-                  </div>
+                  <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: `${STATUS_COLORS[b.status]}22`, color: STATUS_COLORS[b.status], border: `1px solid ${STATUS_COLORS[b.status]}44`, flexShrink: 0 }}>
+                    {b.status}
+                  </span>
                 </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4, opacity: 0, transition: 'opacity .2s' }} className="msg-actions">
-                  {user && (
-                    <div style={{ position: 'relative' }}>
-                      <button onClick={() => setReactionPicker(reactionPicker === msg.id ? null : msg.id)}
-                        style={{ background: C.surfaceB, border: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 13, padding: '3px 6px', borderRadius: 8, transition: 'all .2s' }}>
-                        😊
-                      </button>
-                      {reactionPicker === msg.id && (
-                        <div style={{ position: 'absolute', bottom: '110%', [isMe ? 'right' : 'left']: 0, background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: '6px 8px', display: 'flex', gap: 4, zIndex: 100, boxShadow: '0 4px 16px rgba(0,0,0,.12)', whiteSpace: 'nowrap' }}>
-                          {QUICK_REACTIONS.map(emoji => (
-                            <button key={emoji} onClick={() => toggleReaction(msg.id, emoji)}
-                              style={{ fontSize: 18, background: (msgReactions[emoji] || []).includes(user?.id) ? C.accentBg : 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 6, transition: 'all .15s' }}>
-                              {emoji}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {canDelete && (
-                    <button onClick={() => deleteMessage(msg.id)}
-                      style={{ background: 'transparent', border: `1px solid #e74c3c`, borderRadius: 8, color: '#e74c3c', fontSize: 11, cursor: 'pointer', padding: '3px 6px', transition: 'all .2s' }}>
-                      ✕
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Réactions affichées */}
-              {hasReactions && (
-                <div style={{ display: 'flex', gap: 4, marginTop: 4, paddingLeft: isMe ? 0 : 38, paddingRight: isMe ? 38 : 0, flexWrap: 'wrap', justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
-                  {Object.entries(msgReactions).filter(([, likers]) => likers.length > 0).map(([emoji, likers]) => (
-                    <button key={emoji} onClick={() => user && toggleReaction(msg.id, emoji)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 20, background: likers.includes(user?.id) ? C.accentBg : C.surfaceB, border: `1px solid ${likers.includes(user?.id) ? C.accentDk : C.border}`, cursor: user ? 'pointer' : 'default', fontSize: 12, fontFamily: 'inherit' }}>
-                      <span style={{ fontSize: 14 }}>{emoji}</span>
-                      <span style={{ fontWeight: 700, color: likers.includes(user?.id) ? C.accentTxt : C.textMid }}>{likers.length}</span>
+                <p style={{ fontSize: 13, color: C.textMid, lineHeight: 1.6, marginBottom: 12 }}>{b.description}</p>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                  {['ouvert', 'en cours', 'résolu'].map(s => (
+                    <button key={s} onClick={() => updateBugStatus(b.id, s)}
+                      style={{ padding: '5px 12px', borderRadius: 20, border: `1px solid ${b.status === s ? STATUS_COLORS[s] : C.border}`, background: b.status === s ? `${STATUS_COLORS[s]}22` : C.surfaceB, color: b.status === s ? STATUS_COLORS[s] : C.textMid, fontSize: 11, fontWeight: b.status === s ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      {s}
                     </button>
                   ))}
+                  {b.status === 'résolu' && (
+                    <button onClick={() => deleteBug(b.id)}
+                      style={{ marginLeft: 'auto', padding: '5px 12px', borderRadius: 20, border: '1px solid #e74c3c', background: 'transparent', color: '#e74c3c', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      🗑 Supprimer
+                    </button>
+                  )}
                 </div>
-              )}
-            </div>
-          )
-        })}
-        <div ref={bottomRef} />
-      </div>
-
-      {/* Indicateur de frappe */}
-      <div style={{ height: 18, marginBottom: 4, paddingLeft: 8 }}>
-        {typing.length > 0 && (
-          <div style={{ fontSize: 11, color: C.textDim, fontStyle: 'italic' }}>
-            {typing.slice(0, 3).join(', ')} {typing.length === 1 ? "est en train d'écrire" : "sont en train d'écrire"} <span style={{ animation: 'pulse 1s infinite' }}>…</span>
-          </div>
-        )}
-      </div>
-
-      {/* Input */}
-      {user ? (
-        <div style={{ flexShrink: 0 }}>
-          {isBanned && (
-            <div style={{ textAlign: 'center', padding: '10px', background: C.surfaceB, border: `1px solid #e74c3c`, borderRadius: 12, fontSize: 12, color: '#e74c3c', marginBottom: 8 }}>
-              ⛔ Tu es banni et ne peux pas envoyer de messages.
-            </div>
-          )}
-          {floodMsg && <div style={{ fontSize: 11, color: C.red, fontWeight: 600, marginBottom: 4, textAlign: 'center' }}>⏳ {floodMsg}</div>}
-          {!isBanned && (
-            <div style={{ display: 'flex', gap: 8, position: 'relative' }}>
-              <div ref={emojiRef} style={{ position: 'relative' }}>
-                <button onClick={() => setShowEmoji(s => !s)}
-                  style={{ width: 46, height: 46, borderRadius: '50%', border: `1px solid ${C.borderMid}`, background: C.surfaceB, cursor: 'pointer', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  😊
-                </button>
-                {showEmoji && (
-                  <div style={{ position: 'absolute', bottom: '110%', left: 0, zIndex: 1000 }}>
-                    <EmojiPicker onEmojiClick={insertEmoji} width={300} height={350} />
-                  </div>
-                )}
               </div>
-              <input ref={inputRef} value={text} onChange={e => handleTyping(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
-                placeholder="Écris un message… (Entrée pour envoyer)"
-                maxLength={500}
-                style={{ flex: 1, padding: '12px 16px', borderRadius: 24, border: `1px solid ${C.borderMid}`, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.white, color: C.text, transition: 'border .2s' }}
-                onFocus={e => e.target.style.borderColor = '#c8a200'}
-                onBlur={e => e.target.style.borderColor = C.borderMid}
-              />
-              <button onClick={send} disabled={!text.trim() || sending}
-                style={{ width: 46, height: 46, borderRadius: '50%', border: 'none', background: text.trim() ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.surfaceB, color: text.trim() ? '#3a2e00' : C.textDim, cursor: text.trim() ? 'pointer' : 'default', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .2s', flexShrink: 0 }}>
-                {sending ? '…' : '➤'}
-              </button>
+            )
+          })}
+        </div>
+
+      ) : (
+        /* Onglet Logs */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {logs.length === 0 && (
+            <div style={{ textAlign: 'center', padding: 30, color: C.textDim, fontSize: 13, background: C.white, borderRadius: 14, border: `1px solid ${C.border}` }}>
+              Aucune action de modération enregistrée.
             </div>
           )}
-        </div>
-      ) : (
-        <div style={{ textAlign: 'center', padding: '14px', background: C.surfaceB, border: `1px solid ${C.border}`, borderRadius: 12, fontSize: 13, color: C.textDim }}>
-          <button onClick={() => navigate('/login')} style={{ color: C.accentTxt, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13 }}>Connecte-toi</button> pour participer au chat
+          {logs.map(lg => {
+            const mod    = getMember(lg.mod_id)
+            const target = getMember(lg.target_id)
+            const info   = LOG_LABELS[lg.action] || { icon: '📋', label: lg.action, color: '#888' }
+            return (
+              <div key={lg.id} style={{ background: C.white, border: `1px solid ${C.border}`, borderLeft: `4px solid ${info.color}`, borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ fontSize: 20, flexShrink: 0 }}>{info.icon}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, color: C.text, marginBottom: 3 }}>
+                    <strong style={{ color: info.color }}>@{mod?.pseudo || 'Inconnu'}</strong>
+                    {' '}→{' '}
+                    <span style={{ fontWeight: 700 }}>{info.label}</span>
+                    {target && <span> sur <strong>@{target.pseudo || lg.details?.target_pseudo || 'Inconnu'}</strong></span>}
+                    {lg.details?.duration && (
+                      <span style={{ marginLeft: 6, fontSize: 11, background: C.surfaceB, border: `1px solid ${C.border}`, borderRadius: 10, padding: '1px 7px', color: C.textMid }}>
+                        {BAN_OPTIONS.find(o => o.value === lg.details.duration)?.label || lg.details.duration}
+                      </span>
+                    )}
+                  </div>
+                  {lg.details?.reason && (
+                    <div style={{ fontSize: 11, color: C.textDim }}>Raison : {lg.details.reason}</div>
+                  )}
+                </div>
+                <div style={{ fontSize: 11, color: C.textDim, flexShrink: 0, textAlign: 'right' }}>
+                  <div>{new Date(lg.created_at).toLocaleDateString('fr-FR')}</div>
+                  <div>{new Date(lg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

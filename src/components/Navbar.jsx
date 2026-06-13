@@ -225,7 +225,7 @@ export default function Navbar() {
       { to: '/forum',    icon: '💬', label: 'Forum' },
       { to: user ? '/profile' : '/login', icon: user ? (
         <div style={{ width: 26, height: 26, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', border: `2px solid ${path === '/profile' ? C.accentDk : '#444'}` }}>
-          {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
+          {profile?.avatar_url ? <img loading="lazy" decoding="async" src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
         </div>
       ) : '👤', label: user ? 'Mon profil' : 'Connexion' },
       { to: '/messages', icon: '✉️', label: 'Messages', badge: unreadMessages },
@@ -274,7 +274,7 @@ export default function Navbar() {
                       {results.map(u => (
                         <div key={u.id} onClick={() => { navigate(`/members/${u.id}`); setSearch(''); setShowRes(false); setShowSearch(false) }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #2a2a2a' }}>
                           <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
-                            {u.avatar_url ? <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : u.initials}
+                            {u.avatar_url ? <img loading="lazy" decoding="async" src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : u.initials}
                           </div>
                           <div style={{ fontWeight: 700, fontSize: 12, color: '#eee' }}>@{u.pseudo}</div>
                         </div>
@@ -333,7 +333,7 @@ export default function Navbar() {
             {user && (
               <div style={{ padding: '14px 20px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', overflow: 'hidden', border: `2px solid ${C.accentDk}` }}>
-                  {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
+                  {profile?.avatar_url ? <img loading="lazy" decoding="async" src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>@{profile?.pseudo}</div>
@@ -421,7 +421,7 @@ export default function Navbar() {
                         onMouseEnter={e => e.currentTarget.style.background = '#2a2a2a'}
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                         <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
-                          {u.avatar_url ? <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : u.initials}
+                          {u.avatar_url ? <img loading="lazy" decoding="async" src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : u.initials}
                         </div>
                         <div>
                           <div style={{ fontWeight: 700, fontSize: 13, color: '#eee' }}>@{u.pseudo}</div>
@@ -483,7 +483,7 @@ export default function Navbar() {
             <div ref={userMenuRef} style={{ position: 'relative' }}>
               <div onClick={() => setShowUserMenu(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', height: 40, background: showUserMenu ? 'rgba(200,162,0,.12)' : 'rgba(255,255,255,.05)', borderRadius: 22, border: `1px solid ${showUserMenu ? 'rgba(200,162,0,.5)' : 'rgba(255,255,255,.1)'}`, cursor: 'pointer', transition: 'all .18s' }}>
                 <div style={{ width: 26, height: 26, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, border: ROLE_RING[profile?.role] ? `2px solid ${ROLE_RING[profile?.role]}` : '2px solid #333', boxShadow: ROLE_RING[profile?.role] ? `0 0 6px ${ROLE_RING[profile?.role]}88` : 'none' }}>
-                  {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
+                  {profile?.avatar_url ? <img loading="lazy" decoding="async" src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
                 </div>
                 <div style={{ lineHeight: 1.2 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>

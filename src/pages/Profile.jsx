@@ -285,7 +285,7 @@ export default function Profile() {
                   return (
                     <div key={lk.id} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,.15)', borderRadius: 20, padding: '4px 10px' }}>
                       <div style={{ width: 22, height: 22, borderRadius: '50%', background: lk.avatar_url ? '#444' : lkColor, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff' }}>
-                        {lk.avatar_url ? <img src={lk.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : lk.initials || lk.pseudo?.slice(0,2).toUpperCase()}
+                        {lk.avatar_url ? <img loading="lazy" decoding="async" src={lk.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : lk.initials || lk.pseudo?.slice(0,2).toUpperCase()}
                       </div>
                       <span style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}>@{lk.pseudo}</span>
                     </div>
@@ -362,7 +362,7 @@ export default function Profile() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: -44 }}>
           <div style={{ position: 'relative' }}>
             <div onClick={() => avatarRef.current.click()} style={{ width: 88, height: 88, borderRadius: '50%', background: profile.avatar_url ? '#444' : avatarColor, border: ROLE_RING[profile.role] ? `4px solid ${ROLE_RING[profile.role]}` : '4px solid #fff', boxShadow: ROLE_RING[profile.role] ? `0 0 16px ${ROLE_RING[profile.role]}99, 0 4px 16px rgba(0,0,0,.2)` : '0 4px 16px rgba(0,0,0,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 28, color: '#fff', cursor: 'pointer', overflow: 'hidden', position: 'relative' }}>
-              {profile.avatar_url ? <img src={profile.avatar_url} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : profile.initials || profile.pseudo?.slice(0, 2).toUpperCase()}
+              {profile.avatar_url ? <img loading="lazy" decoding="async" src={profile.avatar_url} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : profile.initials || profile.pseudo?.slice(0, 2).toUpperCase()}
               <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: '.2s', borderRadius: '50%' }}
                 onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0}>
                 <span style={{ color: '#fff', fontSize: 20 }}>{uploading ? '…' : '📷'}</span>
@@ -472,7 +472,7 @@ export default function Profile() {
                   const likers = photoLikes[String(i)] || []
                   return (
                     <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', border: '1px solid #e8e0c8', cursor: 'zoom-in' }}>
-                      <img src={url} alt="" onClick={() => openLightbox(url, i)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      <img loading="lazy" decoding="async" src={url} alt="" onClick={() => openLightbox(url, i)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                       {likers.length > 0 && (
                         <div style={{ position: 'absolute', bottom: 6, left: 8, fontSize: 11, color: '#fff', fontWeight: 700, textShadow: '0 1px 3px rgba(0,0,0,.8)' }}>❤️ {likers.length}</div>
                       )}
@@ -513,7 +513,7 @@ export default function Profile() {
                 return (
                   <div key={friendship.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.accentBg, border: `1px solid ${C.accentDk}`, borderRadius: 12 }}>
                     <div style={{ width: 40, height: 40, borderRadius: '50%', background: sender.avatar_url ? '#444' : fColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
-                      {sender.avatar_url ? <img src={sender.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : sender.initials || sender.pseudo?.slice(0,2).toUpperCase()}
+                      {sender.avatar_url ? <img loading="lazy" decoding="async" src={sender.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : sender.initials || sender.pseudo?.slice(0,2).toUpperCase()}
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, fontSize: 13, color: C.text }}>@{sender.pseudo}</div>
@@ -555,7 +555,7 @@ export default function Profile() {
                         onMouseEnter={e => e.currentTarget.style.borderColor = '#3498db'}
                         onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
                         <div style={{ width: 44, height: 44, borderRadius: '50%', background: f.avatar_url ? '#444' : fColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', overflow: 'hidden', border: '2px solid #fff', boxShadow: '0 2px 6px rgba(0,0,0,.1)' }}>
-                          {f.avatar_url ? <img src={f.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : f.initials || f.pseudo?.slice(0,2).toUpperCase()}
+                          {f.avatar_url ? <img loading="lazy" decoding="async" src={f.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : f.initials || f.pseudo?.slice(0,2).toUpperCase()}
                         </div>
                         <div style={{ fontSize: 11, fontWeight: 700, color: C.text, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>@{f.pseudo}</div>
                         {f.online && <span style={{ fontSize: 9, color: '#2ecc71', fontWeight: 700 }}>● En ligne</span>}

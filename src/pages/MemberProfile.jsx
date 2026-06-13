@@ -370,7 +370,7 @@ export default function MemberProfile() {
                   return (
                     <div key={lk.id} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,.15)', borderRadius: 20, padding: '4px 10px' }}>
                       <div style={{ width: 22, height: 22, borderRadius: '50%', background: lk.avatar_url ? '#444' : lkColor, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff' }}>
-                        {lk.avatar_url ? <img src={lk.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : lk.initials || lk.pseudo?.slice(0,2).toUpperCase()}
+                        {lk.avatar_url ? <img loading="lazy" decoding="async" src={lk.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : lk.initials || lk.pseudo?.slice(0,2).toUpperCase()}
                       </div>
                       <span style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}>@{lk.pseudo}</span>
                     </div>
@@ -392,7 +392,7 @@ export default function MemberProfile() {
         <div style={{ padding: '0 24px 24px', position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12 }}>
             <div style={{ width: 96, height: 96, borderRadius: '50%', background: member.avatar_url ? '#444' : avatarColor, border: ROLE_RING[member.role] ? `3px solid ${ROLE_RING[member.role]}` : '3px solid var(--white)', boxShadow: ROLE_RING[member.role] ? `0 0 20px ${ROLE_RING[member.role]}88, 0 4px 16px rgba(0,0,0,.2)` : '0 4px 16px rgba(0,0,0,.2)', marginTop: -48, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
-              {member.avatar_url ? <img src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
+              {member.avatar_url ? <img loading="lazy" decoding="async" src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
               {user && user.id !== id && (
@@ -515,7 +515,7 @@ export default function MemberProfile() {
               return (
                 <div key={i} style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.border}`, background: '#000' }}>
                   <div style={{ aspectRatio: '1', cursor: 'zoom-in' }} onClick={() => openLightbox(url, i)}>
-                    <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'opacity .2s' }}
+                    <img loading="lazy" decoding="async" src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'opacity .2s' }}
                       onMouseEnter={e => e.currentTarget.style.opacity = '.85'}
                       onMouseLeave={e => e.currentTarget.style.opacity = '1'}
                     />

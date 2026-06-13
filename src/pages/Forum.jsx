@@ -133,7 +133,7 @@ function Avatar({ member, size = 36, onClick }) {
   return (
     <div onClick={onClick} style={{ position: 'relative', flexShrink: 0, cursor: onClick ? 'pointer' : 'default' }}>
       <div style={{ width: size, height: size, borderRadius: '50%', background: member?.avatar_url ? '#444' : color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * .32, fontWeight: 700, color: '#fff', overflow: 'hidden', border: ring ? `3px solid ${ring}` : '2px solid rgba(255,255,255,.3)', boxShadow: ring ? `0 0 8px ${ring}88` : 'none' }}>
-        {member?.avatar_url ? <img src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : member?.initials || '??'}
+        {member?.avatar_url ? <img loading="lazy" decoding="async" src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : member?.initials || '??'}
       </div>
     </div>
   )
@@ -838,7 +838,7 @@ export default function ForumPage() {
                         {['🥇','🥈','🥉'][i] || i + 1}
                       </span>
                       <div style={{ width: 30, height: 30, borderRadius: '50%', background: m.avatar_url ? '#444' : ac, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, border: ring ? `2px solid ${ring}` : '2px solid rgba(255,255,255,.15)', boxShadow: ring ? `0 0 8px ${ring}66` : 'none' }}>
-                        {m.avatar_url ? <img src={m.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : m.initials || '?'}
+                        {m.avatar_url ? <img loading="lazy" decoding="async" src={m.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : m.initials || '?'}
                       </div>
                       <span style={{ fontSize: 12, fontWeight: 600, color: C.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.pseudo}</span>
                       <span style={{ fontSize: 11, fontWeight: 700, color: C.accentTxt }}>{threadCount}</span>
