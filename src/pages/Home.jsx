@@ -89,7 +89,8 @@ function SectionHeader({ children, accent = false }) {
   return (
     <div style={{
       padding: '13px 18px',
-      borderBottom: accent ? '2px solid var(--accent)' : '1px solid var(--border)',
+      borderBottom: '1px solid rgba(200,162,0,.25)',
+      borderLeft: '2px solid var(--accent)',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
