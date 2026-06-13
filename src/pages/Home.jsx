@@ -235,14 +235,23 @@ export default function Home() {
     // Fil d'actu enrichi : threads + events profil (photos, niveaux)
     Promise.all([
       apiFetch('/rest/v1/threads?select=id,title,author_id,created_at&order=created_at.desc&limit=12'),
-      apiFetch('/rest/v1/profiles?select=id,pseudo,initials,avatar_url,level,photos,updated_at,role&order=updated_at.desc&limit=20'),
+      apiFetch('/rest/v1/profiles?select=id,pseudo,initials,avatar_url,level,photos,updated_at,role,online&order=updated_at.desc&limit=30'),
     ]).then(([threads, profiles]) => {
+      // Fusionner les profils dans members pour que getMember() fonctionne
+      if (Array.isArray(profiles)) {
+        setMembers(prev => {
+          const map = {}
+          prev.forEach(m => { map[m.id] = m })
+          profiles.forEach(p => { if (!map[p.id]) map[p.id] = p })
+          return Object.values(map)
+        })
+      }
       const events = []
       // Threads créés
       if (Array.isArray(threads)) {
         threads.forEach(t => events.push({ type: 'thread', id: t.id, author_id: t.author_id, title: t.title, ts: t.created_at }))
       }
-      // Photos ajoutées (profils avec photos mis à jour récemment)
+      // Photos + niveaux depuis profils
       if (Array.isArray(profiles)) {
         profiles.forEach(p => {
           if (p.photos?.length > 0) {
@@ -253,7 +262,7 @@ export default function Home() {
           }
         })
       }
-      // Trier par date desc, dédupliquer author par type
+      // Trier + dédupliquer par type-auteur
       const seen = new Set()
       const sorted = events
         .sort((a, b) => new Date(b.ts) - new Date(a.ts))
@@ -263,7 +272,7 @@ export default function Home() {
           seen.add(key)
           return true
         })
-        .slice(0, 12)
+        .slice(0, 15)
       setFeed(sorted)
       if (Array.isArray(threads)) setActivity(threads)
       setLoadingA(false)
@@ -326,7 +335,7 @@ export default function Home() {
   const xpPercent = profile ? ((profile.xp || 0) % 1000) / 10 : 0
   const gridStyle = isMobile
     ? { display: 'flex', flexDirection: 'column', gap: 14 }
-    : { display: 'grid', gridTemplateColumns: '300px 1fr 320px', gap: 22 }
+    : { display: 'grid', gridTemplateColumns: '300px 1fr 380px', gap: 22 }
 
   const colors = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
 
