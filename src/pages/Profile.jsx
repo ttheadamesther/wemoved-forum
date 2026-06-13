@@ -405,12 +405,11 @@ export default function Profile() {
           alignItems: 'start',
         }}>
 
-        {/* ── COLONNE GAUCHE : Bio + Intérêts + Badges + Demandes d'amis ── */}
+        {/* ── COLONNE GAUCHE : Bio + Photos + Badges + Demandes d'amis ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
         <div style={PANEL}>
-          <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${C.border}` }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${C.border}` }}>\n            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', gap: 12, flexShrink: 0 }}>
                 {[
                   { icon: '👥', label: 'Amis',  value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
@@ -459,23 +458,30 @@ export default function Profile() {
         </div>
 
         <div style={PANEL}>
-          <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 12 }}>🎯 Intérêts</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 12, minHeight: 28 }}>
-            {(profile.interests || []).length === 0
-              ? <span style={{ fontSize: 12, color: C.textDim, fontStyle: 'italic' }}>Ajoutes-en ci-dessous</span>
-              : (profile.interests || []).map(i => (
-                <span key={i} onClick={() => removeInterest(i)}
-                  style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, background: C.accentBg, color: C.accentTxt, border: `1px solid ${C.accentDk}`, cursor: 'pointer', fontWeight: 600, transition: 'all .15s' }}
-                  onMouseEnter={e => e.currentTarget.style.opacity = '.7'}
-                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                  title="Cliquer pour supprimer">{i} ✕</span>
-              ))
-            }
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>🖼️ Photos ({(profile.photos || []).length})</div>
+            <Btn onClick={() => photoRef.current.click()} variant="ghost" style={{ fontSize: 11 }}>{uploadingPhoto ? '…' : '+ Ajouter'}</Btn>
+            <input ref={photoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadPhoto} />
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Input value={interest} onChange={e => setInterest(e.target.value)} placeholder="Ajouter un intérêt…" onKeyDown={e => e.key === 'Enter' && addInterest()} style={{ flex: 1 }} />
-            <Btn onClick={addInterest} variant="yellow">+</Btn>
-          </div>
+          {(profile.photos || []).length === 0
+            ? <div style={{ textAlign: 'center', padding: '28px', color: C.textDim, fontSize: 13, background: C.surfaceB, borderRadius: 12, border: '1px dashed #ddd' }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>📷</div>Aucune photo ajoutée
+              </div>
+            : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10 }}>
+                {(profile.photos || []).map((url, i) => {
+                  const likers = photoLikes[String(i)] || []
+                  return (
+                    <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', border: '1px solid #e8e0c8', cursor: 'zoom-in' }}>
+                      <img src={url} alt="" onClick={() => openLightbox(url, i)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      {likers.length > 0 && (
+                        <div style={{ position: 'absolute', bottom: 6, left: 8, fontSize: 11, color: '#fff', fontWeight: 700, textShadow: '0 1px 3px rgba(0,0,0,.8)' }}>❤️ {likers.length}</div>
+                      )}
+                      <button onClick={() => removePhoto(url)} style={{ position: 'absolute', top: 6, right: 6, width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.65)', color: '#fff', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                    </div>
+                  )
+                })}
+              </div>
+          }
         </div>
 
         {(profile.badges || []).length > 0 && (
@@ -532,7 +538,7 @@ export default function Profile() {
 
         </div>{/* ── fin colonne gauche ── */}
 
-        {/* ── COLONNE DROITE : Amis + Photos ── */}
+        {/* ── COLONNE DROITE : Amis + Intérêts ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
         <div style={{ ...PANEL, borderTop: '3px solid #3498db' }}>
@@ -561,30 +567,23 @@ export default function Profile() {
         </div>
 
         <div style={PANEL}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>🖼️ Photos ({(profile.photos || []).length})</div>
-            <Btn onClick={() => photoRef.current.click()} variant="ghost" style={{ fontSize: 11 }}>{uploadingPhoto ? '…' : '+ Ajouter'}</Btn>
-            <input ref={photoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadPhoto} />
+          <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 12 }}>🎯 Intérêts</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 12, minHeight: 28 }}>
+            {(profile.interests || []).length === 0
+              ? <span style={{ fontSize: 12, color: C.textDim, fontStyle: 'italic' }}>Ajoutes-en ci-dessous</span>
+              : (profile.interests || []).map(i => (
+                <span key={i} onClick={() => removeInterest(i)}
+                  style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, background: C.accentBg, color: C.accentTxt, border: `1px solid ${C.accentDk}`, cursor: 'pointer', fontWeight: 600, transition: 'all .15s' }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '.7'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                  title="Cliquer pour supprimer">{i} ✕</span>
+              ))
+            }
           </div>
-          {(profile.photos || []).length === 0
-            ? <div style={{ textAlign: 'center', padding: '28px', color: C.textDim, fontSize: 13, background: C.surfaceB, borderRadius: 12, border: '1px dashed #ddd' }}>
-                <div style={{ fontSize: 28, marginBottom: 8 }}>📷</div>Aucune photo ajoutée
-              </div>
-            : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10 }}>
-                {(profile.photos || []).map((url, i) => {
-                  const likers = photoLikes[String(i)] || []
-                  return (
-                    <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', border: '1px solid #e8e0c8', cursor: 'zoom-in' }}>
-                      <img src={url} alt="" onClick={() => openLightbox(url, i)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                      {likers.length > 0 && (
-                        <div style={{ position: 'absolute', bottom: 6, left: 8, fontSize: 11, color: '#fff', fontWeight: 700, textShadow: '0 1px 3px rgba(0,0,0,.8)' }}>❤️ {likers.length}</div>
-                      )}
-                      <button onClick={() => removePhoto(url)} style={{ position: 'absolute', top: 6, right: 6, width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.65)', color: '#fff', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-                    </div>
-                  )
-                })}
-              </div>
-          }
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Input value={interest} onChange={e => setInterest(e.target.value)} placeholder="Ajouter un intérêt…" onKeyDown={e => e.key === 'Enter' && addInterest()} style={{ flex: 1 }} />
+            <Btn onClick={addInterest} variant="yellow">+</Btn>
+          </div>
         </div>
 
         </div>{/* ── fin colonne droite ── */}
