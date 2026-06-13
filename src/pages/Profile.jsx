@@ -409,7 +409,8 @@ export default function Profile() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
         <div style={PANEL}>
-          <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${C.border}` }}>\n            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${C.border}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', gap: 12, flexShrink: 0 }}>
                 {[
                   { icon: '👥', label: 'Amis',  value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
