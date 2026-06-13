@@ -329,7 +329,7 @@ export default function MessagesPage() {
               <div style={{ position: 'relative' }}>
                 <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: C.textDim, fontSize: 14 }}>🔍</span>
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Chercher un membre…"
-                  style={{ width: '100%', padding: '8px 12px 8px 32px', borderRadius: 10, border: `1px solid ${C.borderMid}`, fontSize: 12, fontFamily: 'inherit', outline: 'none', background: C.white, boxSizing: 'border-box' }} />
+                  style={{ width: '100%', padding: '8px 12px 8px 32px', borderRadius: 10, border: '1px solid var(--borderMid)', fontSize: 12, fontFamily: 'inherit', outline: 'none', background: 'var(--surfaceB)', color: 'var(--text)', boxSizing: 'border-box' }} />
               </div>
             </div>
 
