@@ -666,9 +666,9 @@ export default function Home() {
               {announcements.length === 0
                 ? <div style={{ fontSize: 12, color: 'var(--textDim)', fontStyle: 'italic', textAlign: 'center', padding: '8px 0' }}>Aucune annonce</div>
                 : announcements.map(ann => (
-                  <div key={ann.id} style={{ background: ann.pinned ? 'var(--accentBg)' : 'var(--surfaceB)', border: `1px solid ${ann.pinned ? 'rgba(200,162,0,.35)' : 'var(--border)'}`, borderRadius: 10, padding: '11px 13px', position: 'relative' }}>
+                  <div key={ann.id} style={{ background: 'var(--accentBg)', border: `1px solid ${ann.pinned ? 'rgba(200,162,0,.5)' : 'rgba(200,162,0,.25)'}`, borderRadius: 10, padding: '11px 13px', position: 'relative' }}>
                     {ann.pinned && <span style={{ position: 'absolute', top: 8, right: 8, fontSize: 10 }}>📌</span>}
-                    <div style={{ fontWeight: 700, fontSize: 13, color: ann.pinned ? 'var(--accentTxt)' : 'var(--text)', marginBottom: ann.body ? 4 : 0, paddingRight: ann.pinned ? 18 : 0 }}>{ann.title}</div>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--accentTxt)', marginBottom: ann.body ? 4 : 0, paddingRight: ann.pinned ? 18 : 0 }}>{ann.title}</div>
                     {ann.body && <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5, opacity: .85, marginBottom: ann.link ? 6 : 0 }}>{ann.body}</div>}
                     {ann.link && (
                       <div onClick={() => ann.link.startsWith('/') ? navigate(ann.link) : window.open(ann.link, '_blank')}
