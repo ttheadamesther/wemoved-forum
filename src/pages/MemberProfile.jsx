@@ -325,12 +325,12 @@ export default function MemberProfile() {
     setShowRolePanel(false)
   }
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: C.textMid }}>Chargement…</div>
+  if (loading) return <div style={{ padding: 60, textAlign: 'center', color: 'var(--textMid)', fontSize: 14 }}>Chargement…</div>
 
   if (blockedByThem) return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px 80px' }}>
       <Btn onClick={() => navigate('/members')} variant="ghost" style={{ marginBottom: 16, fontSize: 12 }}>← Retour</Btn>
-      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 40, textAlign: 'center', boxShadow: '0 2px 12px rgba(0,0,0,.06)' }}>
+      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 20, padding: 48, textAlign: 'center', boxShadow: '0 4px 24px rgba(0,0,0,.08)' }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>🚫</div>
         <div style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 8 }}>Profil indisponible</div>
         <div style={{ fontSize: 13, color: C.textDim }}>Ce profil n'est pas accessible.</div>
@@ -381,11 +381,13 @@ export default function MemberProfile() {
 
       <Btn onClick={() => navigate('/members')} variant="ghost" style={{ marginBottom: 16, fontSize: 12 }}>← Retour</Btn>
 
-      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, overflow: 'hidden', marginBottom: 16, boxShadow: '0 2px 12px rgba(0,0,0,.06)' }}>
-        <div style={{ height: 160, background: member.banner_url ? `url(${member.banner_url}) center/cover no-repeat` : 'linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)' }} />
+      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden', marginBottom: 16, boxShadow: '0 4px 24px rgba(0,0,0,.1), 0 1px 4px rgba(0,0,0,.06)' }}>
+        <div style={{ height: 180, background: member.banner_url ? `url(${member.banner_url}) center/cover no-repeat` : 'linear-gradient(135deg,#0e0e1e 0%,#1a1240 50%,#0a0a18 100%)', position: 'relative' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 60%, rgba(0,0,0,.3))' }} />
+        </div>
         <div style={{ padding: '0 24px 24px', position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div style={{ width: 90, height: 90, borderRadius: '50%', background: member.avatar_url ? '#444' : avatarColor, border: ROLE_RING[member.role] ? `4px solid ${ROLE_RING[member.role]}` : '4px solid #fff', boxShadow: ROLE_RING[member.role] ? `0 0 16px ${ROLE_RING[member.role]}99` : '0 2px 12px rgba(0,0,0,.15)', marginTop: -45, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
+            <div style={{ width: 96, height: 96, borderRadius: '50%', background: member.avatar_url ? '#444' : avatarColor, border: ROLE_RING[member.role] ? `3px solid ${ROLE_RING[member.role]}` : '3px solid var(--white)', boxShadow: ROLE_RING[member.role] ? `0 0 20px ${ROLE_RING[member.role]}88, 0 4px 16px rgba(0,0,0,.2)` : '0 4px 16px rgba(0,0,0,.2)', marginTop: -48, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
               {member.avatar_url ? <img src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
@@ -422,22 +424,22 @@ export default function MemberProfile() {
             </div>
           )}
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-            <h1 style={{ fontWeight: 700, fontSize: 20, color: C.text, margin: 0 }}>@{member.pseudo}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+            <h1 style={{ fontWeight: 800, fontSize: 22, color: 'var(--text)', margin: 0, letterSpacing: -.3 }}>@{member.pseudo}</h1>
             {member.is_bot && <span style={{ padding: '1px 6px', borderRadius: 4, fontSize: 9, fontWeight: 700, background: '#5865f2', color: '#fff', letterSpacing: .5, flexShrink: 0 }}>BOT</span>}
             <RoleBadge role={member.role} />
             <span style={{ fontSize: 12, color: '#c8a200', fontWeight: 700, background: 'rgba(200,162,0,.1)', padding: '2px 10px', borderRadius: 20, border: '1px solid #c8a20044' }}>Niv. {member.level || 1}</span>
             {member.online && <span style={{ fontSize: 11, color: '#2ecc71', fontWeight: 600 }}>● En ligne</span>}
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {member.joined && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>📅 {member.joined}</span>}
-            {member.age    && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>🎂 {member.age} ans</span>}
-            {sexeLabel     && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>👤 {sexeLabel}</span>}
-            {member.city   && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>📍 {member.city}</span>}
-            {member.dept   && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>🗺 {member.dept}</span>}
-            {member.region && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>🌍 {member.region}</span>}
-            {statut        && <span style={{ fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20 }}>{statut}</span>}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+            {member.joined && <span style={{ fontSize: 12, color: 'var(--textMid)', background: 'var(--surfaceB)', padding: '4px 12px', borderRadius: 99, border: '1px solid var(--border)', fontWeight: 500 }}>📅 {member.joined}</span>}
+            {member.age    && <span style={{ fontSize: 12, color: 'var(--textMid)', background: 'var(--surfaceB)', padding: '4px 12px', borderRadius: 99, border: '1px solid var(--border)', fontWeight: 500 }}>🎂 {member.age} ans</span>}
+            {sexeLabel     && <span style={{ fontSize: 12, color: 'var(--textMid)', background: 'var(--surfaceB)', padding: '4px 12px', borderRadius: 99, border: '1px solid var(--border)', fontWeight: 500 }}>👤 {sexeLabel}</span>}
+            {member.city   && <span style={{ fontSize: 12, color: 'var(--textMid)', background: 'var(--surfaceB)', padding: '4px 12px', borderRadius: 99, border: '1px solid var(--border)', fontWeight: 500 }}>📍 {member.city}</span>}
+            {member.dept   && <span style={{ fontSize: 12, color: 'var(--textMid)', background: 'var(--surfaceB)', padding: '4px 12px', borderRadius: 99, border: '1px solid var(--border)', fontWeight: 500 }}>🗺 {member.dept}</span>}
+            {member.region && <span style={{ fontSize: 12, color: 'var(--textMid)', background: 'var(--surfaceB)', padding: '4px 12px', borderRadius: 99, border: '1px solid var(--border)', fontWeight: 500 }}>🌍 {member.region}</span>}
+            {statut        && <span style={{ fontSize: 12, color: 'var(--textMid)', background: 'var(--surfaceB)', padding: '4px 12px', borderRadius: 99, border: '1px solid var(--border)', fontWeight: 500 }}>{statut}</span>}
           </div>
 
           <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
@@ -487,18 +489,18 @@ export default function MemberProfile() {
       </div>
 
       {(member.interests || []).length > 0 && (
-        <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.accentDk}`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid var(--accentDk)', borderRadius: 16, padding: 20, marginBottom: 16, boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
           <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>🎯 Intérêts</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {(member.interests || []).map(i => (
-              <span key={i} style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, background: C.surfaceB, color: C.text, border: `1px solid ${C.border}`, fontWeight: 600 }}>{i}</span>
+              <span key={i} style={{ padding: '5px 14px', borderRadius: 99, fontSize: 12, background: 'var(--accentBg)', color: 'var(--accentTxt)', border: '1px solid rgba(200,162,0,.2)', fontWeight: 600 }}>{i}</span>
             ))}
           </div>
         </div>
       )}
 
       {(member.badges || []).length > 0 && (
-        <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid #c8a200`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid var(--accent)', borderRadius: 16, padding: 20, marginBottom: 16, boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
           <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 16 }}>🎖️ Badges obtenus</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
             {BADGES_DEF.filter(b => (member.badges || []).includes(b.key)).map(b => (
@@ -513,7 +515,7 @@ export default function MemberProfile() {
         </div>
       )}
 
-      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid #3498db`, borderRadius: 14, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
+      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid #3498db', borderRadius: 16, padding: 20, marginBottom: 16, boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
         <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 14 }}>👥 Amis ({friendsList.length})</div>
         {friendsLoading
           ? <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', padding: 12 }}>Chargement…</div>
@@ -523,9 +525,9 @@ export default function MemberProfile() {
                 {friendsList.map(f => {
                   const fColor = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63'][(f.pseudo?.charCodeAt(0) || 0) % 8]
                   return (
-                    <div key={f.id} onClick={() => navigate(`/members/${f.id}`)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 8px', background: C.surfaceB, borderRadius: 12, border: `1px solid ${C.border}`, cursor: 'pointer', transition: 'all .15s' }}
-                      onMouseEnter={e => e.currentTarget.style.borderColor = '#3498db'}
-                      onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
+                    <div key={f.id} onClick={() => navigate(`/members/${f.id}`)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 8px', background: 'var(--surfaceB)', borderRadius: 14, border: '1px solid var(--border)', cursor: 'pointer', transition: 'all .2s cubic-bezier(.25,.46,.45,.94)' }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = '#3498db'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(52,152,219,.15)' }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none' }}>
                       <div style={{ width: 48, height: 48, borderRadius: '50%', background: f.avatar_url ? '#444' : fColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: '#fff', overflow: 'hidden', border: '2px solid #fff', boxShadow: '0 2px 6px rgba(0,0,0,.1)' }}>
                         {f.avatar_url ? <img src={f.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : f.initials || f.pseudo?.slice(0,2).toUpperCase()}
                       </div>
@@ -539,7 +541,7 @@ export default function MemberProfile() {
       </div>
 
       {(member.photos || []).length > 0 && (
-        <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.accentDk}`, borderRadius: 14, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid var(--accentDk)', borderRadius: 16, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
           <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>📸 Photos</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
             {(member.photos || []).map((url, i) => {

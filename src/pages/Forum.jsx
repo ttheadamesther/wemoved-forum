@@ -618,11 +618,13 @@ export default function ForumPage() {
       {reporting && <ReportModal type={reporting.type} targetId={reporting.targetId} reporterId={user?.id} onClose={() => setReporting(null)} />}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>
-          <h1 style={{ fontWeight: 700, fontSize: isMobile ? 18 : 22, color: C.text, marginBottom: 2 }}>Forum</h1>
+          <h1 style={{ fontWeight: 800, fontSize: isMobile ? 18 : 22, color: 'var(--text)', marginBottom: 2, letterSpacing: -.3 }}>Forum</h1>
           <p style={{ fontSize: 12, color: C.textDim }}>{filtered.length} discussion{filtered.length !== 1 ? 's' : ''}</p>
         </div>
         {user && !isBanned && (
-          <button onClick={() => setComposing(v => !v)} style={{ padding: isMobile ? '8px 14px' : '10px 20px', background: 'linear-gradient(135deg,#f0c800,#c8a200)', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 13, color: '#3a2e00', boxShadow: '0 2px 8px rgba(200,162,0,.3)', fontFamily: 'inherit' }}>
+          <button onClick={() => setComposing(v => !v)} style={{ padding: isMobile ? '8px 16px' : '10px 22px', background: 'linear-gradient(135deg,#f0c800,#c8a200)', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 13, color: '#3a2e00', boxShadow: '0 2px 12px rgba(200,162,0,.35)', fontFamily: 'inherit', transition: 'transform .15s, box-shadow .15s' }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(200,162,0,.45)' }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(200,162,0,.35)' }}>
             + Nouvelle discussion
           </button>
         )}
@@ -662,7 +664,9 @@ export default function ForumPage() {
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 180 }}>
           <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="🔍 Rechercher dans le forum…"
-            style={{ width: '100%', padding: '8px 14px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.surfaceB, color: C.text, fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+            style={{ width: '100%', padding: '9px 16px', borderRadius: 99, border: '1px solid var(--border)', background: 'var(--surfaceB)', color: 'var(--text)', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', transition: 'border-color .15s, box-shadow .15s' }}
+            onFocus={e => { e.target.style.borderColor = 'var(--accentDk)'; e.target.style.boxShadow = '0 0 0 3px rgba(200,162,0,.12)' }}
+            onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none' }} />
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           {[{ key: 'recent', label: '🕐 Récents' }, { key: 'popular', label: '🔥 Populaires' }, { key: 'unanswered', label: '💬 Sans réponse' }].map(s => (
@@ -694,9 +698,9 @@ export default function ForumPage() {
           const novel = isNew(t.created_at)
           return (
             <div key={t.id} onClick={() => openThread(t)}
-              style={{ background: t.hidden ? '#fff8f8' : C.white, border: `1px solid ${t.hidden ? '#f5c0c0' : C.border}`, borderLeft: `4px solid ${catColor}`, borderRadius: 14, padding: isMobile ? '12px' : '14px 16px', cursor: 'pointer', display: 'flex', gap: 12, transition: 'all .2s', boxShadow: '0 1px 3px rgba(0,0,0,.03)' }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,.08)' }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,.03)' }}>
+              style={{ background: t.hidden ? 'rgba(200,50,50,.04)' : 'var(--white)', border: `1px solid ${t.hidden ? 'rgba(200,50,50,.2)' : 'var(--border)'}`, borderLeft: `3px solid ${catColor}`, borderRadius: 14, padding: isMobile ? '13px 14px' : '15px 18px', cursor: 'pointer', display: 'flex', gap: 13, transition: 'all .2s cubic-bezier(.25,.46,.45,.94)', boxShadow: '0 1px 4px rgba(0,0,0,.05)' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 24px rgba(0,0,0,.1)'; e.currentTarget.style.borderColor = catColor + '66' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,.05)'; e.currentTarget.style.borderColor = t.hidden ? 'rgba(200,50,50,.2)' : 'var(--border)' }}>
               <Avatar member={author} size={isMobile ? 36 : 42} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 4, flexWrap: 'wrap' }}>
@@ -709,26 +713,26 @@ export default function ForumPage() {
                   {t.hidden && canMod && <span style={{ fontSize: 10, color: C.red, fontWeight: 700 }}>🗑</span>}
                   <span style={{ fontSize: 11, color: C.textDim, marginLeft: 'auto' }}>{formatDate(t.created_at)}</span>
                 </div>
-                <div style={{ fontWeight: 700, fontSize: isMobile ? 13 : 14, color: C.text, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</div>
+                <div style={{ fontWeight: 700, fontSize: isMobile ? 13 : 14, color: 'var(--text)', marginBottom: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>{t.title}</div>
                 <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>{t.body}</div>
                 <div style={{ display: 'flex', gap: 14, marginTop: 8, alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, color: C.textDim }}>♥ {t.likes || 0}</span>
-                  <span style={{ fontSize: 11, color: replyCount === 0 ? C.red : C.textDim, fontWeight: replyCount === 0 ? 600 : 400 }}>↩ {replyCount} réponse{replyCount !== 1 ? 's' : ''}</span>
-                  <span style={{ fontSize: 11, color: C.textDim }}>👁 {t.views || 0}</span>
+                  <span style={{ fontSize: 11, color: 'var(--textDim)', display: 'flex', alignItems: 'center', gap: 3 }}>♥ {t.likes || 0}</span>
+                  <span style={{ fontSize: 11, color: replyCount === 0 ? 'var(--red)' : 'var(--textDim)', fontWeight: replyCount === 0 ? 600 : 400, display: 'flex', alignItems: 'center', gap: 3 }}>💬 {replyCount}</span>
+                  <span style={{ fontSize: 11, color: 'var(--textDim)', display: 'flex', alignItems: 'center', gap: 3 }}>👁 {t.views || 0}</span>
                 </div>
               </div>
             </div>
           )
         })}
         {filtered.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '30px', background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, fontSize: 13, color: C.textDim }}>
+          <div style={{ textAlign: 'center', padding: '48px 30px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 16, fontSize: 13, color: 'var(--textDim)' }}>
             {searchQuery ? `Aucun résultat pour "${searchQuery}"` : 'Aucune discussion dans cette catégorie.'}
           </div>
         )}
       </div>
 
       {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
           <button onClick={() => { setPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0 }) }} disabled={page === 1}
             style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.white, color: page === 1 ? C.textDim : C.text, cursor: page === 1 ? 'not-allowed' : 'pointer', fontSize: 13, fontFamily: 'inherit' }}>
             ← Préc.

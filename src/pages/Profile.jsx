@@ -72,9 +72,9 @@ const STATUTS = [
   { value: 'complique',   label: "C'est compliqué", emoji: '💛' },
 ]
 
-const PANEL = { background: C.white, border: '1px solid #e8e0c8', borderTop: '3px solid #c8a200', borderRadius: 16, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,.06)' }
+const PANEL = { background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid var(--accent)', borderRadius: 16, padding: 20, boxShadow: '0 2px 16px rgba(0,0,0,.07), 0 1px 4px rgba(0,0,0,.05)' }
 const Tag = ({ icon, label }) => (
-  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: C.textMid, background: C.surfaceB, padding: '3px 10px', borderRadius: 20, border: '1px solid #e8e8e8' }}>
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--textMid)', background: 'var(--surfaceB)', padding: '4px 11px', borderRadius: 99, border: '1px solid var(--border)', fontWeight: 500 }}>
     {icon} {label}
   </span>
 )
