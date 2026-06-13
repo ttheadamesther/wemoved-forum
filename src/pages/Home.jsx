@@ -143,6 +143,7 @@ export default function Home() {
   const [stats,      setStats]      = useState({ members: 0, threads: 0, messages: 0, online: 0 })
   const [topMembers, setTopMembers] = useState([])
   const [activity,   setActivity]   = useState([])
+  const [feed,       setFeed]       = useState([])
   const [newThread,  setNewThread]  = useState(false)
   const [title,      setTitle]      = useState('')
   const [body,       setBody]       = useState('')
@@ -231,8 +232,40 @@ export default function Home() {
       if (Array.isArray(d)) { setThreads(d); setStats(s => ({ ...s, threads: d.length })) }
       setLoadingT(false)
     })
-    apiFetch('/rest/v1/threads?select=id,title,author_id,created_at&order=created_at.desc&limit=8').then(d => {
-      if (Array.isArray(d)) setActivity(d)
+    // Fil d'actu enrichi : threads + events profil (photos, niveaux)
+    Promise.all([
+      apiFetch('/rest/v1/threads?select=id,title,author_id,created_at&order=created_at.desc&limit=12'),
+      apiFetch('/rest/v1/profiles?select=id,pseudo,initials,avatar_url,level,photos,updated_at,role&order=updated_at.desc&limit=20'),
+    ]).then(([threads, profiles]) => {
+      const events = []
+      // Threads créés
+      if (Array.isArray(threads)) {
+        threads.forEach(t => events.push({ type: 'thread', id: t.id, author_id: t.author_id, title: t.title, ts: t.created_at }))
+      }
+      // Photos ajoutées (profils avec photos mis à jour récemment)
+      if (Array.isArray(profiles)) {
+        profiles.forEach(p => {
+          if (p.photos?.length > 0) {
+            events.push({ type: 'photo', id: `photo-${p.id}`, author_id: p.id, count: p.photos.length, ts: p.updated_at })
+          }
+          if (p.level > 1) {
+            events.push({ type: 'level', id: `level-${p.id}`, author_id: p.id, level: p.level, ts: p.updated_at })
+          }
+        })
+      }
+      // Trier par date desc, dédupliquer author par type
+      const seen = new Set()
+      const sorted = events
+        .sort((a, b) => new Date(b.ts) - new Date(a.ts))
+        .filter(e => {
+          const key = `${e.type}-${e.author_id}`
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
+        .slice(0, 12)
+      setFeed(sorted)
+      if (Array.isArray(threads)) setActivity(threads)
       setLoadingA(false)
     })
     apiFetch('/rest/v1/messages?select=id').then(d => {
@@ -546,32 +579,61 @@ export default function Home() {
         {/* ── SIDEBAR DROITE ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-          {/* Activité */}
+          {/* Fil d'actu */}
           <SectionCard>
             <SectionHeader>
               <span style={{ fontWeight: 700, fontSize: 11, color: 'var(--textDim)', textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 7 }}>
-                Activité récente
+                Fil d'actu
                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--online)', display: 'inline-block', boxShadow: '0 0 6px var(--online)', animation: 'pulse 2s infinite' }} />
               </span>
             </SectionHeader>
             {loadingA
-              ? Array.from({ length: 4 }).map((_, i) => <SkeletonActivity key={i} />)
-              : activity.length === 0
+              ? Array.from({ length: 5 }).map((_, i) => <SkeletonActivity key={i} />)
+              : feed.length === 0
                 ? <div style={{ padding: 20, textAlign: 'center', color: 'var(--textDim)', fontSize: 12 }}>Aucune activité</div>
-                : activity.map((t, i) => {
-                    const author = getMember(t.author_id)
+                : feed.map((event, i) => {
+                    const author = getMember(event.author_id)
+                    const iconMap = { thread: '💬', photo: '📸', level: '⚡' }
+                    const icon = iconMap[event.type] || '💬'
+                    const bgMap = {
+                      thread: 'transparent',
+                      photo:  'rgba(155,89,182,.06)',
+                      level:  'rgba(200,162,0,.06)',
+                    }
+                    const getLabel = () => {
+                      if (event.type === 'thread') return (
+                        <><span style={{ fontWeight: 700, color: 'var(--accentTxt)' }}>@{author?.pseudo || 'Inconnu'}</span>
+                        {' '}a posté{' '}
+                        <span style={{ fontWeight: 600 }}>"{event.title?.slice(0, 26)}{event.title?.length > 26 ? '…' : ''}"</span></>
+                      )
+                      if (event.type === 'photo') return (
+                        <><span style={{ fontWeight: 700, color: 'var(--accentTxt)' }}>@{author?.pseudo || 'Inconnu'}</span>
+                        {' '}a ajouté{' '}
+                        <span style={{ fontWeight: 600 }}>{event.count} photo{event.count > 1 ? 's' : ''}</span></>
+                      )
+                      if (event.type === 'level') return (
+                        <><span style={{ fontWeight: 700, color: 'var(--accentTxt)' }}>@{author?.pseudo || 'Inconnu'}</span>
+                        {' '}a atteint le{' '}
+                        <span style={{ fontWeight: 700, color: '#f0c800' }}>niveau {event.level}</span> ⚡</>
+                      )
+                    }
+                    const handleClick = () => {
+                      if (event.type === 'thread') navigate(`/forum/${event.id}`)
+                      else if (author?.id) navigate(`/members/${author.id}`)
+                    }
                     return (
-                      <div key={t.id} onClick={() => navigate(`/forum/${t.id}`)}
-                        style={{ display: 'flex', gap: 11, padding: '11px 16px', borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background .13s', animation: `fadein .${2 + i}s ease` }}
+                      <div key={event.id} onClick={handleClick}
+                        style={{ display: 'flex', gap: 11, padding: '11px 16px', borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background .13s', background: bgMap[event.type], animation: `fadein .${2 + i}s ease` }}
                         onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                        <MemberAvatar member={author} size={34} colors={colors} />
+                        onMouseLeave={e => e.currentTarget.style.background = bgMap[event.type]}>
+                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                          <MemberAvatar member={author} size={34} colors={colors} />
+                          <span style={{ position: 'absolute', bottom: -2, right: -2, fontSize: 12, lineHeight: 1 }}>{icon}</span>
+                        </div>
                         <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5, flex: 1, minWidth: 0 }}>
-                          <span style={{ fontWeight: 700, color: 'var(--accentTxt)' }}>@{author?.pseudo || 'Inconnu'}</span>
+                          {getLabel()}
                           {author?.is_bot && <span style={{ marginLeft: 4, padding: '1px 5px', borderRadius: 4, fontSize: 8, fontWeight: 700, background: '#5865f2', color: '#fff' }}>BOT</span>}
-                          {' '}a créé{' '}
-                          <span style={{ fontWeight: 600, color: 'var(--text)' }}>"{t.title?.slice(0, 28)}{t.title?.length > 28 ? '…' : ''}"</span>
-                          <div style={{ fontSize: 10, color: 'var(--textDim)', marginTop: 3 }}>{formatTimeAgo(t.created_at)}</div>
+                          <div style={{ fontSize: 10, color: 'var(--textDim)', marginTop: 3 }}>{formatTimeAgo(event.ts)}</div>
                         </div>
                       </div>
                     )
