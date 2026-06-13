@@ -97,6 +97,26 @@ export default function MessagesPage() {
   const bottomRef = useRef(null)
   const longPressTimer = useRef(null)
 
+  // Keyframes pour l'animation du picker de réactions
+  useEffect(() => {
+    const style = document.createElement('style')
+    style.id = 'reaction-animations'
+    style.textContent = `
+      @keyframes reactionPickerIn {
+        from { opacity: 0; transform: scaleX(0.3) scaleY(0.7); }
+        to   { opacity: 1; transform: scaleX(1)   scaleY(1);   }
+      }
+      @keyframes reactionEmojiIn {
+        from { opacity: 0; transform: scale(0) translateY(6px); }
+        to   { opacity: 1; transform: scale(1) translateY(0);   }
+      }
+    `
+    if (!document.getElementById('reaction-animations')) {
+      document.head.appendChild(style)
+    }
+    return () => document.getElementById('reaction-animations')?.remove()
+  }, [])
+
   const QUICK_EMOJIS = ['❤️', '😂', '😮', '😢', '👍', '🔥']
 
   const toggleReaction = async (msgId, emoji) => {
@@ -460,17 +480,17 @@ export default function MessagesPage() {
 
                       {/* Picker réactions — au-dessus de la bulle */}
                       {pickerOpen && (
-                        <div style={{ display: 'flex', gap: 4, background: C.white, border: `1px solid ${C.border}`, borderRadius: 24, padding: '6px 10px', boxShadow: '0 4px 16px rgba(0,0,0,.15)', alignSelf: isMe ? 'flex-end' : 'flex-start', marginBottom: 2 }}>
-                          {QUICK_EMOJIS.map(emoji => (
+                        <div style={{ display: 'flex', gap: 4, background: C.white, border: `1px solid ${C.border}`, borderRadius: 24, padding: '6px 10px', boxShadow: '0 4px 16px rgba(0,0,0,.15)', alignSelf: isMe ? 'flex-end' : 'flex-start', marginBottom: 2, transformOrigin: isMe ? 'right center' : 'left center', animation: 'reactionPickerIn .22s cubic-bezier(.34,1.56,.64,1) both', overflow: 'hidden' }}>
+                          {QUICK_EMOJIS.map((emoji, ei) => (
                             <button key={emoji} onClick={() => toggleReaction(m.id, emoji)}
-                              style={{ fontSize: 22, background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', transition: 'transform .1s', lineHeight: 1 }}
+                              style={{ fontSize: 22, background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s cubic-bezier(.34,1.56,.64,1) ${ei * 30}ms both` }}
                               onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.35)'}
                               onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
                               {emoji}
                             </button>
                           ))}
                           <button onClick={() => setReactionPicker(null)}
-                            style={{ fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, padding: '0 3px', lineHeight: 1 }}>✕</button>
+                            style={{ fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s ease ${QUICK_EMOJIS.length * 30}ms both` }}>✕</button>
                         </div>
                       )}
 
