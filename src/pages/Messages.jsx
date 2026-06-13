@@ -323,7 +323,7 @@ export default function MessagesPage() {
 
         {/* ── SIDEBAR ── */}
         {(!isMobile || showSidebar) && (
-          <div style={{ width: isMobile ? '100%' : 280, borderRight: isMobile ? 'none' : `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+          <div style={{ width: isMobile ? '100%' : 360, borderRight: isMobile ? 'none' : `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
             <div style={{ padding: '16px', borderBottom: `1px solid ${C.border}`, background: C.surfaceB }}>
               <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>💬 Conversations</div>
               <div style={{ position: 'relative' }}>
@@ -349,7 +349,7 @@ export default function MessagesPage() {
                       const lastPreview = last?.body?.startsWith('__IMG__') ? '📷 Photo' : last?.body
                       const isActive = activeId === m.id
                       return (
-                        <div key={m.id} style={{ display: 'flex', alignItems: 'stretch', borderLeft: isActive ? `3px solid ${C.accentDk}` : '3px solid transparent', opacity: blocked ? 0.5 : 1, background: isActive ? 'rgba(200,162,0,0.15)' : 'transparent', transition: 'background .15s' }}>
+                        <div key={m.id} style={{ display: 'flex', alignItems: 'stretch', borderLeft: isActive ? `3px solid ${C.accentDk}` : '3px solid transparent', borderBottom: `1px solid ${C.border}`, opacity: blocked ? 0.5 : 1, background: isActive ? 'rgba(200,162,0,0.15)' : 'transparent', transition: 'background .15s' }}>
                           <div onClick={() => openConvo(m.id)} style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, padding: '10px 10px', cursor: 'pointer' }}>
                             <Avatar member={m} size={38} showOnline />
                             <div style={{ flex: 1, minWidth: 0 }}>
