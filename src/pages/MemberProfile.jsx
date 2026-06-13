@@ -356,32 +356,67 @@ export default function MemberProfile() {
 
       {/* lightbox inchangé ci-dessous */}
 
-      {lightbox && (
-        <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.92)', zIndex: 2000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px 20px 40px', gap: 16, cursor: 'zoom-out' }}>
-          <img src={lightbox.url} alt="" style={{ maxWidth: '88vw', maxHeight: '58vh', borderRadius: 12, objectFit: 'contain', boxShadow: '0 8px 40px rgba(0,0,0,.6)', flexShrink: 0 }} onClick={e => e.stopPropagation()} />
-          <div onClick={e => e.stopPropagation()} style={{ background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 14, padding: '12px 20px', maxWidth: 500, width: '100%', backdropFilter: 'blur(8px)', flexShrink: 0 }}>
-            <div style={{ fontSize: 13, color: '#fff', fontWeight: 700, marginBottom: (photoLikes[String(lightbox.index)] || []).length > 0 ? 10 : 0 }}>
-              ❤️ {(photoLikes[String(lightbox.index)] || []).length} like{(photoLikes[String(lightbox.index)] || []).length !== 1 ? 's' : ''}
-            </div>
-            {likerProfiles.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {likerProfiles.map(lk => {
-                  const lkColor = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63'][(lk.pseudo?.charCodeAt(0) || 0) % 8]
-                  return (
-                    <div key={lk.id} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,.15)', borderRadius: 20, padding: '4px 10px' }}>
-                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: lk.avatar_url ? '#444' : lkColor, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff' }}>
-                        {lk.avatar_url ? <img loading="lazy" decoding="async" src={lk.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : lk.initials || lk.pseudo?.slice(0,2).toUpperCase()}
-                      </div>
-                      <span style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}>@{lk.pseudo}</span>
-                    </div>
-                  )
-                })}
+      {lightbox && (() => {
+        const photos = member.photos || []
+        const total = photos.length
+        const goTo = (idx) => {
+          const newIdx = (idx + total) % total
+          openLightbox(photos[newIdx], newIdx)
+        }
+        const likers = photoLikes[String(lightbox.index)] || []
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.96)', zIndex: 2000, display: 'flex', flexDirection: 'column' }}
+            onKeyDown={e => { if (e.key === 'ArrowLeft') goTo(lightbox.index - 1); if (e.key === 'ArrowRight') goTo(lightbox.index + 1); if (e.key === 'Escape') setLightbox(null) }}
+            tabIndex={0} ref={el => el?.focus()}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', flexShrink: 0 }}>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,.6)', fontWeight: 600 }}>{lightbox.index + 1} / {total}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 13, color: '#fff', fontWeight: 700 }}>❤️ {likers.length}</span>
+                <button onClick={() => setLightbox(null)} style={{ background: 'rgba(255,255,255,.12)', border: 'none', borderRadius: '50%', width: 38, height: 38, color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
               </div>
-            )}
+            </div>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }} onClick={() => setLightbox(null)}>
+              {total > 1 && (
+                <button onClick={e => { e.stopPropagation(); goTo(lightbox.index - 1) }}
+                  style={{ position: 'absolute', left: 16, zIndex: 10, background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: '50%', width: 48, height: 48, color: '#fff', fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)' }}>‹</button>
+              )}
+              <img src={lightbox.url} alt="" onClick={e => e.stopPropagation()}
+                style={{ maxWidth: 'calc(100vw - 140px)', maxHeight: 'calc(100vh - 180px)', objectFit: 'contain', borderRadius: 8, boxShadow: '0 8px 60px rgba(0,0,0,.8)' }} />
+              {total > 1 && (
+                <button onClick={e => { e.stopPropagation(); goTo(lightbox.index + 1) }}
+                  style={{ position: 'absolute', right: 16, zIndex: 10, background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: '50%', width: 48, height: 48, color: '#fff', fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)' }}>›</button>
+              )}
+            </div>
+            <div style={{ flexShrink: 0, padding: '12px 20px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {likerProfiles.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
+                  {likerProfiles.map(lk => {
+                    const lkColor = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63'][(lk.pseudo?.charCodeAt(0) || 0) % 8]
+                    return (
+                      <div key={lk.id} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,.1)', borderRadius: 20, padding: '3px 10px' }}>
+                        <div style={{ width: 20, height: 20, borderRadius: '50%', background: lk.avatar_url ? '#444' : lkColor, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: '#fff' }}>
+                          {lk.avatar_url ? <img loading="lazy" decoding="async" src={lk.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : lk.initials || lk.pseudo?.slice(0,2).toUpperCase()}
+                        </div>
+                        <span style={{ fontSize: 11, color: '#fff', fontWeight: 600 }}>@{lk.pseudo}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              {total > 1 && (
+                <div style={{ display: 'flex', gap: 6, justifyContent: 'center', overflowX: 'auto' }}>
+                  {photos.map((url, i) => (
+                    <div key={i} onClick={e => { e.stopPropagation(); openLightbox(url, i) }}
+                      style={{ width: 52, height: 52, borderRadius: 8, overflow: 'hidden', flexShrink: 0, cursor: 'pointer', border: i === lightbox.index ? '2px solid #f0c800' : '2px solid rgba(255,255,255,.2)', opacity: i === lightbox.index ? 1 : 0.55, transition: 'all .15s' }}>
+                      <img loading="lazy" decoding="async" src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-          <button onClick={() => setLightbox(null)} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: '#fff', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-        </div>
-      )}
+        )
+      })()}
 
       <Btn onClick={() => navigate('/members')} variant="ghost" style={{ marginBottom: 16, fontSize: 12 }}>← Retour</Btn>
 
@@ -506,33 +541,51 @@ export default function MemberProfile() {
 
       {(member.photos || []).length > 0 && (
         <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid var(--accentDk)', borderRadius: 16, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-          <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>📸 Photos</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 12 }}>
-            {(member.photos || []).map((url, i) => {
+          <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 14 }}>📸 Photos ({member.photos.length})</div>
+          {(() => {
+            const photos = member.photos || []
+            const first = photos[0]
+            const rest = photos.slice(1)
+            const LikeBtn = ({ url, i }) => {
               const likers = photoLikes[String(i)] || []
-              const liked  = user ? likers.includes(user.id) : false
-              const count  = likers.length
+              const liked = user ? likers.includes(user.id) : false
+              const count = likers.length
               return (
-                <div key={i} style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.border}`, background: '#000' }}>
-                  <div style={{ aspectRatio: '1', cursor: 'zoom-in' }} onClick={() => openLightbox(url, i)}>
-                    <img loading="lazy" decoding="async" src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'opacity .2s' }}
-                      onMouseEnter={e => e.currentTarget.style.opacity = '.85'}
-                      onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                    />
-                  </div>
-                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,.7) 0%, transparent 100%)', padding: '20px 10px 8px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
-                    {count > 0 && <span style={{ fontSize: 11, color: '#fff', fontWeight: 700 }}>{count}</span>}
-                    <button
-                      onClick={() => user && user.id !== id && !isBlocked && togglePhotoLike(url, i)}
-                      disabled={likingPhoto !== null || !user || user.id === id || isBlocked}
-                      style={{ background: liked ? 'rgba(231,76,60,.85)' : 'rgba(255,255,255,.2)', border: `1px solid ${liked ? '#e74c3c' : 'rgba(255,255,255,.4)'}`, borderRadius: 20, padding: '4px 10px', cursor: (!user || user.id === id || likingPhoto !== null) ? 'default' : 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', gap: 4, transition: 'all .2s', backdropFilter: 'blur(4px)', opacity: likingPhoto === i ? 0.6 : 1 }}>
-                      {likingPhoto === i ? '…' : liked ? '❤️' : '🤍'}
-                    </button>
-                  </div>
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,.75) 0%, transparent 100%)', padding: '20px 10px 10px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+                  {count > 0 && <span style={{ fontSize: 12, color: '#fff', fontWeight: 700 }}>❤️ {count}</span>}
+                  <button onClick={e => { e.stopPropagation(); user && user.id !== id && !isBlocked && togglePhotoLike(url, i) }}
+                    disabled={likingPhoto !== null || !user || user.id === id || isBlocked}
+                    style={{ background: liked ? 'rgba(231,76,60,.85)' : 'rgba(255,255,255,.2)', border: `1px solid ${liked ? '#e74c3c' : 'rgba(255,255,255,.4)'}`, borderRadius: 20, padding: '4px 12px', cursor: 'pointer', fontSize: 15, display: 'flex', alignItems: 'center', gap: 4, backdropFilter: 'blur(4px)', opacity: likingPhoto === i ? 0.6 : 1 }}>
+                    {likingPhoto === i ? '…' : liked ? '❤️' : '🤍'}
+                  </button>
                 </div>
               )
-            })}
-          </div>
+            }
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', background: '#000', aspectRatio: '16/9', cursor: 'zoom-in' }}
+                  onClick={() => openLightbox(first, 0)}
+                  onMouseEnter={e => e.currentTarget.querySelector('img').style.transform = 'scale(1.03)'}
+                  onMouseLeave={e => e.currentTarget.querySelector('img').style.transform = 'scale(1)'}>
+                  <img loading="lazy" decoding="async" src={first} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform .3s ease' }} />
+                  <LikeBtn url={first} i={0} />
+                </div>
+                {rest.length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 6 }}>
+                    {rest.map((url, i) => (
+                      <div key={i+1} style={{ position: 'relative', aspectRatio: '1', borderRadius: 10, overflow: 'hidden', background: '#000', cursor: 'zoom-in' }}
+                        onClick={() => openLightbox(url, i+1)}
+                        onMouseEnter={e => e.currentTarget.querySelector('img').style.transform = 'scale(1.05)'}
+                        onMouseLeave={e => e.currentTarget.querySelector('img').style.transform = 'scale(1)'}>
+                        <img loading="lazy" decoding="async" src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform .3s ease' }} />
+                        <LikeBtn url={url} i={i+1} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })()}
           {!user && <p style={{ fontSize: 12, color: C.textDim, marginTop: 12, fontStyle: 'italic', textAlign: 'center' }}>Connecte-toi pour liker les photos</p>}
         </div>
       )}

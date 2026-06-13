@@ -271,32 +271,89 @@ export default function Profile() {
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', paddingBottom: 80 }}>
 
-      {lightbox && (
-        <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.92)', zIndex: 3000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px 20px 40px', gap: 16, cursor: 'zoom-out' }}>
-          <img src={lightbox.url} alt="" style={{ maxWidth: '88vw', maxHeight: '58vh', borderRadius: 12, objectFit: 'contain', boxShadow: '0 8px 40px rgba(0,0,0,.6)', flexShrink: 0 }} onClick={e => e.stopPropagation()} />
-          <div onClick={e => e.stopPropagation()} style={{ background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 14, padding: '12px 20px', maxWidth: 500, width: '100%', backdropFilter: 'blur(8px)', flexShrink: 0 }}>
-            <div style={{ fontSize: 13, color: '#fff', fontWeight: 700, marginBottom: (photoLikes[String(lightbox.index)] || []).length > 0 ? 10 : 0 }}>
-              ❤️ {(photoLikes[String(lightbox.index)] || []).length} like{(photoLikes[String(lightbox.index)] || []).length !== 1 ? 's' : ''}
-            </div>
-            {likerProfiles.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {likerProfiles.map(lk => {
-                  const lkColor = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63'][(lk.pseudo?.charCodeAt(0) || 0) % 8]
-                  return (
-                    <div key={lk.id} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,.15)', borderRadius: 20, padding: '4px 10px' }}>
-                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: lk.avatar_url ? '#444' : lkColor, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff' }}>
-                        {lk.avatar_url ? <img loading="lazy" decoding="async" src={lk.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : lk.initials || lk.pseudo?.slice(0,2).toUpperCase()}
-                      </div>
-                      <span style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}>@{lk.pseudo}</span>
-                    </div>
-                  )
-                })}
+      {lightbox && (() => {
+        const photos = profile.photos || []
+        const total = photos.length
+        const goTo = (idx) => {
+          const newIdx = (idx + total) % total
+          openLightbox(photos[newIdx], newIdx)
+        }
+        const likers = photoLikes[String(lightbox.index)] || []
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.96)', zIndex: 3000, display: 'flex', flexDirection: 'column' }}
+            onKeyDown={e => { if (e.key === 'ArrowLeft') goTo(lightbox.index - 1); if (e.key === 'ArrowRight') goTo(lightbox.index + 1); if (e.key === 'Escape') setLightbox(null) }}
+            tabIndex={0} ref={el => el?.focus()}>
+
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', flexShrink: 0 }}>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,.6)', fontWeight: 600 }}>
+                {lightbox.index + 1} / {total}
               </div>
-            )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 13, color: '#fff', fontWeight: 700 }}>❤️ {likers.length}</span>
+                <button onClick={() => setLightbox(null)} style={{ background: 'rgba(255,255,255,.12)', border: 'none', borderRadius: '50%', width: 38, height: 38, color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+              </div>
+            </div>
+
+            {/* Image centrale avec nav */}
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}
+              onClick={() => setLightbox(null)}>
+
+              {total > 1 && (
+                <button onClick={e => { e.stopPropagation(); goTo(lightbox.index - 1) }}
+                  style={{ position: 'absolute', left: 16, zIndex: 10, background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: '50%', width: 48, height: 48, color: '#fff', fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', transition: 'background .15s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,.28)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.15)'}>
+                  ‹
+                </button>
+              )}
+
+              <img src={lightbox.url} alt="" onClick={e => e.stopPropagation()}
+                style={{ maxWidth: 'calc(100vw - 140px)', maxHeight: 'calc(100vh - 180px)', objectFit: 'contain', borderRadius: 8, boxShadow: '0 8px 60px rgba(0,0,0,.8)', userSelect: 'none' }} />
+
+              {total > 1 && (
+                <button onClick={e => { e.stopPropagation(); goTo(lightbox.index + 1) }}
+                  style={{ position: 'absolute', right: 16, zIndex: 10, background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: '50%', width: 48, height: 48, color: '#fff', fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', transition: 'background .15s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,.28)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.15)'}>
+                  ›
+                </button>
+              )}
+            </div>
+
+            {/* Bas : likes + thumbnails */}
+            <div style={{ flexShrink: 0, padding: '12px 20px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {/* Likers */}
+              {likerProfiles.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
+                  {likerProfiles.map(lk => {
+                    const lkColor = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63'][(lk.pseudo?.charCodeAt(0) || 0) % 8]
+                    return (
+                      <div key={lk.id} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,.1)', borderRadius: 20, padding: '3px 10px' }}>
+                        <div style={{ width: 20, height: 20, borderRadius: '50%', background: lk.avatar_url ? '#444' : lkColor, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: '#fff' }}>
+                          {lk.avatar_url ? <img loading="lazy" decoding="async" src={lk.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : lk.initials || lk.pseudo?.slice(0,2).toUpperCase()}
+                        </div>
+                        <span style={{ fontSize: 11, color: '#fff', fontWeight: 600 }}>@{lk.pseudo}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              {/* Thumbnails strip */}
+              {total > 1 && (
+                <div style={{ display: 'flex', gap: 6, justifyContent: 'center', overflowX: 'auto', paddingBottom: 2 }}>
+                  {photos.map((url, i) => (
+                    <div key={i} onClick={e => { e.stopPropagation(); openLightbox(url, i) }}
+                      style={{ width: 52, height: 52, borderRadius: 8, overflow: 'hidden', flexShrink: 0, cursor: 'pointer', border: i === lightbox.index ? '2px solid #f0c800' : '2px solid rgba(255,255,255,.2)', transition: 'border-color .15s', opacity: i === lightbox.index ? 1 : 0.55 }}>
+                      <img loading="lazy" decoding="async" src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-          <button onClick={() => setLightbox(null)} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: '#fff', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-        </div>
-      )}
+        )
+      })()}
 
       {cropSrc && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
@@ -465,23 +522,55 @@ export default function Profile() {
             <input ref={photoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadPhoto} />
           </div>
           {(profile.photos || []).length === 0
-            ? <div style={{ textAlign: 'center', padding: '28px', color: C.textDim, fontSize: 13, background: C.surfaceB, borderRadius: 12, border: '1px dashed #ddd' }}>
-                <div style={{ fontSize: 28, marginBottom: 8 }}>📷</div>Aucune photo ajoutée
+            ? <div style={{ textAlign: 'center', padding: '36px', color: C.textDim, fontSize: 13, background: C.surfaceB, borderRadius: 12, border: '1px dashed rgba(200,162,0,.3)' }}>
+                <div style={{ fontSize: 36, marginBottom: 10 }}>📷</div>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>Aucune photo</div>
+                <div style={{ fontSize: 12 }}>Ajoute tes premières photos</div>
               </div>
-            : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10 }}>
-                {(profile.photos || []).map((url, i) => {
-                  const likers = photoLikes[String(i)] || []
-                  return (
-                    <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', border: '1px solid #e8e0c8', cursor: 'zoom-in' }}>
-                      <img loading="lazy" decoding="async" src={url} alt="" onClick={() => openLightbox(url, i)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                      {likers.length > 0 && (
-                        <div style={{ position: 'absolute', bottom: 6, left: 8, fontSize: 11, color: '#fff', fontWeight: 700, textShadow: '0 1px 3px rgba(0,0,0,.8)' }}>❤️ {likers.length}</div>
+            : (() => {
+                const photos = profile.photos || []
+                const first = photos[0]
+                const rest = photos.slice(1)
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {/* Grande image principale */}
+                    <div onClick={() => openLightbox(first, 0)}
+                      style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', cursor: 'zoom-in', aspectRatio: '16/9', background: '#111' }}
+                      onMouseEnter={e => e.currentTarget.querySelector('img').style.transform = 'scale(1.03)'}
+                      onMouseLeave={e => e.currentTarget.querySelector('img').style.transform = 'scale(1)'}>
+                      <img loading="lazy" decoding="async" src={first} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform .3s ease' }} />
+                      {(photoLikes['0'] || []).length > 0 && (
+                        <div style={{ position: 'absolute', bottom: 10, left: 12, fontSize: 13, color: '#fff', fontWeight: 700, textShadow: '0 1px 4px rgba(0,0,0,.9)' }}>❤️ {(photoLikes['0'] || []).length}</div>
                       )}
-                      <button onClick={() => removePhoto(url)} style={{ position: 'absolute', top: 6, right: 6, width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.65)', color: '#fff', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                      <button onClick={e => { e.stopPropagation(); removePhoto(first) }}
+                        style={{ position: 'absolute', top: 10, right: 10, width: 30, height: 30, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.7)', color: '#fff', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>✕</button>
                     </div>
-                  )
-                })}
-              </div>
+
+                    {/* Grille des autres photos */}
+                    {rest.length > 0 && (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 6 }}>
+                        {rest.map((url, i) => {
+                          const idx = i + 1
+                          const likers = photoLikes[String(idx)] || []
+                          return (
+                            <div key={idx} onClick={() => openLightbox(url, idx)}
+                              style={{ position: 'relative', aspectRatio: '1', borderRadius: 10, overflow: 'hidden', cursor: 'zoom-in', background: '#111' }}
+                              onMouseEnter={e => e.currentTarget.querySelector('img').style.transform = 'scale(1.05)'}
+                              onMouseLeave={e => e.currentTarget.querySelector('img').style.transform = 'scale(1)'}>
+                              <img loading="lazy" decoding="async" src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform .3s ease' }} />
+                              {likers.length > 0 && (
+                                <div style={{ position: 'absolute', bottom: 6, left: 8, fontSize: 11, color: '#fff', fontWeight: 700, textShadow: '0 1px 3px rgba(0,0,0,.9)' }}>❤️ {likers.length}</div>
+                              )}
+                              <button onClick={e => { e.stopPropagation(); removePhoto(url) }}
+                                style={{ position: 'absolute', top: 6, right: 6, width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.7)', color: '#fff', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()
           }
         </div>
 
