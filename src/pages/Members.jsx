@@ -116,7 +116,7 @@ export default function MembersPage() {
   const resetFilters = () => { setSearch(''); setRegion(''); setDept(''); setCity(''); setSexe(''); setAgeRange(0); setOnlineOnly(false) }
 
   return (
-    <div ref={containerRef} style={{ maxWidth: 900, margin: '0 auto', padding: isMobile ? '16px 12px' : '24px 16px' }}>
+    <div ref={containerRef} style={{ maxWidth: 1400, margin: '0 auto', padding: isMobile ? '16px 12px' : '24px 28px' }}>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>

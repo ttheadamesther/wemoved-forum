@@ -98,7 +98,7 @@ export default function Rankings() {
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: C.textDim }}>Chargement…</div>
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '20px 16px 40px' }}>
+    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '20px 28px 40px' }}>
 
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ fontWeight: 700, fontSize: 22, color: C.text, marginBottom: 4 }}>🏆 Classements</h1>

@@ -184,7 +184,7 @@ export default function Moderation() {
   )
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px' }}>
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 28px' }}>
 
       {/* Modal ban */}
       {banTarget && (

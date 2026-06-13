@@ -257,7 +257,7 @@ export default function MessagesPage() {
   if (!user) return null
 
   return (
-    <div ref={containerRef} style={{ maxWidth: 960, margin: '0 auto', padding: isMobile ? '0' : '20px 16px' }}>
+    <div ref={containerRef} style={{ maxWidth: 1400, margin: '0 auto', padding: isMobile ? '0' : '20px 28px' }}>
       {!isMobile && <h2 style={{ fontWeight: 700, fontSize: 20, color: C.text, marginBottom: 16 }}>Messages privés</h2>}
 
       {/* ── MODALE SIGNALEMENT ── */}

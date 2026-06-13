@@ -75,7 +75,7 @@ export default function Rewards() {
   const highlightText = dark ? '#f0c800' : C.accentTxt
 
   return (
-    <div style={{ maxWidth: 760, margin: '0 auto', padding: isMobile ? '16px 12px 80px' : '20px 16px 40px' }}>
+    <div style={{ maxWidth: 1100, margin: '0 auto', padding: isMobile ? '16px 12px 80px' : '20px 28px 40px' }}>
 
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 700, color: C.text, marginBottom: 6 }}>🏆 Système de récompenses</h1>
