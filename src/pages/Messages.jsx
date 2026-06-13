@@ -95,6 +95,7 @@ export default function MessagesPage() {
   const [showEmoji, setShowEmoji] = useState(false)
   const [reactionPicker, setReactionPicker] = useState(null) // message id
   const bottomRef = useRef(null)
+  const longPressTimer = useRef(null)
 
   const QUICK_EMOJIS = ['❤️', '😂', '😮', '😢', '👍', '🔥']
 
@@ -115,6 +116,13 @@ export default function MessagesPage() {
       body: JSON.stringify({ reactions: newReactions }),
       headers: { 'Prefer': 'return=minimal' }
     })
+  }
+
+  const handleLongPressStart = (msgId) => {
+    longPressTimer.current = setTimeout(() => setReactionPicker(msgId), 500)
+  }
+  const handleLongPressEnd = () => {
+    clearTimeout(longPressTimer.current)
   }
 
   // Fermer emoji picker au clic extérieur
@@ -442,78 +450,95 @@ export default function MessagesPage() {
                   const isDeleting = deletingMsg === m.id
                   const reactions = m.reactions || {}
                   const hasReactions = Object.keys(reactions).length > 0
+                  const pickerOpen = reactionPicker === m.id
+                  const hovered = hoveredMsg === m.id
                   return (
                     <div key={i}
                       onMouseEnter={() => setHoveredMsg(m.id)}
-                      onMouseLeave={() => { setHoveredMsg(null); setReactionPicker(null) }}
-                      style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: 8, position: 'relative' }}>
-                      {!isMe && <div style={{ width: 28, flexShrink: 0 }}>{showAvatar && <Avatar member={activeMember} size={28} />}</div>}
-                      <div style={{ maxWidth: isMobile ? '80%' : '65%', display: 'flex', alignItems: 'center', gap: 6, flexDirection: isMe ? 'row-reverse' : 'row' }}>
-                        {isMe && (
-                          <button onClick={() => setConfirmDelete({ type: 'msg', id: m.id })} disabled={isDeleting} title="Supprimer"
-                            style={{ background: 'none', border: 'none', cursor: isDeleting ? 'wait' : 'pointer', fontSize: 13, color: C.red, opacity: isDeleting ? 0.5 : 0.6, padding: '2px 4px', flexShrink: 0 }}
-                            onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                            onMouseLeave={e => e.currentTarget.style.opacity = '0.6'}>
-                            {isDeleting ? '…' : '🗑'}
-                          </button>
-                        )}
-                        {!isMe && (
-                          <button onClick={async () => {
-                            await api('/rest/v1/reports', {
-                              method: 'POST',
-                              body: JSON.stringify({ type: 'message', target_id: m.id, reporter_id: user.id, reason: 'Message privé signalé', status: 'pending' })
-                            })
-                            alert('Message signalé aux modérateurs.')
-                          }} title="Signaler"
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: C.textDim, opacity: 0.6, padding: '2px 4px', flexShrink: 0 }}
-                            onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                            onMouseLeave={e => e.currentTarget.style.opacity = '0.6'}>
-                            🚩
-                          </button>
-                        )}
-                        <div style={{ position: 'relative' }}>
-                          {/* Bulle message — double-clic pour réagir */}
-                          <div
-                            onDoubleClick={() => setReactionPicker(reactionPicker === m.id ? null : m.id)}
-                            style={{ background: isImg ? 'transparent' : isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.white, border: isImg ? 'none' : isMe ? 'none' : `1px solid ${C.border}`, borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px', padding: isImg ? 0 : '10px 14px', boxShadow: isImg ? 'none' : '0 1px 3px rgba(0,0,0,.08)', cursor: 'default', userSelect: 'text' }}>
-                            <MessageBody body={m.body} isMe={isMe} />
-                          </div>
+                      onMouseLeave={() => setHoveredMsg(null)}
+                      style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', gap: 2 }}>
 
-                          {/* Picker rapide (6 emojis) */}
-                          {reactionPicker === m.id && (
-                            <div style={{ position: 'absolute', zIndex: 100, background: C.white, border: `1px solid ${C.border}`, borderRadius: 24, padding: '6px 10px', display: 'flex', gap: 4, boxShadow: '0 4px 16px rgba(0,0,0,.15)', bottom: '110%', [isMe ? 'right' : 'left']: 0 }}>
-                              {QUICK_EMOJIS.map(emoji => (
-                                <button key={emoji} onClick={() => toggleReaction(m.id, emoji)}
-                                  style={{ fontSize: 20, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 8, transition: 'transform .1s', lineHeight: 1 }}
-                                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.35)'}
-                                  onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-                                  {emoji}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Réactions existantes */}
-                          {hasReactions && (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4, justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
-                              {Object.entries(reactions).map(([emoji, likers]) => {
-                                const iLiked = likers.includes(user.id)
-                                return (
-                                  <button key={emoji} onClick={() => toggleReaction(m.id, emoji)}
-                                    title={`${likers.length} réaction${likers.length > 1 ? 's' : ''}`}
-                                    style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 12, border: `1px solid ${iLiked ? 'rgba(200,162,0,.6)' : C.border}`, background: iLiked ? 'rgba(200,162,0,.12)' : C.white, cursor: 'pointer', fontSize: 13, fontWeight: iLiked ? 700 : 400, transition: 'all .15s', fontFamily: 'inherit' }}>
-                                    <span>{emoji}</span>
-                                    <span style={{ fontSize: 11, color: iLiked ? C.accentTxt : C.textMid }}>{likers.length}</span>
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          )}
-
-                          <div style={{ fontSize: 10, color: C.textDim, marginTop: 3, textAlign: isMe ? 'right' : 'left', paddingLeft: isMe ? 0 : 4 }}>
-                            {new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                          </div>
+                      {/* Picker réactions — au-dessus de la bulle */}
+                      {pickerOpen && (
+                        <div style={{ display: 'flex', gap: 4, background: C.white, border: `1px solid ${C.border}`, borderRadius: 24, padding: '6px 10px', boxShadow: '0 4px 16px rgba(0,0,0,.15)', alignSelf: isMe ? 'flex-end' : 'flex-start', marginBottom: 2 }}>
+                          {QUICK_EMOJIS.map(emoji => (
+                            <button key={emoji} onClick={() => toggleReaction(m.id, emoji)}
+                              style={{ fontSize: 22, background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', transition: 'transform .1s', lineHeight: 1 }}
+                              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.35)'}
+                              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+                              {emoji}
+                            </button>
+                          ))}
+                          <button onClick={() => setReactionPicker(null)}
+                            style={{ fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, padding: '0 3px', lineHeight: 1 }}>✕</button>
                         </div>
+                      )}
+
+                      {/* Ligne avatar + bulle */}
+                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, flexDirection: isMe ? 'row-reverse' : 'row' }}>
+                        {!isMe && <div style={{ width: 28, flexShrink: 0 }}>{showAvatar && <Avatar member={activeMember} size={28} />}</div>}
+
+                        {/* Bulle message */}
+                        <div
+                          onDoubleClick={() => !isMobile && setReactionPicker(pickerOpen ? null : m.id)}
+                          onTouchStart={() => isMobile && handleLongPressStart(m.id)}
+                          onTouchEnd={handleLongPressEnd}
+                          onTouchMove={handleLongPressEnd}
+                          style={{ maxWidth: isMobile ? '75vw' : '60%', background: isImg ? 'transparent' : isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.white, border: isImg ? 'none' : isMe ? 'none' : `1px solid ${C.border}`, borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px', padding: isImg ? 0 : '10px 14px', boxShadow: isImg ? 'none' : '0 1px 3px rgba(0,0,0,.08)' }}>
+                          <MessageBody body={m.body} isMe={isMe} />
+                        </div>
+
+                        {/* Actions au hover — ne prennent pas de place si cachées */}
+                        {hovered && !isMobile && (
+                          <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+                            <button onClick={() => setReactionPicker(pickerOpen ? null : m.id)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, opacity: 0.5, padding: '2px', lineHeight: 1, transition: 'opacity .15s' }}
+                              onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                              onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}>
+                              😊
+                            </button>
+                            {isMe && (
+                              <button onClick={() => setConfirmDelete({ type: 'msg', id: m.id })} disabled={isDeleting}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: C.red, opacity: 0.5, padding: '2px', lineHeight: 1, transition: 'opacity .15s' }}
+                                onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                                onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}>
+                                {isDeleting ? '…' : '🗑'}
+                              </button>
+                            )}
+                            {!isMe && (
+                              <button onClick={async () => {
+                                await api('/rest/v1/reports', { method: 'POST', body: JSON.stringify({ type: 'message', target_id: m.id, reporter_id: user.id, reason: 'Message privé signalé', status: 'pending' }) })
+                                alert('Message signalé aux modérateurs.')
+                              }}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: C.textDim, opacity: 0.5, padding: '2px', lineHeight: 1, transition: 'opacity .15s' }}
+                                onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                                onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}>
+                                🚩
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Réactions existantes */}
+                      {hasReactions && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignSelf: isMe ? 'flex-end' : 'flex-start' }}>
+                          {Object.entries(reactions).map(([emoji, likers]) => {
+                            const iLiked = likers.includes(user.id)
+                            return (
+                              <button key={emoji} onClick={() => toggleReaction(m.id, emoji)}
+                                style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 12, border: `1px solid ${iLiked ? 'rgba(200,162,0,.6)' : C.border}`, background: iLiked ? 'rgba(200,162,0,.12)' : C.white, cursor: 'pointer', fontSize: 13, fontWeight: iLiked ? 700 : 400, transition: 'all .15s', fontFamily: 'inherit' }}>
+                                <span>{emoji}</span>
+                                <span style={{ fontSize: 11, color: iLiked ? C.accentTxt : C.textMid }}>{likers.length}</span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
+
+                      {/* Heure */}
+                      <div style={{ fontSize: 10, color: C.textDim, alignSelf: isMe ? 'flex-end' : 'flex-start', paddingLeft: isMe ? 0 : 36 }}>
+                        {new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
                   )
