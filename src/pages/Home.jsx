@@ -149,6 +149,63 @@ export default function Home() {
   const [cat,        setCat]        = useState('Divers')
   const [posting,    setPosting]    = useState(false)
 
+  // ── Annonces ──
+  const [announcements, setAnnouncements] = useState([])
+  const [editingAnnounce, setEditingAnnounce] = useState(false)
+  const [annForm, setAnnForm] = useState({ title: '', body: '', link: '', pinned: false })
+  const [annSaving, setAnnSaving] = useState(false)
+  const [annEditId, setAnnEditId] = useState(null)
+  const isAdmin = ['admin', 'manager'].includes(profile?.role)
+
+  const loadAnnouncements = () => {
+    apiFetch('/rest/v1/announcements?select=*&order=pinned.desc,created_at.desc')
+      .then(d => { if (Array.isArray(d)) setAnnouncements(d) })
+  }
+
+  const saveAnnouncement = async () => {
+    if (!annForm.title.trim()) return
+    setAnnSaving(true)
+    const { supabase } = await import('../lib/supabase')
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token || ANON_KEY
+    const payload = { title: annForm.title.trim(), body: annForm.body.trim(), link: annForm.link.trim() || null, pinned: annForm.pinned }
+    if (annEditId) {
+      await fetch(`${SUPABASE_URL}/rest/v1/announcements?id=eq.${annEditId}`, {
+        method: 'PATCH',
+        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify(payload)
+      })
+    } else {
+      await fetch(`${SUPABASE_URL}/rest/v1/announcements`, {
+        method: 'POST',
+        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify(payload)
+      })
+    }
+    setAnnSaving(false)
+    setEditingAnnounce(false)
+    setAnnForm({ title: '', body: '', link: '', pinned: false })
+    setAnnEditId(null)
+    loadAnnouncements()
+  }
+
+  const deleteAnnouncement = async (id) => {
+    const { supabase } = await import('../lib/supabase')
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token || ANON_KEY
+    await fetch(`${SUPABASE_URL}/rest/v1/announcements?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
+    })
+    loadAnnouncements()
+  }
+
+  const startEdit = (ann) => {
+    setAnnEditId(ann.id)
+    setAnnForm({ title: ann.title, body: ann.body || '', link: ann.link || '', pinned: ann.pinned || false })
+    setEditingAnnounce(true)
+  }
+
   useEffect(() => {
     const observer = new ResizeObserver(entries => {
       for (const entry of entries) setIsMobile(entry.contentRect.width < 768)
@@ -181,6 +238,7 @@ export default function Home() {
     apiFetch('/rest/v1/messages?select=id').then(d => {
       if (Array.isArray(d)) setStats(s => ({ ...s, messages: d.length }))
     })
+    loadAnnouncements()
   }, [])
 
   useEffect(() => {
@@ -556,16 +614,83 @@ export default function Home() {
           <SectionCard>
             <SectionHeader>
               <span style={{ fontWeight: 700, fontSize: 11, color: 'var(--textDim)', textTransform: 'uppercase', letterSpacing: 1 }}>📢 Annonces</span>
+              {isAdmin && (
+                <button onClick={() => { setEditingAnnounce(v => !v); setAnnEditId(null); setAnnForm({ title: '', body: '', link: '', pinned: false }) }}
+                  style={{ fontSize: 11, color: 'var(--accentTxt)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', opacity: .85 }}>
+                  {editingAnnounce && !annEditId ? '✕ Annuler' : '+ Nouvelle'}
+                </button>
+              )}
             </SectionHeader>
+
+            {/* Formulaire admin */}
+            {isAdmin && editingAnnounce && (
+              <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(200,162,0,.2)', display: 'flex', flexDirection: 'column', gap: 9 }}>
+                <input
+                  value={annForm.title}
+                  onChange={e => setAnnForm(f => ({ ...f, title: e.target.value }))}
+                  placeholder="Titre de l'annonce…"
+                  style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid var(--borderMid)', fontSize: 12, color: 'var(--text)', background: 'var(--surfaceB)', fontFamily: 'inherit', outline: 'none' }}
+                />
+                <textarea
+                  value={annForm.body}
+                  onChange={e => setAnnForm(f => ({ ...f, body: e.target.value }))}
+                  placeholder="Texte de l'annonce…"
+                  rows={3}
+                  style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid var(--borderMid)', fontSize: 12, color: 'var(--text)', background: 'var(--surfaceB)', fontFamily: 'inherit', outline: 'none', resize: 'vertical' }}
+                />
+                <input
+                  value={annForm.link}
+                  onChange={e => setAnnForm(f => ({ ...f, link: e.target.value }))}
+                  placeholder="Lien (optionnel, ex: /forum)"
+                  style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid var(--borderMid)', fontSize: 12, color: 'var(--text)', background: 'var(--surfaceB)', fontFamily: 'inherit', outline: 'none' }}
+                />
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--textMid)', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={annForm.pinned} onChange={e => setAnnForm(f => ({ ...f, pinned: e.target.checked }))} />
+                  📌 Épingler en haut
+                </label>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <button onClick={() => { setEditingAnnounce(false); setAnnEditId(null) }}
+                    style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--borderMid)', background: 'var(--surfaceB)', cursor: 'pointer', fontSize: 12, color: 'var(--textMid)', fontFamily: 'inherit' }}>
+                    Annuler
+                  </button>
+                  <button onClick={saveAnnouncement} disabled={annSaving}
+                    style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#f0c800,#c8a200)', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#3a2e00', fontFamily: 'inherit', opacity: annSaving ? .7 : 1 }}>
+                    {annSaving ? '…' : annEditId ? 'Modifier' : 'Publier'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Liste des annonces */}
             <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ background: 'var(--accentBg)', border: '1px solid rgba(200,162,0,.25)', borderRadius: 10, padding: '11px 13px' }}>
-                <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--accentTxt)', marginBottom: 4 }}>🎉 Bienvenue sur WeMoved !</div>
-                <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5, opacity: .85 }}>La communauté est lancée. Créez votre profil et participez !</div>
-              </div>
-              <div style={{ padding: '2px 2px' }}>
-                <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 3, color: 'var(--text)' }}>Nouveau système de badges !</div>
-                <div style={{ fontSize: 12, color: 'var(--textMid)', lineHeight: 1.5 }}>Découvrez-les dans votre profil.</div>
-              </div>
+              {announcements.length === 0
+                ? <div style={{ fontSize: 12, color: 'var(--textDim)', fontStyle: 'italic', textAlign: 'center', padding: '8px 0' }}>Aucune annonce</div>
+                : announcements.map(ann => (
+                  <div key={ann.id} style={{ background: ann.pinned ? 'var(--accentBg)' : 'var(--surfaceB)', border: `1px solid ${ann.pinned ? 'rgba(200,162,0,.35)' : 'var(--border)'}`, borderRadius: 10, padding: '11px 13px', position: 'relative' }}>
+                    {ann.pinned && <span style={{ position: 'absolute', top: 8, right: 8, fontSize: 10 }}>📌</span>}
+                    <div style={{ fontWeight: 700, fontSize: 13, color: ann.pinned ? 'var(--accentTxt)' : 'var(--text)', marginBottom: ann.body ? 4 : 0, paddingRight: ann.pinned ? 18 : 0 }}>{ann.title}</div>
+                    {ann.body && <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5, opacity: .85, marginBottom: ann.link ? 6 : 0 }}>{ann.body}</div>}
+                    {ann.link && (
+                      <div onClick={() => ann.link.startsWith('/') ? navigate(ann.link) : window.open(ann.link, '_blank')}
+                        style={{ fontSize: 11, color: 'var(--accentTxt)', fontWeight: 700, cursor: 'pointer', marginTop: 4 }}>
+                        → {ann.link.startsWith('/') ? ann.link : 'Voir le lien'}
+                      </div>
+                    )}
+                    {isAdmin && (
+                      <div style={{ display: 'flex', gap: 6, marginTop: 8, justifyContent: 'flex-end' }}>
+                        <button onClick={() => startEdit(ann)}
+                          style={{ fontSize: 10, padding: '3px 8px', borderRadius: 6, border: '1px solid var(--borderMid)', background: 'var(--white)', cursor: 'pointer', color: 'var(--textMid)', fontFamily: 'inherit' }}>
+                          ✏️ Modifier
+                        </button>
+                        <button onClick={() => deleteAnnouncement(ann.id)}
+                          style={{ fontSize: 10, padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(231,76,60,.3)', background: 'transparent', cursor: 'pointer', color: '#e74c3c', fontFamily: 'inherit' }}>
+                          🗑 Suppr.
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              }
             </div>
           </SectionCard>
         </div>
