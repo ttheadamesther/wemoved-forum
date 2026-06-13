@@ -266,8 +266,10 @@ export default function Profile() {
 
   const photoLikes = profile.photo_likes || {}
 
+  const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024
+
   return (
-    <div style={{ maxWidth: 860, margin: '0 auto', paddingBottom: 80 }}>
+    <div style={{ maxWidth: 1200, margin: '0 auto', paddingBottom: 80 }}>
 
       {lightbox && (
         <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.92)', zIndex: 3000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px 20px 40px', gap: 16, cursor: 'zoom-out' }}>
@@ -395,6 +397,17 @@ export default function Profile() {
 
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
+        {/* ── LAYOUT 2 COLONNES sur desktop ── */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isDesktop ? '1fr 340px' : '1fr',
+          gap: 16,
+          alignItems: 'start',
+        }}>
+
+        {/* ── COLONNE GAUCHE : Bio + Intérêts + Badges + Demandes d'amis ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
         <div style={PANEL}>
           <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${C.border}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
@@ -517,6 +530,11 @@ export default function Profile() {
           </div>
         )}
 
+        </div>{/* ── fin colonne gauche ── */}
+
+        {/* ── COLONNE DROITE : Amis + Photos ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
         <div style={{ ...PANEL, borderTop: '3px solid #3498db' }}>
           <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>👥 Amis ({friendsList.length})</div>
           {friendsLoading
@@ -568,6 +586,9 @@ export default function Profile() {
               </div>
           }
         </div>
+
+        </div>{/* ── fin colonne droite ── */}
+        </div>{/* ── fin grid 2 colonnes ── */}
 
       </div>
     </div>

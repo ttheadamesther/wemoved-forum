@@ -328,7 +328,7 @@ export default function MemberProfile() {
   if (loading) return <div style={{ padding: 60, textAlign: 'center', color: 'var(--textMid)', fontSize: 14 }}>Chargement…</div>
 
   if (blockedByThem) return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px 80px' }}>
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 16px 80px' }}>
       <Btn onClick={() => navigate('/members')} variant="ghost" style={{ marginBottom: 16, fontSize: 12 }}>← Retour</Btn>
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 20, padding: 48, textAlign: 'center', boxShadow: '0 4px 24px rgba(0,0,0,.08)' }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>🚫</div>
@@ -349,8 +349,12 @@ export default function MemberProfile() {
   const initials   = member.initials || member.pseudo?.slice(0, 2).toUpperCase() || '??'
   const photoLikes = member.photo_likes || {}
 
+  const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024
+
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px 80px' }}>
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 16px 80px' }}>
+
+      {/* lightbox inchangé ci-dessous */}
 
       {lightbox && (
         <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.92)', zIndex: 2000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px 20px 40px', gap: 16, cursor: 'zoom-out' }}>
@@ -488,8 +492,20 @@ export default function MemberProfile() {
         </div>
       </div>
 
+      {/* ── LAYOUT 2 COLONNES pour les sections secondaires ── */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isDesktop ? '1fr 340px' : '1fr',
+        gap: 16,
+        alignItems: 'start',
+        marginTop: 0,
+      }}>
+
+      {/* ── COLONNE GAUCHE : Intérêts + Badges ── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
       {(member.interests || []).length > 0 && (
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid var(--accentDk)', borderRadius: 16, padding: 20, marginBottom: 16, boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid var(--accentDk)', borderRadius: 16, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
           <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>🎯 Intérêts</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {(member.interests || []).map(i => (
@@ -500,7 +516,7 @@ export default function MemberProfile() {
       )}
 
       {(member.badges || []).length > 0 && (
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid var(--accent)', borderRadius: 16, padding: 20, marginBottom: 16, boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid var(--accent)', borderRadius: 16, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
           <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 16 }}>🎖️ Badges obtenus</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
             {BADGES_DEF.filter(b => (member.badges || []).includes(b.key)).map(b => (
@@ -515,7 +531,12 @@ export default function MemberProfile() {
         </div>
       )}
 
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid #3498db', borderRadius: 16, padding: 20, marginBottom: 16, boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
+      </div>{/* ── fin colonne gauche ── */}
+
+      {/* ── COLONNE DROITE : Amis + Photos ── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid #3498db', borderRadius: 16, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
         <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 14 }}>👥 Amis ({friendsList.length})</div>
         {friendsLoading
           ? <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', padding: 12 }}>Chargement…</div>
@@ -543,7 +564,7 @@ export default function MemberProfile() {
       {(member.photos || []).length > 0 && (
         <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid var(--accentDk)', borderRadius: 16, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
           <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>📸 Photos</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 12 }}>
             {(member.photos || []).map((url, i) => {
               const likers = photoLikes[String(i)] || []
               const liked  = user ? likers.includes(user.id) : false
@@ -572,6 +593,9 @@ export default function MemberProfile() {
           {!user && <p style={{ fontSize: 12, color: C.textDim, marginTop: 12, fontStyle: 'italic', textAlign: 'center' }}>Connecte-toi pour liker les photos</p>}
         </div>
       )}
+
+      </div>{/* ── fin colonne droite ── */}
+      </div>{/* ── fin grid 2 colonnes ── */}
 
     </div>
   )

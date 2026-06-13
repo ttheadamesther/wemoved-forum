@@ -439,7 +439,7 @@ export default function ForumPage() {
     const author = getMember(currentThread.author_id)
     const catColor = CAT_COLORS[currentThread.cat] || C.accentDk
     return (
-      <div ref={containerRef} style={{ maxWidth: 780, margin: '0 auto', padding: isMobile ? '12px' : '20px 16px' }}>
+      <div ref={containerRef} style={{ maxWidth: 1000, margin: '0 auto', padding: isMobile ? '12px' : '20px 28px' }}>
         {reporting && <ReportModal type={reporting.type} targetId={reporting.targetId} reporterId={user?.id} onClose={() => setReporting(null)} />}
         {ConfirmModal}
 
@@ -614,8 +614,19 @@ export default function ForumPage() {
   }
 
   return (
-    <div ref={containerRef} style={{ maxWidth: 780, margin: '0 auto', padding: isMobile ? '12px' : '20px 16px' }}>
+    <div ref={containerRef} style={{ maxWidth: 1200, margin: '0 auto', padding: isMobile ? '12px' : '20px 28px' }}>
       {reporting && <ReportModal type={reporting.type} targetId={reporting.targetId} reporterId={user?.id} onClose={() => setReporting(null)} />}
+
+      {/* ── LAYOUT 2 COLONNES sur desktop ── */}
+      <div style={{
+        display: isMobile ? 'block' : 'grid',
+        gridTemplateColumns: '1fr 280px',
+        gap: 20,
+        alignItems: 'start',
+      }}>
+
+      {/* ── COLONNE PRINCIPALE ── */}
+      <div>}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>
           <h1 style={{ fontWeight: 800, fontSize: isMobile ? 18 : 22, color: 'var(--text)', marginBottom: 2, letterSpacing: -.3 }}>Forum</h1>
@@ -749,6 +760,100 @@ export default function ForumPage() {
           </button>
         </div>
       )}
+      </div>{/* ── fin colonne principale ── */}
+
+      {/* ── SIDEBAR DROITE (desktop only) ── */}
+      {!isMobile && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'sticky', top: 80 }}>
+
+          {/* Catégories rapides */}
+          <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,.06)' }}>
+            <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, background: C.surfaceB }}>
+              <span style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: 1 }}>📂 Catégories</span>
+            </div>
+            {visibleCats.filter(c => c !== 'Tous').map(c => {
+              const cc = CAT_COLORS[c] || C.accentDk
+              const count = threads.filter(t => t.cat === c && !t.hidden).length
+              return (
+                <div key={c} onClick={() => { setCat(c); setPage(1) }}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', transition: 'background .13s', background: cat === c ? cc + '15' : 'transparent' }}
+                  onMouseEnter={e => e.currentTarget.style.background = cc + '10'}
+                  onMouseLeave={e => e.currentTarget.style.background = cat === c ? cc + '15' : 'transparent'}>
+                  <span style={{ fontSize: 13, color: cat === c ? cc : C.text, fontWeight: cat === c ? 700 : 400 }}>
+                    {c === '+18' ? '🔞 +18' : c}
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: C.textDim, background: C.surfaceB, padding: '1px 7px', borderRadius: 99, border: `1px solid ${C.border}` }}>{count}</span>
+                </div>
+              )
+            })}
+            <div onClick={() => { setCat('Tous'); setPage(1) }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', cursor: 'pointer', transition: 'background .13s', background: cat === 'Tous' ? C.accentBg : 'transparent' }}
+              onMouseEnter={e => e.currentTarget.style.background = C.accentBg}
+              onMouseLeave={e => e.currentTarget.style.background = cat === 'Tous' ? C.accentBg : 'transparent'}>
+              <span style={{ fontSize: 13, color: cat === 'Tous' ? C.accentTxt : C.text, fontWeight: cat === 'Tous' ? 700 : 400 }}>Toutes</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: C.textDim, background: C.surfaceB, padding: '1px 7px', borderRadius: 99, border: `1px solid ${C.border}` }}>{threads.filter(t => !t.hidden).length}</span>
+            </div>
+          </div>
+
+          {/* Stats rapides */}
+          <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,.06)' }}>
+            <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, background: C.surfaceB }}>
+              <span style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: 1 }}>📊 Stats</span>
+            </div>
+            {[
+              { icon: '💬', label: 'Discussions', value: threads.filter(t => !t.hidden).length },
+              { icon: '📌', label: 'Épinglées',   value: threads.filter(t => t.pinned).length },
+              { icon: '🔒', label: 'Verrouillées',value: threads.filter(t => t.locked).length },
+            ].map(s => (
+              <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderBottom: `1px solid ${C.border}` }}>
+                <span style={{ fontSize: 15 }}>{s.icon}</span>
+                <span style={{ fontSize: 12, color: C.textMid, flex: 1 }}>{s.label}</span>
+                <span style={{ fontWeight: 700, fontSize: 13, color: C.text }}>{s.value}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Top contributeurs */}
+          {members.length > 0 && (() => {
+            const sorted = [...members]
+              .filter(m => threads.some(t => t.author_id === m.id))
+              .sort((a, b) => threads.filter(t => t.author_id === b.id).length - threads.filter(t => t.author_id === a.id).length)
+              .slice(0, 5)
+            if (sorted.length === 0) return null
+            return (
+              <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,.06)' }}>
+                <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, background: C.surfaceB }}>
+                  <span style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: 1 }}>🏆 Top auteurs</span>
+                </div>
+                {sorted.map((m, i) => {
+                  const threadCount = threads.filter(t => t.author_id === m.id).length
+                  const colors = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
+                  const ac = colors[(m.pseudo?.charCodeAt(0) || 0) % colors.length]
+                  const ring = ROLE_RING[m.role] || null
+                  return (
+                    <div key={m.id} onClick={() => navigate(`/members/${m.id}`)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background .13s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      <span style={{ fontWeight: 800, fontSize: 13, width: 18, textAlign: 'center', opacity: i < 3 ? 1 : .5 }}>
+                        {['🥇','🥈','🥉'][i] || i + 1}
+                      </span>
+                      <div style={{ width: 30, height: 30, borderRadius: '50%', background: m.avatar_url ? '#444' : ac, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, border: ring ? `2px solid ${ring}` : '2px solid rgba(255,255,255,.15)', boxShadow: ring ? `0 0 8px ${ring}66` : 'none' }}>
+                        {m.avatar_url ? <img src={m.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : m.initials || '?'}
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: C.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.pseudo}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: C.accentTxt }}>{threadCount}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })()}
+
+        </div>
+      )}
+
+      </div>{/* ── fin grid 2 colonnes ── */}
     </div>
   )
 }

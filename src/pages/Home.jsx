@@ -235,7 +235,7 @@ export default function Home() {
   const xpPercent = profile ? ((profile.xp || 0) % 1000) / 10 : 0
   const gridStyle = isMobile
     ? { display: 'flex', flexDirection: 'column', gap: 14 }
-    : { display: 'grid', gridTemplateColumns: '260px 1fr 280px', gap: 18 }
+    : { display: 'grid', gridTemplateColumns: '300px 1fr 320px', gap: 22 }
 
   const colors = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
 
@@ -255,7 +255,7 @@ export default function Home() {
 
   return (
     <div ref={containerRef}>
-      <div style={{ maxWidth: 1300, margin: '0 auto', padding: isMobile ? '14px 12px' : '22px 18px', ...gridStyle }}>
+      <div style={{ maxWidth: 1600, margin: '0 auto', padding: isMobile ? '14px 12px' : '22px 28px', ...gridStyle }}>
 
         {/* ── SIDEBAR GAUCHE ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
