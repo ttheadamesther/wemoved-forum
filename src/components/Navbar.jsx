@@ -406,10 +406,10 @@ export default function Navbar() {
         {user && canMod && <NavLink to="/moderation" label="Modération" icon="🛡️" />}
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button onClick={toggle} className="theme-toggle" title={dark ? 'Mode clair' : 'Mode sombre'}>{dark ? '☀️' : '🌙'}</button>
+          <button onClick={toggle} className="theme-toggle" title={dark ? 'Mode clair' : 'Mode sombre'} style={{ width: 36, height: 36, borderRadius: '50%', border: '1px solid rgba(200,162,0,.5)', background: 'rgba(200,162,0,.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, transition: 'all .18s' }}>{dark ? '☀️' : '🌙'}</button>
 
           <div ref={searchRef} style={{ position: 'relative' }}>
-            <button onClick={() => setShowSearch(s => !s)} style={{ width: 36, height: 36, borderRadius: '50%', border: '1px solid rgba(255,255,255,.1)', background: showSearch ? 'rgba(200,162,0,.15)' : 'rgba(255,255,255,.06)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, transition: 'all .18s' }}>🔍</button>
+            <button onClick={() => setShowSearch(s => !s)} style={{ width: 36, height: 36, borderRadius: '50%', border: `1px solid ${showSearch ? 'rgba(200,162,0,.8)' : 'rgba(200,162,0,.5)'}`, background: showSearch ? 'rgba(200,162,0,.15)' : 'rgba(200,162,0,.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, transition: 'all .18s' }}>🔍</button>
             {showSearch && (
               <div style={{ position: 'absolute', top: '110%', right: 0, background: 'rgba(12,12,22,.97)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 14, padding: 12, width: 260, zIndex: 1000, backdropFilter: 'blur(20px)', boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
                 <input value={search} onChange={e => { setSearch(e.target.value); setShowRes(true) }} autoFocus placeholder="Rechercher un membre…" style={{ width: '100%', background: '#222', border: '1px solid #444', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
@@ -450,7 +450,7 @@ export default function Navbar() {
                   }
                   return !s
                 })
-              }} style={{ width: 36, height: 36, borderRadius: '50%', border: 'none', background: '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, position: 'relative' }}>
+              }} style={{ width: 36, height: 36, borderRadius: '50%', border: `1px solid ${notifs.length > 0 ? 'rgba(200,162,0,.8)' : 'rgba(200,162,0,.5)'}`, background: notifs.length > 0 ? 'rgba(200,162,0,.12)' : 'rgba(200,162,0,.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, position: 'relative', transition: 'all .18s' }}>
                 🔔
                 {notifs.length > 0 && <span style={{ position: 'absolute', top: 2, right: 2, width: 16, height: 16, borderRadius: '50%', background: C.red, color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{notifs.length > 9 ? '9+' : notifs.length}</span>}
               </button>
