@@ -73,7 +73,7 @@ function SectionCard({ children, style = {} }) {
   return (
     <div style={{
       background: 'var(--white)',
-      border: '1px solid rgba(200,162,0,.2)',
+      border: '1px solid rgba(200,162,0,.5)',
       borderRadius: 16,
       overflow: 'hidden',
       boxShadow: '0 2px 12px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.05)',
@@ -89,8 +89,8 @@ function SectionHeader({ children, accent = false }) {
   return (
     <div style={{
       padding: '13px 18px',
-      border: '1px solid rgba(200,162,0,.3)',
-      borderBottom: '1px solid rgba(200,162,0,.2)',
+      border: '1px solid rgba(200,162,0,.5)',
+      borderBottom: '1px solid rgba(200,162,0,.4)',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
