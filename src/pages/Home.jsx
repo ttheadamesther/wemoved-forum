@@ -90,7 +90,6 @@ function SectionHeader({ children, accent = false }) {
     <div style={{
       padding: '13px 18px',
       borderBottom: '1px solid rgba(200,162,0,.4)',
-      borderRadius: '15px 15px 0 0',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
