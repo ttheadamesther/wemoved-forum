@@ -542,50 +542,32 @@ export default function MemberProfile() {
       {(member.photos || []).length > 0 && (
         <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid var(--accentDk)', borderRadius: 16, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
           <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 14 }}>📸 Photos ({member.photos.length})</div>
-          {(() => {
-            const photos = member.photos || []
-            const first = photos[0]
-            const rest = photos.slice(1)
-            const LikeBtn = ({ url, i }) => {
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8 }}>
+            {(member.photos || []).map((url, i) => {
               const likers = photoLikes[String(i)] || []
               const liked = user ? likers.includes(user.id) : false
               const count = likers.length
               return (
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,.75) 0%, transparent 100%)', padding: '20px 10px 10px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
-                  {count > 0 && <span style={{ fontSize: 12, color: '#fff', fontWeight: 700 }}>❤️ {count}</span>}
-                  <button onClick={e => { e.stopPropagation(); user && user.id !== id && !isBlocked && togglePhotoLike(url, i) }}
-                    disabled={likingPhoto !== null || !user || user.id === id || isBlocked}
-                    style={{ background: liked ? 'rgba(231,76,60,.85)' : 'rgba(255,255,255,.2)', border: `1px solid ${liked ? '#e74c3c' : 'rgba(255,255,255,.4)'}`, borderRadius: 20, padding: '4px 12px', cursor: 'pointer', fontSize: 15, display: 'flex', alignItems: 'center', gap: 4, backdropFilter: 'blur(4px)', opacity: likingPhoto === i ? 0.6 : 1 }}>
-                    {likingPhoto === i ? '…' : liked ? '❤️' : '🤍'}
-                  </button>
+                <div key={i} onClick={() => openLightbox(url, i)}
+                  style={{ position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', cursor: 'zoom-in', background: '#111' }}
+                  onMouseEnter={e => { e.currentTarget.querySelector('img').style.transform = 'scale(1.05)'; e.currentTarget.querySelector('.ovl').style.opacity = '1' }}
+                  onMouseLeave={e => { e.currentTarget.querySelector('img').style.transform = 'scale(1)'; e.currentTarget.querySelector('.ovl').style.opacity = '0' }}>
+                  <img loading="lazy" decoding="async" src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform .3s ease' }} />
+                  <div className="ovl" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.3)', opacity: 0, transition: 'opacity .2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: 28, color: '#fff', opacity: .9 }}>🔍</span>
+                  </div>
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,.7) 0%, transparent 100%)', padding: '18px 10px 8px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 5 }}>
+                    {count > 0 && <span style={{ fontSize: 11, color: '#fff', fontWeight: 700 }}>❤️ {count}</span>}
+                    <button onClick={e => { e.stopPropagation(); user && user.id !== id && !isBlocked && togglePhotoLike(url, i) }}
+                      disabled={likingPhoto !== null || !user || user.id === id || isBlocked}
+                      style={{ background: liked ? 'rgba(231,76,60,.85)' : 'rgba(255,255,255,.18)', border: `1px solid ${liked ? '#e74c3c' : 'rgba(255,255,255,.35)'}`, borderRadius: 20, padding: '3px 10px', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', gap: 3, backdropFilter: 'blur(4px)', opacity: likingPhoto === i ? 0.6 : 1 }}>
+                      {likingPhoto === i ? '…' : liked ? '❤️' : '🤍'}
+                    </button>
+                  </div>
                 </div>
               )
-            }
-            return (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', background: '#000', aspectRatio: '16/9', cursor: 'zoom-in' }}
-                  onClick={() => openLightbox(first, 0)}
-                  onMouseEnter={e => e.currentTarget.querySelector('img').style.transform = 'scale(1.03)'}
-                  onMouseLeave={e => e.currentTarget.querySelector('img').style.transform = 'scale(1)'}>
-                  <img loading="lazy" decoding="async" src={first} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform .3s ease' }} />
-                  <LikeBtn url={first} i={0} />
-                </div>
-                {rest.length > 0 && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 6 }}>
-                    {rest.map((url, i) => (
-                      <div key={i+1} style={{ position: 'relative', aspectRatio: '1', borderRadius: 10, overflow: 'hidden', background: '#000', cursor: 'zoom-in' }}
-                        onClick={() => openLightbox(url, i+1)}
-                        onMouseEnter={e => e.currentTarget.querySelector('img').style.transform = 'scale(1.05)'}
-                        onMouseLeave={e => e.currentTarget.querySelector('img').style.transform = 'scale(1)'}>
-                        <img loading="lazy" decoding="async" src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform .3s ease' }} />
-                        <LikeBtn url={url} i={i+1} />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )
-          })()}
+            })}
+          </div>
           {!user && <p style={{ fontSize: 12, color: C.textDim, marginTop: 12, fontStyle: 'italic', textAlign: 'center' }}>Connecte-toi pour liker les photos</p>}
         </div>
       )}

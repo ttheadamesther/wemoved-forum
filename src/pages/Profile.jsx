@@ -527,50 +527,27 @@ export default function Profile() {
                 <div style={{ fontWeight: 600, marginBottom: 4 }}>Aucune photo</div>
                 <div style={{ fontSize: 12 }}>Ajoute tes premières photos</div>
               </div>
-            : (() => {
-                const photos = profile.photos || []
-                const first = photos[0]
-                const rest = photos.slice(1)
-                return (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {/* Grande image principale */}
-                    <div onClick={() => openLightbox(first, 0)}
-                      style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', cursor: 'zoom-in', aspectRatio: '16/9', background: '#111' }}
-                      onMouseEnter={e => e.currentTarget.querySelector('img').style.transform = 'scale(1.03)'}
-                      onMouseLeave={e => e.currentTarget.querySelector('img').style.transform = 'scale(1)'}>
-                      <img loading="lazy" decoding="async" src={first} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform .3s ease' }} />
-                      {(photoLikes['0'] || []).length > 0 && (
-                        <div style={{ position: 'absolute', bottom: 10, left: 12, fontSize: 13, color: '#fff', fontWeight: 700, textShadow: '0 1px 4px rgba(0,0,0,.9)' }}>❤️ {(photoLikes['0'] || []).length}</div>
+            : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8 }}>
+                {(profile.photos || []).map((url, i) => {
+                  const likers = photoLikes[String(i)] || []
+                  return (
+                    <div key={i} onClick={() => openLightbox(url, i)}
+                      style={{ position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', cursor: 'zoom-in', background: '#111' }}
+                      onMouseEnter={e => { e.currentTarget.querySelector('img').style.transform = 'scale(1.05)'; e.currentTarget.querySelector('.overlay').style.opacity = '1' }}
+                      onMouseLeave={e => { e.currentTarget.querySelector('img').style.transform = 'scale(1)'; e.currentTarget.querySelector('.overlay').style.opacity = '0' }}>
+                      <img loading="lazy" decoding="async" src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform .3s ease' }} />
+                      {likers.length > 0 && (
+                        <div style={{ position: 'absolute', bottom: 8, left: 10, fontSize: 12, color: '#fff', fontWeight: 700, textShadow: '0 1px 3px rgba(0,0,0,.9)' }}>❤️ {likers.length}</div>
                       )}
-                      <button onClick={e => { e.stopPropagation(); removePhoto(first) }}
-                        style={{ position: 'absolute', top: 10, right: 10, width: 30, height: 30, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.7)', color: '#fff', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>✕</button>
-                    </div>
-
-                    {/* Grille des autres photos */}
-                    {rest.length > 0 && (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 6 }}>
-                        {rest.map((url, i) => {
-                          const idx = i + 1
-                          const likers = photoLikes[String(idx)] || []
-                          return (
-                            <div key={idx} onClick={() => openLightbox(url, idx)}
-                              style={{ position: 'relative', aspectRatio: '1', borderRadius: 10, overflow: 'hidden', cursor: 'zoom-in', background: '#111' }}
-                              onMouseEnter={e => e.currentTarget.querySelector('img').style.transform = 'scale(1.05)'}
-                              onMouseLeave={e => e.currentTarget.querySelector('img').style.transform = 'scale(1)'}>
-                              <img loading="lazy" decoding="async" src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform .3s ease' }} />
-                              {likers.length > 0 && (
-                                <div style={{ position: 'absolute', bottom: 6, left: 8, fontSize: 11, color: '#fff', fontWeight: 700, textShadow: '0 1px 3px rgba(0,0,0,.9)' }}>❤️ {likers.length}</div>
-                              )}
-                              <button onClick={e => { e.stopPropagation(); removePhoto(url) }}
-                                style={{ position: 'absolute', top: 6, right: 6, width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.7)', color: '#fff', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-                            </div>
-                          )
-                        })}
+                      <div className="overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.3)', opacity: 0, transition: 'opacity .2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: 28, color: '#fff', opacity: .9 }}>🔍</span>
                       </div>
-                    )}
-                  </div>
-                )
-              })()
+                      <button onClick={e => { e.stopPropagation(); removePhoto(url) }}
+                        style={{ position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.7)', color: '#fff', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>✕</button>
+                    </div>
+                  )
+                })}
+              </div>
           }
         </div>
 
