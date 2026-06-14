@@ -21,9 +21,11 @@ function calcAge(birthDate) {
 
 async function getToken() {
   try {
-    const keys = Object.keys(localStorage)
-    const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
-    if (authKey) { const data = JSON.parse(localStorage.getItem(authKey)); if (data?.access_token) return data.access_token }
+    const { supabase } = await import('../lib/supabase')
+    if (supabase) {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.access_token) return session.access_token
+    }
   } catch {}
   return ANON_KEY
 }
@@ -181,7 +183,7 @@ export default function Settings() {
   const statutDef = STATUTS.find(s => s.value === (profile.statut || '')) || STATUTS[0]
 
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto', padding: '24px 28px' }}>
+    <div style={{ maxWidth: 680, margin: '0 auto', padding: '24px 16px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
         <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMid, fontSize: 13, fontWeight: 600, padding: 0 }}>← Retour</button>
         <h1 style={{ fontWeight: 700, fontSize: 20, color: C.text, margin: 0 }}>⚙️ Paramètres du compte</h1>
