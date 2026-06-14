@@ -225,11 +225,12 @@ export default function Navbar() {
       { to: '/forum',    icon: '💬', label: 'Forum' },
       { to: user ? '/profile' : '/login', icon: user ? (
         <div style={{ width: 26, height: 26, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', border: `2px solid ${path === '/profile' ? C.accentDk : '#444'}` }}>
-          {profile?.avatar_url ? <img loading="lazy" decoding="async" src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
+          {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
         </div>
       ) : '👤', label: user ? 'Mon profil' : 'Connexion' },
       { to: '/messages', icon: '✉️', label: 'Messages', badge: unreadMessages },
       { to: '/members',  icon: '👥', label: 'Membres' },
+      { to: '/chat',     icon: '💬', label: 'Salon' },
     ]
     return (
       <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 999, height: 64, background: 'rgba(6,6,14,.97)', borderTop: '1px solid rgba(200,162,0,.2)', display: 'flex', alignItems: 'stretch', paddingBottom: 'env(safe-area-inset-bottom)', boxShadow: '0 -4px 24px rgba(0,0,0,.5)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
@@ -274,7 +275,7 @@ export default function Navbar() {
                       {results.map(u => (
                         <div key={u.id} onClick={() => { navigate(`/members/${u.id}`); setSearch(''); setShowRes(false); setShowSearch(false) }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #2a2a2a' }}>
                           <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
-                            {u.avatar_url ? <img loading="lazy" decoding="async" src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : u.initials}
+                            {u.avatar_url ? <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : u.initials}
                           </div>
                           <div style={{ fontWeight: 700, fontSize: 12, color: '#eee' }}>@{u.pseudo}</div>
                         </div>
@@ -333,7 +334,7 @@ export default function Navbar() {
             {user && (
               <div style={{ padding: '14px 20px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', overflow: 'hidden', border: `2px solid ${C.accentDk}` }}>
-                  {profile?.avatar_url ? <img loading="lazy" decoding="async" src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
+                  {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>@{profile?.pseudo}</div>
@@ -389,6 +390,7 @@ export default function Navbar() {
         <NavLink to="/"           label="Accueil"    icon="🏠" />
         <NavLink to="/forum"      label="Forum"      icon="💬" />
         <NavLink to="/members"    label="Membres"    icon="👥" />
+        <NavLink to="/chat"        label="Salon"      icon="💬" />
         {user && (
           <Link to="/messages" style={{ textDecoration: 'none' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', height: 64, color: path === '/messages' ? C.accent : '#ccc', fontWeight: path === '/messages' ? 700 : 400, fontSize: 14, borderBottom: path === '/messages' ? `2px solid ${C.accent}` : '2px solid transparent', cursor: 'pointer', transition: 'all .15s', whiteSpace: 'nowrap', position: 'relative' }}>
@@ -406,10 +408,10 @@ export default function Navbar() {
         {user && canMod && <NavLink to="/moderation" label="Modération" icon="🛡️" />}
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button onClick={toggle} className="theme-toggle" title={dark ? 'Mode clair' : 'Mode sombre'} style={{ width: 36, height: 36, borderRadius: '50%', border: '1px solid rgba(200,162,0,.5)', background: 'rgba(200,162,0,.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, transition: 'all .18s' }}>{dark ? '☀️' : '🌙'}</button>
+          <button onClick={toggle} className="theme-toggle" title={dark ? 'Mode clair' : 'Mode sombre'}>{dark ? '☀️' : '🌙'}</button>
 
           <div ref={searchRef} style={{ position: 'relative' }}>
-            <button onClick={() => setShowSearch(s => !s)} style={{ width: 36, height: 36, borderRadius: '50%', border: `1px solid ${showSearch ? 'rgba(200,162,0,.8)' : 'rgba(200,162,0,.5)'}`, background: showSearch ? 'rgba(200,162,0,.15)' : 'rgba(200,162,0,.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, transition: 'all .18s' }}>🔍</button>
+            <button onClick={() => setShowSearch(s => !s)} style={{ width: 36, height: 36, borderRadius: '50%', border: '1px solid rgba(255,255,255,.1)', background: showSearch ? 'rgba(200,162,0,.15)' : 'rgba(255,255,255,.06)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, transition: 'all .18s' }}>🔍</button>
             {showSearch && (
               <div style={{ position: 'absolute', top: '110%', right: 0, background: 'rgba(12,12,22,.97)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 14, padding: 12, width: 260, zIndex: 1000, backdropFilter: 'blur(20px)', boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
                 <input value={search} onChange={e => { setSearch(e.target.value); setShowRes(true) }} autoFocus placeholder="Rechercher un membre…" style={{ width: '100%', background: '#222', border: '1px solid #444', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
@@ -421,7 +423,7 @@ export default function Navbar() {
                         onMouseEnter={e => e.currentTarget.style.background = '#2a2a2a'}
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                         <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
-                          {u.avatar_url ? <img loading="lazy" decoding="async" src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : u.initials}
+                          {u.avatar_url ? <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : u.initials}
                         </div>
                         <div>
                           <div style={{ fontWeight: 700, fontSize: 13, color: '#eee' }}>@{u.pseudo}</div>
@@ -450,7 +452,7 @@ export default function Navbar() {
                   }
                   return !s
                 })
-              }} style={{ width: 36, height: 36, borderRadius: '50%', border: `1px solid ${notifs.length > 0 ? 'rgba(200,162,0,.8)' : 'rgba(200,162,0,.5)'}`, background: notifs.length > 0 ? 'rgba(200,162,0,.12)' : 'rgba(200,162,0,.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, position: 'relative', transition: 'all .18s' }}>
+              }} style={{ width: 36, height: 36, borderRadius: '50%', border: 'none', background: '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, position: 'relative' }}>
                 🔔
                 {notifs.length > 0 && <span style={{ position: 'absolute', top: 2, right: 2, width: 16, height: 16, borderRadius: '50%', background: C.red, color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{notifs.length > 9 ? '9+' : notifs.length}</span>}
               </button>
@@ -483,7 +485,7 @@ export default function Navbar() {
             <div ref={userMenuRef} style={{ position: 'relative' }}>
               <div onClick={() => setShowUserMenu(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', height: 40, background: showUserMenu ? 'rgba(200,162,0,.12)' : 'rgba(255,255,255,.05)', borderRadius: 22, border: `1px solid ${showUserMenu ? 'rgba(200,162,0,.5)' : 'rgba(255,255,255,.1)'}`, cursor: 'pointer', transition: 'all .18s' }}>
                 <div style={{ width: 26, height: 26, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, border: ROLE_RING[profile?.role] ? `2px solid ${ROLE_RING[profile?.role]}` : '2px solid #333', boxShadow: ROLE_RING[profile?.role] ? `0 0 6px ${ROLE_RING[profile?.role]}88` : 'none' }}>
-                  {profile?.avatar_url ? <img loading="lazy" decoding="async" src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
+                  {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
                 </div>
                 <div style={{ lineHeight: 1.2 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
