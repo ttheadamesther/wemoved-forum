@@ -144,6 +144,7 @@ export default function Home() {
   const [body,       setBody]       = useState('')
   const [cat,        setCat]        = useState('Divers')
   const [posting,    setPosting]    = useState(false)
+  const [announcements, setAnnouncements] = useState([])
 
   useEffect(() => {
     const observer = new ResizeObserver(entries => {
@@ -176,6 +177,9 @@ export default function Home() {
     })
     apiFetch('/rest/v1/messages?select=id').then(d => {
       if (Array.isArray(d)) setStats(s => ({ ...s, messages: d.length }))
+    })
+    apiFetch('/rest/v1/announcements?select=*&order=pinned.desc,created_at.desc').then(d => {
+      if (Array.isArray(d)) setAnnouncements(d)
     })
   }, [])
 
@@ -554,14 +558,27 @@ export default function Home() {
               <span style={{ fontWeight: 700, fontSize: 11, color: 'var(--textDim)', textTransform: 'uppercase', letterSpacing: 1 }}>📢 Annonces</span>
             </SectionHeader>
             <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ background: 'var(--accentBg)', border: '1px solid rgba(200,162,0,.25)', borderRadius: 10, padding: '11px 13px' }}>
-                <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--accentTxt)', marginBottom: 4 }}>🎉 Bienvenue sur WeMoved !</div>
-                <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5, opacity: .85 }}>La communauté est lancée. Créez votre profil et participez !</div>
-              </div>
-              <div style={{ padding: '2px 2px' }}>
-                <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 3, color: 'var(--text)' }}>Nouveau système de badges !</div>
-                <div style={{ fontSize: 12, color: 'var(--textMid)', lineHeight: 1.5 }}>Découvrez-les dans votre profil.</div>
-              </div>
+              {announcements.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--textDim)', textAlign: 'center', padding: '8px 0', fontStyle: 'italic' }}>
+                  Aucune annonce pour l'instant.
+                </div>
+              ) : announcements.map((a, i) => (
+                <div key={a.id} style={{
+                  background: i === 0 && a.pinned ? 'var(--accentBg)' : 'transparent',
+                  border: i === 0 && a.pinned ? '1px solid rgba(200,162,0,.25)' : (i > 0 ? 'none' : 'none'),
+                  borderBottom: i < announcements.length - 1 ? '1px solid var(--border)' : 'none',
+                  borderRadius: i === 0 && a.pinned ? 10 : 0,
+                  padding: i === 0 && a.pinned ? '11px 13px' : '8px 2px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                    <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{a.emoji || '📢'}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: i === 0 && a.pinned ? 'var(--accentTxt)' : 'var(--text)', marginBottom: 3 }}>{a.title}</div>
+                      <div style={{ fontSize: 12, color: 'var(--textMid)', lineHeight: 1.5 }}>{a.body}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </SectionCard>
         </div>

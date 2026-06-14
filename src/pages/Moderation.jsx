@@ -54,6 +54,8 @@ const LOG_LABELS = {
   hide_thread:   { icon: '🙈', label: 'Topic masqué', color: '#95a5a6' },
 }
 
+const EMOJI_OPTIONS = ['📢','🎉','⚠️','🔥','💡','📌','🆕','🎊','🚀','💬']
+
 async function logAction(modId, targetId, action, details = {}) {
   try {
     await apiAuth('/rest/v1/mod_logs', {
@@ -63,6 +65,203 @@ async function logAction(modId, targetId, action, details = {}) {
   } catch {}
 }
 
+/* ── Sous-composant : gestion des annonces ── */
+function AnnouncementsPanel({ user }) {
+  const [announcements, setAnnouncements] = useState([])
+  const [loading,       setLoading]       = useState(true)
+  const [form,          setForm]          = useState({ title: '', body: '', emoji: '📢', pinned: false })
+  const [editing,       setEditing]       = useState(null) // id en cours d'édition
+  const [saving,        setSaving]        = useState(false)
+  const [showForm,      setShowForm]      = useState(false)
+
+  const inputStyle = {
+    width: '100%', padding: '9px 13px', borderRadius: 10,
+    border: `1px solid ${C.border}`, fontSize: 13, color: C.text,
+    background: C.surfaceB, fontFamily: 'inherit', outline: 'none',
+    boxSizing: 'border-box',
+  }
+
+  useEffect(() => {
+    api('/rest/v1/announcements?select=*&order=pinned.desc,created_at.desc')
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setAnnouncements(d) })
+      .finally(() => setLoading(false))
+  }, [])
+
+  const resetForm = () => {
+    setForm({ title: '', body: '', emoji: '📢', pinned: false })
+    setEditing(null)
+    setShowForm(false)
+  }
+
+  const startEdit = (a) => {
+    setForm({ title: a.title, body: a.body, emoji: a.emoji || '📢', pinned: a.pinned || false })
+    setEditing(a.id)
+    setShowForm(true)
+  }
+
+  const save = async () => {
+    if (!form.title.trim() || !form.body.trim()) return
+    setSaving(true)
+    try {
+      if (editing) {
+        await apiAuth(`/rest/v1/announcements?id=eq.${editing}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ title: form.title, body: form.body, emoji: form.emoji, pinned: form.pinned })
+        })
+        setAnnouncements(prev => prev.map(a => a.id === editing ? { ...a, ...form } : a))
+      } else {
+        const r = await apiAuth('/rest/v1/announcements', {
+          method: 'POST',
+          headers: { Prefer: 'return=representation' },
+          body: JSON.stringify({ author_id: user.id, title: form.title, body: form.body, emoji: form.emoji, pinned: form.pinned })
+        })
+        const d = await r.json()
+        if (Array.isArray(d) && d[0]) {
+          setAnnouncements(prev => [d[0], ...prev].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || new Date(b.created_at) - new Date(a.created_at)))
+        }
+      }
+      resetForm()
+    } catch {}
+    setSaving(false)
+  }
+
+  const deleteAnnouncement = async (id) => {
+    await apiAuth(`/rest/v1/announcements?id=eq.${id}`, { method: 'DELETE' })
+    setAnnouncements(prev => prev.filter(a => a.id !== id))
+  }
+
+  const togglePin = async (a) => {
+    await apiAuth(`/rest/v1/announcements?id=eq.${a.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ pinned: !a.pinned })
+    })
+    setAnnouncements(prev =>
+      prev.map(x => x.id === a.id ? { ...x, pinned: !x.pinned } : x)
+          .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || new Date(b.created_at) - new Date(a.created_at))
+    )
+  }
+
+  return (
+    <div>
+      {/* Bouton créer */}
+      {!showForm && (
+        <button onClick={() => setShowForm(true)} style={{
+          marginBottom: 16, padding: '10px 20px', borderRadius: 10,
+          background: 'linear-gradient(135deg,#f0c800,#c8a200)', border: 'none',
+          cursor: 'pointer', fontWeight: 700, fontSize: 13, color: '#3a2e00',
+          fontFamily: 'inherit', boxShadow: '0 2px 10px rgba(200,162,0,.3)'
+        }}>
+          + Nouvelle annonce
+        </button>
+      )}
+
+      {/* Formulaire création / édition */}
+      {showForm && (
+        <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: 20, marginBottom: 20 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 16 }}>
+            {editing ? '✏️ Modifier l\'annonce' : '📢 Nouvelle annonce'}
+          </div>
+
+          {/* Choix emoji */}
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Icône</div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {EMOJI_OPTIONS.map(e => (
+                <button key={e} onClick={() => setForm(f => ({ ...f, emoji: e }))}
+                  style={{ width: 36, height: 36, borderRadius: 8, border: `2px solid ${form.emoji === e ? C.accentDk : C.border}`, background: form.emoji === e ? C.accentBg : C.surfaceB, fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {e}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 10 }}>
+            <input
+              value={form.title}
+              onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+              placeholder="Titre de l'annonce…"
+              style={inputStyle}
+            />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <textarea
+              value={form.body}
+              onChange={e => setForm(f => ({ ...f, body: e.target.value }))}
+              placeholder="Contenu de l'annonce…"
+              rows={3}
+              style={{ ...inputStyle, resize: 'vertical' }}
+            />
+          </div>
+
+          {/* Épingler */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: C.textMid, marginBottom: 16 }}>
+            <input type="checkbox" checked={form.pinned} onChange={e => setForm(f => ({ ...f, pinned: e.target.checked }))} style={{ width: 16, height: 16, cursor: 'pointer' }} />
+            📌 Épingler cette annonce
+          </label>
+
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <Btn onClick={resetForm} variant="ghost">Annuler</Btn>
+            <Btn onClick={save} disabled={saving} style={{ opacity: saving ? .7 : 1 }}>
+              {saving ? '…' : (editing ? 'Enregistrer' : 'Publier')}
+            </Btn>
+          </div>
+        </div>
+      )}
+
+      {/* Liste des annonces */}
+      {loading ? (
+        <div style={{ padding: 30, textAlign: 'center', color: C.textDim, fontSize: 13 }}>Chargement…</div>
+      ) : announcements.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 30, color: C.textDim, fontSize: 13, background: C.white, borderRadius: 14, border: `1px solid ${C.border}` }}>
+          Aucune annonce pour l'instant.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {announcements.map(a => (
+            <div key={a.id} style={{
+              background: C.white, borderRadius: 14, padding: '16px 18px',
+              border: `1px solid ${a.pinned ? 'rgba(200,162,0,.4)' : C.border}`,
+              borderLeft: `4px solid ${a.pinned ? 'var(--accent, #c8a200)' : C.accentDk}`,
+              boxShadow: a.pinned ? '0 2px 12px rgba(200,162,0,.1)' : 'none',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <span style={{ fontSize: 22, flexShrink: 0, marginTop: 2 }}>{a.emoji || '📢'}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 700, fontSize: 14, color: C.text }}>{a.title}</span>
+                    {a.pinned && (
+                      <span style={{ fontSize: 10, fontWeight: 700, color: '#c8a200', background: 'rgba(200,162,0,.1)', border: '1px solid rgba(200,162,0,.3)', borderRadius: 20, padding: '1px 8px' }}>
+                        📌 Épinglé
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ fontSize: 13, color: C.textMid, lineHeight: 1.6, margin: 0, marginBottom: 10, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{a.body}</p>
+                  <div style={{ fontSize: 11, color: C.textDim }}>{new Date(a.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+                  <button onClick={() => togglePin(a)} title={a.pinned ? 'Désépingler' : 'Épingler'}
+                    style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${a.pinned ? '#c8a200' : C.border}`, background: a.pinned ? 'rgba(200,162,0,.1)' : C.surfaceB, cursor: 'pointer', fontSize: 14 }}>
+                    📌
+                  </button>
+                  <button onClick={() => startEdit(a)}
+                    style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.surfaceB, cursor: 'pointer', fontSize: 14 }}>
+                    ✏️
+                  </button>
+                  <button onClick={() => deleteAnnouncement(a.id)}
+                    style={{ padding: '5px 10px', borderRadius: 8, border: '1px solid #e74c3c', background: 'transparent', cursor: 'pointer', fontSize: 14, color: '#e74c3c' }}>
+                    🗑
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Moderation() {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
@@ -70,16 +269,17 @@ export default function Moderation() {
   const [members,     setMembers]    = useState([])
   const [bugs,        setBugs]       = useState([])
   const [reports,     setReports]    = useState([])
-  const [logs,        setLogs]       = useState([])
-  const [reportContents, setReportContents] = useState({}) // cache contenu signalé
+  const [logs,        setLogs]       = useState([]  )
+  const [reportContents, setReportContents] = useState({})
   const [search,      setSearch]     = useState('')
   const [loading,     setLoading]    = useState(true)
   const [banTarget,   setBanTarget]  = useState(null)
   const [banDuration, setBanDuration]= useState('1d')
   const [banReason,   setBanReason]  = useState('')
-  const [expandedMember, setExpandedMember] = useState(null) // pour historique ban
+  const [expandedMember, setExpandedMember] = useState(null)
 
   const canMod = ['admin', 'manager', 'moderateur'].includes(profile?.role)
+  const isAdmin = ['admin', 'manager'].includes(profile?.role)
 
   useEffect(() => {
     if (!user) { navigate('/login'); return }
@@ -99,7 +299,6 @@ export default function Moderation() {
       if (Array.isArray(b))  setBugs(b)
       if (Array.isArray(rp)) {
         setReports(rp)
-        // Charger le contenu des signalements
         rp.forEach(r => fetchReportContent(r))
       }
       if (Array.isArray(lg)) setLogs(lg)
@@ -107,7 +306,6 @@ export default function Moderation() {
     })
   }, [canMod])
 
-  // Charger le contenu signalé (thread ou reply)
   const fetchReportContent = async (report) => {
     if (!report.target_id || reportContents[report.id]) return
     try {
@@ -137,7 +335,6 @@ export default function Moderation() {
       target_pseudo: getMember(memberId)?.pseudo
     })
     setMembers(prev => prev.map(m => m.id === memberId ? { ...m, banned: true, banned_until: bannedUntil } : m))
-    // Refresh logs
     apiAuth('/rest/v1/mod_logs?select=*&order=created_at.desc&limit=100').then(r => r.json()).then(d => { if (Array.isArray(d)) setLogs(d) })
     setBanTarget(null); setBanReason(''); setBanDuration('1d')
   }
@@ -183,6 +380,14 @@ export default function Moderation() {
     <div style={{ padding: 40, textAlign: 'center', color: C.textDim }}>Accès refusé.</div>
   )
 
+  const tabs = [
+    { key: 'members',       label: `👥 Membres (${members.length})` },
+    { key: 'reports',       label: `🚩 Signalements${pendingReports > 0 ? ` (${pendingReports})` : ''}` },
+    { key: 'bugs',          label: `🐛 Bugs (${bugs.filter(b => b.status !== 'résolu').length})` },
+    { key: 'logs',          label: `📋 Logs (${logs.length})` },
+    ...(isAdmin ? [{ key: 'announcements', label: '📢 Annonces' }] : []),
+  ]
+
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 28px' }}>
 
@@ -215,25 +420,25 @@ export default function Moderation() {
 
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ fontWeight: 700, fontSize: 22, color: C.text, marginBottom: 4 }}>🛡️ Modération</h1>
-        <p style={{ fontSize: 13, color: C.textDim }}>Gestion des membres, signalements et bugs</p>
+        <p style={{ fontSize: 13, color: C.textDim }}>Gestion des membres, signalements, bugs et annonces</p>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: C.surfaceB, borderRadius: 12, padding: 4 }}>
-        {[
-          { key: 'members', label: `👥 Membres (${members.length})` },
-          { key: 'reports', label: `🚩 Signalements${pendingReports > 0 ? ` (${pendingReports})` : ''}` },
-          { key: 'bugs',    label: `🐛 Bugs (${bugs.filter(b => b.status !== 'résolu').length})` },
-          { key: 'logs',    label: `📋 Logs (${logs.length})` },
-        ].map(t => (
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: C.surfaceB, borderRadius: 12, padding: 4, flexWrap: 'wrap' }}>
+        {tabs.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: tab === t.key ? C.white : 'transparent', color: tab === t.key ? C.text : C.textMid, fontWeight: tab === t.key ? 700 : 400, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', boxShadow: tab === t.key ? '0 1px 4px rgba(0,0,0,.08)' : 'none', transition: 'all .15s' }}>
+            style={{ flex: 1, minWidth: 'max-content', padding: '10px', borderRadius: 10, border: 'none', background: tab === t.key ? C.white : 'transparent', color: tab === t.key ? C.text : C.textMid, fontWeight: tab === t.key ? 700 : 400, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', boxShadow: tab === t.key ? '0 1px 4px rgba(0,0,0,.08)' : 'none', transition: 'all .15s' }}>
             {t.label}
           </button>
         ))}
       </div>
 
-      {loading ? (
+      {/* Onglet Annonces */}
+      {tab === 'announcements' && isAdmin && (
+        <AnnouncementsPanel user={user} />
+      )}
+
+      {loading && tab !== 'announcements' ? (
         <div style={{ textAlign: 'center', padding: 40, color: C.textDim }}>Chargement…</div>
 
       ) : tab === 'members' ? (
@@ -282,7 +487,6 @@ export default function Moderation() {
                       }
                     </div>
                   </div>
-                  {/* Historique des bans */}
                   {isExpanded && memberLogs.length > 0 && (
                     <div style={{ borderTop: `1px solid ${C.border}`, background: C.surfaceB, padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 4 }}>Historique des bans</div>
@@ -335,7 +539,6 @@ export default function Moderation() {
                     <div style={{ fontSize: 11, color: C.textDim }}>
                       Signalé par <strong>@{reporter?.pseudo || 'Inconnu'}</strong> · {new Date(r.created_at).toLocaleDateString('fr-FR')}
                     </div>
-                    {/* Contenu signalé */}
                     {content && (
                       <div style={{ marginTop: 10, padding: '10px 12px', background: C.surfaceB, borderRadius: 10, border: `1px solid ${C.border}`, borderLeft: `3px solid ${statusColor}` }}>
                         {content.title && <div style={{ fontWeight: 700, fontSize: 12, color: C.text, marginBottom: 4 }}>{content.title}</div>}
@@ -410,8 +613,7 @@ export default function Moderation() {
           })}
         </div>
 
-      ) : (
-        /* Onglet Logs */
+      ) : tab === 'logs' ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {logs.length === 0 && (
             <div style={{ textAlign: 'center', padding: 30, color: C.textDim, fontSize: 13, background: C.white, borderRadius: 14, border: `1px solid ${C.border}` }}>
@@ -449,7 +651,7 @@ export default function Moderation() {
             )
           })}
         </div>
-      )}
+      ) : null}
     </div>
   )
 }
