@@ -62,7 +62,7 @@ function MemberAvatar({ member, size = 34, colors }) {
       boxShadow: ring ? `0 0 10px ${ring}66` : 'none',
     }}>
       {member?.avatar_url
-        ? <img loading="lazy" decoding="async" src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+        ? <img src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
         : member?.initials || '?'}
     </div>
   )
@@ -75,10 +75,6 @@ function SectionCard({ children, style = {} }) {
       background: 'var(--white)',
       border: '1px solid rgba(200,162,0,.5)',
       borderRadius: 16,
-      overflow: 'hidden',
-      isolation: 'isolate',
-      transform: 'translateZ(0)',
-      WebkitTransform: 'translateZ(0)',
       boxShadow: '0 2px 12px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.05)',
       transition: 'box-shadow .25s ease, border-color .25s ease',
       ...style
@@ -93,11 +89,11 @@ function SectionHeader({ children, accent = false }) {
     <div style={{
       padding: '13px 18px',
       borderBottom: '1px solid rgba(200,162,0,.35)',
+      borderRadius: '15px 15px 0 0',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
       background: 'var(--surfaceB)',
-      margin: 0,
     }}>
       {children}
     </div>
@@ -143,69 +139,11 @@ export default function Home() {
   const [stats,      setStats]      = useState({ members: 0, threads: 0, messages: 0, online: 0 })
   const [topMembers, setTopMembers] = useState([])
   const [activity,   setActivity]   = useState([])
-  const [feed,       setFeed]       = useState([])
   const [newThread,  setNewThread]  = useState(false)
   const [title,      setTitle]      = useState('')
   const [body,       setBody]       = useState('')
   const [cat,        setCat]        = useState('Divers')
   const [posting,    setPosting]    = useState(false)
-
-  // ── Annonces ──
-  const [announcements, setAnnouncements] = useState([])
-  const [editingAnnounce, setEditingAnnounce] = useState(false)
-  const [annForm, setAnnForm] = useState({ title: '', body: '', link: '', pinned: false })
-  const [annSaving, setAnnSaving] = useState(false)
-  const [annEditId, setAnnEditId] = useState(null)
-  const isAdmin = ['admin', 'manager'].includes(profile?.role)
-
-  const loadAnnouncements = () => {
-    apiFetch('/rest/v1/announcements?select=*&order=pinned.desc,created_at.desc')
-      .then(d => { if (Array.isArray(d)) setAnnouncements(d) })
-  }
-
-  const saveAnnouncement = async () => {
-    if (!annForm.title.trim()) return
-    setAnnSaving(true)
-    const { supabase } = await import('../lib/supabase')
-    const { data: { session } } = await supabase.auth.getSession()
-    const token = session?.access_token || ANON_KEY
-    const payload = { title: annForm.title.trim(), body: annForm.body.trim(), link: annForm.link.trim() || null, pinned: annForm.pinned }
-    if (annEditId) {
-      await fetch(`${SUPABASE_URL}/rest/v1/announcements?id=eq.${annEditId}`, {
-        method: 'PATCH',
-        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-        body: JSON.stringify(payload)
-      })
-    } else {
-      await fetch(`${SUPABASE_URL}/rest/v1/announcements`, {
-        method: 'POST',
-        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-        body: JSON.stringify(payload)
-      })
-    }
-    setAnnSaving(false)
-    setEditingAnnounce(false)
-    setAnnForm({ title: '', body: '', link: '', pinned: false })
-    setAnnEditId(null)
-    loadAnnouncements()
-  }
-
-  const deleteAnnouncement = async (id) => {
-    const { supabase } = await import('../lib/supabase')
-    const { data: { session } } = await supabase.auth.getSession()
-    const token = session?.access_token || ANON_KEY
-    await fetch(`${SUPABASE_URL}/rest/v1/announcements?id=eq.${id}`, {
-      method: 'DELETE',
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
-    })
-    loadAnnouncements()
-  }
-
-  const startEdit = (ann) => {
-    setAnnEditId(ann.id)
-    setAnnForm({ title: ann.title, body: ann.body || '', link: ann.link || '', pinned: ann.pinned || false })
-    setEditingAnnounce(true)
-  }
 
   useEffect(() => {
     const observer = new ResizeObserver(entries => {
@@ -232,55 +170,13 @@ export default function Home() {
       if (Array.isArray(d)) { setThreads(d); setStats(s => ({ ...s, threads: d.length })) }
       setLoadingT(false)
     })
-    // Fil d'actu enrichi : threads + events profil (photos, niveaux)
-    Promise.all([
-      apiFetch('/rest/v1/threads?select=id,title,author_id,created_at&order=created_at.desc&limit=12'),
-      apiFetch('/rest/v1/profiles?select=id,pseudo,initials,avatar_url,level,photos,updated_at,role,online&order=updated_at.desc&limit=30'),
-    ]).then(([threads, profiles]) => {
-      // Fusionner les profils dans members pour que getMember() fonctionne
-      if (Array.isArray(profiles)) {
-        setMembers(prev => {
-          const map = {}
-          prev.forEach(m => { map[m.id] = m })
-          profiles.forEach(p => { if (!map[p.id]) map[p.id] = p })
-          return Object.values(map)
-        })
-      }
-      const events = []
-      // Threads créés
-      if (Array.isArray(threads)) {
-        threads.forEach(t => events.push({ type: 'thread', id: t.id, author_id: t.author_id, title: t.title, ts: t.created_at }))
-      }
-      // Photos + niveaux depuis profils
-      if (Array.isArray(profiles)) {
-        profiles.forEach(p => {
-          if (p.photos?.length > 0) {
-            events.push({ type: 'photo', id: `photo-${p.id}`, author_id: p.id, count: p.photos.length, ts: p.updated_at })
-          }
-          if (p.level > 1) {
-            events.push({ type: 'level', id: `level-${p.id}`, author_id: p.id, level: p.level, ts: p.updated_at })
-          }
-        })
-      }
-      // Trier + dédupliquer par type-auteur
-      const seen = new Set()
-      const sorted = events
-        .sort((a, b) => new Date(b.ts) - new Date(a.ts))
-        .filter(e => {
-          const key = `${e.type}-${e.author_id}`
-          if (seen.has(key)) return false
-          seen.add(key)
-          return true
-        })
-        .slice(0, 15)
-      setFeed(sorted)
-      if (Array.isArray(threads)) setActivity(threads)
+    apiFetch('/rest/v1/threads?select=id,title,author_id,created_at&order=created_at.desc&limit=8').then(d => {
+      if (Array.isArray(d)) setActivity(d)
       setLoadingA(false)
     })
     apiFetch('/rest/v1/messages?select=id').then(d => {
       if (Array.isArray(d)) setStats(s => ({ ...s, messages: d.length }))
     })
-    loadAnnouncements()
   }, [])
 
   useEffect(() => {
@@ -335,7 +231,7 @@ export default function Home() {
   const xpPercent = profile ? ((profile.xp || 0) % 1000) / 10 : 0
   const gridStyle = isMobile
     ? { display: 'flex', flexDirection: 'column', gap: 14 }
-    : { display: 'grid', gridTemplateColumns: '300px 1fr 380px', gap: 22 }
+    : { display: 'grid', gridTemplateColumns: '260px 1fr 280px', gap: 18 }
 
   const colors = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
 
@@ -355,7 +251,7 @@ export default function Home() {
 
   return (
     <div ref={containerRef}>
-      <div style={{ maxWidth: 1600, margin: '0 auto', padding: isMobile ? '14px 12px' : '22px 28px', ...gridStyle }}>
+      <div style={{ maxWidth: 1300, margin: '0 auto', padding: isMobile ? '14px 12px' : '22px 18px', ...gridStyle }}>
 
         {/* ── SIDEBAR GAUCHE ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -386,7 +282,7 @@ export default function Home() {
               )
             })}
             <div onClick={() => navigate('/members')}
-              style={{ padding: '11px 18px', textAlign: 'center', cursor: 'pointer', background: 'var(--surfaceB)', transition: 'background .13s' }}
+              style={{ padding: '11px 18px', textAlign: 'center', cursor: 'pointer', background: 'var(--surfaceB)', borderRadius: '0 0 16px 16px', transition: 'background .13s' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
               onMouseLeave={e => e.currentTarget.style.background = 'var(--surfaceB)'}>
               <span style={{ fontSize: 12, color: 'var(--accentTxt)', fontWeight: 700 }}>Voir le classement complet</span>
@@ -421,7 +317,7 @@ export default function Home() {
                 ))
             }
             <div onClick={() => navigate('/members')}
-              style={{ padding: '10px 18px', textAlign: 'center', cursor: 'pointer', background: 'var(--surfaceB)', transition: 'background .13s' }}
+              style={{ padding: '10px 18px', textAlign: 'center', cursor: 'pointer', background: 'var(--surfaceB)', borderRadius: '0 0 16px 16px', transition: 'background .13s' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
               onMouseLeave={e => e.currentTarget.style.background = 'var(--surfaceB)'}>
               <span style={{ fontSize: 11, color: 'var(--accentTxt)', fontWeight: 700 }}>Voir tous les membres →</span>
@@ -532,7 +428,7 @@ export default function Home() {
                   })
             }
             <div onClick={() => navigate('/forum')}
-              style={{ padding: '13px 20px', textAlign: 'center', cursor: 'pointer', background: 'var(--surfaceB)', borderTop: '1px solid var(--border)', transition: 'background .13s' }}
+              style={{ padding: '13px 20px', textAlign: 'center', cursor: 'pointer', background: 'var(--surfaceB)', borderTop: '1px solid var(--border)', borderRadius: '0 0 16px 16px', transition: 'background .13s' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
               onMouseLeave={e => e.currentTarget.style.background = 'var(--surfaceB)'}>
               <span style={{ fontSize: 12, color: 'var(--accentTxt)', fontWeight: 700 }}>Voir toutes les discussions →</span>
@@ -570,66 +466,50 @@ export default function Home() {
             </div>
           </SectionCard>
 
+          {/* Banner */}
+          <div style={{
+            background: 'linear-gradient(135deg,#0e0e1e 0%,#141428 50%,#0a0a18 100%)',
+            borderRadius: 16,
+            padding: isMobile ? '24px 20px' : '30px 40px',
+            textAlign: 'center',
+            border: '1px solid rgba(200,162,0,.18)',
+            boxShadow: '0 4px 24px rgba(0,0,0,.25), inset 0 1px 0 rgba(200,162,0,.08)',
+          }}>
+            <div style={{ fontSize: 40, color: 'var(--accent)', lineHeight: 1, marginBottom: 12, opacity: .6, fontFamily: 'Georgia, serif' }}>"</div>
+            <p style={{ fontSize: isMobile ? 15 : 18, color: '#fff', fontWeight: 700, marginBottom: 10, lineHeight: 1.5 }}>La communauté, c'est ce qui nous fait avancer.</p>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,.45)', lineHeight: 1.6 }}>Restons respectueux, ouverts et bienveillants envers tous.</p>
+          </div>
         </div>
 
         {/* ── SIDEBAR DROITE ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-          {/* Fil d'actu */}
+          {/* Activité */}
           <SectionCard>
             <SectionHeader>
               <span style={{ fontWeight: 700, fontSize: 11, color: 'var(--textDim)', textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 7 }}>
-                Fil d'actu
+                Activité récente
                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--online)', display: 'inline-block', boxShadow: '0 0 6px var(--online)', animation: 'pulse 2s infinite' }} />
               </span>
             </SectionHeader>
             {loadingA
-              ? Array.from({ length: 5 }).map((_, i) => <SkeletonActivity key={i} />)
-              : feed.length === 0
+              ? Array.from({ length: 4 }).map((_, i) => <SkeletonActivity key={i} />)
+              : activity.length === 0
                 ? <div style={{ padding: 20, textAlign: 'center', color: 'var(--textDim)', fontSize: 12 }}>Aucune activité</div>
-                : feed.map((event, i) => {
-                    const author = getMember(event.author_id)
-                    const iconMap = { thread: '💬', photo: '📸', level: '⚡' }
-                    const icon = iconMap[event.type] || '💬'
-                    const bgMap = {
-                      thread: 'transparent',
-                      photo:  'rgba(155,89,182,.06)',
-                      level:  'rgba(200,162,0,.06)',
-                    }
-                    const getLabel = () => {
-                      if (event.type === 'thread') return (
-                        <><span style={{ fontWeight: 700, color: 'var(--accentTxt)' }}>@{author?.pseudo || 'Inconnu'}</span>
-                        {' '}a posté{' '}
-                        <span style={{ fontWeight: 600 }}>"{event.title?.slice(0, 26)}{event.title?.length > 26 ? '…' : ''}"</span></>
-                      )
-                      if (event.type === 'photo') return (
-                        <><span style={{ fontWeight: 700, color: 'var(--accentTxt)' }}>@{author?.pseudo || 'Inconnu'}</span>
-                        {' '}a ajouté{' '}
-                        <span style={{ fontWeight: 600 }}>{event.count} photo{event.count > 1 ? 's' : ''}</span></>
-                      )
-                      if (event.type === 'level') return (
-                        <><span style={{ fontWeight: 700, color: 'var(--accentTxt)' }}>@{author?.pseudo || 'Inconnu'}</span>
-                        {' '}a atteint le{' '}
-                        <span style={{ fontWeight: 700, color: '#f0c800' }}>niveau {event.level}</span> ⚡</>
-                      )
-                    }
-                    const handleClick = () => {
-                      if (event.type === 'thread') navigate(`/forum/${event.id}`)
-                      else if (author?.id) navigate(`/members/${author.id}`)
-                    }
+                : activity.map((t, i) => {
+                    const author = getMember(t.author_id)
                     return (
-                      <div key={event.id} onClick={handleClick}
-                        style={{ display: 'flex', gap: 11, padding: '11px 16px', borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background .13s', background: bgMap[event.type], animation: `fadein .${2 + i}s ease` }}
+                      <div key={t.id} onClick={() => navigate(`/forum/${t.id}`)}
+                        style={{ display: 'flex', gap: 11, padding: '11px 16px', borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background .13s', animation: `fadein .${2 + i}s ease` }}
                         onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
-                        onMouseLeave={e => e.currentTarget.style.background = bgMap[event.type]}>
-                        <div style={{ position: 'relative', flexShrink: 0 }}>
-                          <MemberAvatar member={author} size={34} colors={colors} />
-                          <span style={{ position: 'absolute', bottom: -2, right: -2, fontSize: 12, lineHeight: 1 }}>{icon}</span>
-                        </div>
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                        <MemberAvatar member={author} size={34} colors={colors} />
                         <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5, flex: 1, minWidth: 0 }}>
-                          {getLabel()}
+                          <span style={{ fontWeight: 700, color: 'var(--accentTxt)' }}>@{author?.pseudo || 'Inconnu'}</span>
                           {author?.is_bot && <span style={{ marginLeft: 4, padding: '1px 5px', borderRadius: 4, fontSize: 8, fontWeight: 700, background: '#5865f2', color: '#fff' }}>BOT</span>}
-                          <div style={{ fontSize: 10, color: 'var(--textDim)', marginTop: 3 }}>{formatTimeAgo(event.ts)}</div>
+                          {' '}a créé{' '}
+                          <span style={{ fontWeight: 600, color: 'var(--text)' }}>"{t.title?.slice(0, 28)}{t.title?.length > 28 ? '…' : ''}"</span>
+                          <div style={{ fontSize: 10, color: 'var(--textDim)', marginTop: 3 }}>{formatTimeAgo(t.created_at)}</div>
                         </div>
                       </div>
                     )
@@ -672,92 +552,16 @@ export default function Home() {
           <SectionCard>
             <SectionHeader>
               <span style={{ fontWeight: 700, fontSize: 11, color: 'var(--textDim)', textTransform: 'uppercase', letterSpacing: 1 }}>📢 Annonces</span>
-              {isAdmin && (
-                <button onClick={() => { setEditingAnnounce(v => !v); setAnnEditId(null); setAnnForm({ title: '', body: '', link: '', pinned: false }) }}
-                  style={{ fontSize: 11, color: 'var(--accentTxt)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', opacity: .85 }}>
-                  {editingAnnounce && !annEditId ? '✕ Annuler' : '+ Nouvelle'}
-                </button>
-              )}
             </SectionHeader>
-
-            {/* Formulaire admin */}
-            {isAdmin && editingAnnounce && (
-              <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(200,162,0,.2)', display: 'flex', flexDirection: 'column', gap: 9 }}>
-                <input
-                  value={annForm.title}
-                  onChange={e => setAnnForm(f => ({ ...f, title: e.target.value }))}
-                  placeholder="Titre de l'annonce…"
-                  style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid var(--borderMid)', fontSize: 12, color: 'var(--text)', background: 'var(--surfaceB)', fontFamily: 'inherit', outline: 'none' }}
-                />
-                <textarea
-                  value={annForm.body}
-                  onChange={e => setAnnForm(f => ({ ...f, body: e.target.value }))}
-                  placeholder="Texte de l'annonce…"
-                  rows={3}
-                  style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid var(--borderMid)', fontSize: 12, color: 'var(--text)', background: 'var(--surfaceB)', fontFamily: 'inherit', outline: 'none', resize: 'vertical' }}
-                />
-                <input
-                  value={annForm.link}
-                  onChange={e => setAnnForm(f => ({ ...f, link: e.target.value }))}
-                  placeholder="Lien (optionnel, ex: /forum)"
-                  style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid var(--borderMid)', fontSize: 12, color: 'var(--text)', background: 'var(--surfaceB)', fontFamily: 'inherit', outline: 'none' }}
-                />
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--textMid)', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={annForm.pinned} onChange={e => setAnnForm(f => ({ ...f, pinned: e.target.checked }))} />
-                  📌 Épingler en haut
-                </label>
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                  <button onClick={() => { setEditingAnnounce(false); setAnnEditId(null) }}
-                    style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--borderMid)', background: 'var(--surfaceB)', cursor: 'pointer', fontSize: 12, color: 'var(--textMid)', fontFamily: 'inherit' }}>
-                    Annuler
-                  </button>
-                  <button onClick={saveAnnouncement} disabled={annSaving}
-                    style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#f0c800,#c8a200)', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#3a2e00', fontFamily: 'inherit', opacity: annSaving ? .7 : 1 }}>
-                    {annSaving ? '…' : annEditId ? 'Modifier' : 'Publier'}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Liste des annonces */}
             <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {announcements.length === 0
-                ? <div style={{ fontSize: 12, color: 'var(--textDim)', fontStyle: 'italic', textAlign: 'center', padding: '8px 0' }}>Aucune annonce</div>
-                : announcements.map(ann => (
-                  <div key={ann.id} style={{ background: 'var(--accentBg)', border: `1px solid ${ann.pinned ? 'rgba(200,162,0,.5)' : 'rgba(200,162,0,.25)'}`, borderRadius: 10, padding: '11px 13px', position: 'relative' }}>
-                    {ann.pinned && <span style={{ position: 'absolute', top: 8, right: 8, fontSize: 10 }}>📌</span>}
-                    <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--accentTxt)', marginBottom: ann.body ? 4 : 0, paddingRight: ann.pinned ? 18 : 0 }}>{ann.title}</div>
-                    {ann.body && <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5, opacity: .85, marginBottom: ann.link ? 6 : 0 }}>{ann.body}</div>}
-                    {ann.link && (
-                      <div onClick={() => ann.link.startsWith('/') ? navigate(ann.link) : window.open(ann.link, '_blank')}
-                        style={{ fontSize: 11, color: 'var(--accentTxt)', fontWeight: 700, cursor: 'pointer', marginTop: 4 }}>
-                        → {ann.link.startsWith('/') ? ann.link : 'Voir le lien'}
-                      </div>
-                    )}
-                    {isAdmin && (
-                      <div style={{ display: 'flex', gap: 6, marginTop: 8, justifyContent: 'flex-end' }}>
-                        <button onClick={() => startEdit(ann)}
-                          style={{ fontSize: 10, padding: '3px 8px', borderRadius: 6, border: '1px solid var(--borderMid)', background: 'var(--white)', cursor: 'pointer', color: 'var(--textMid)', fontFamily: 'inherit' }}>
-                          ✏️ Modifier
-                        </button>
-                        <button onClick={() => deleteAnnouncement(ann.id)}
-                          style={{ fontSize: 10, padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(231,76,60,.3)', background: 'transparent', cursor: 'pointer', color: '#e74c3c', fontFamily: 'inherit' }}>
-                          🗑 Suppr.
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))
-              }
-            </div>
-          </SectionCard>
-
-          {/* Citation */}
-          <SectionCard style={{ background: 'linear-gradient(135deg,#0e0e1e 0%,#141428 50%,#0a0a18 100%)', border: '1px solid rgba(200,162,0,.2)' }}>
-            <div style={{ padding: '16px 18px', textAlign: 'center' }}>
-              <div style={{ fontSize: 28, color: 'var(--accent)', lineHeight: 1, marginBottom: 8, opacity: .5, fontFamily: 'Georgia, serif' }}>"</div>
-              <p style={{ fontSize: 13, color: '#fff', fontWeight: 700, marginBottom: 8, lineHeight: 1.5 }}>La communauté, c'est ce qui nous fait avancer.</p>
-              <p style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', lineHeight: 1.5 }}>Restons respectueux, ouverts et bienveillants.</p>
+              <div style={{ background: 'var(--accentBg)', border: '1px solid rgba(200,162,0,.25)', borderRadius: 10, padding: '11px 13px' }}>
+                <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--accentTxt)', marginBottom: 4 }}>🎉 Bienvenue sur WeMoved !</div>
+                <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5, opacity: .85 }}>La communauté est lancée. Créez votre profil et participez !</div>
+              </div>
+              <div style={{ padding: '2px 2px' }}>
+                <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 3, color: 'var(--text)' }}>Nouveau système de badges !</div>
+                <div style={{ fontSize: 12, color: 'var(--textMid)', lineHeight: 1.5 }}>Découvrez-les dans votre profil.</div>
+              </div>
             </div>
           </SectionCard>
         </div>
