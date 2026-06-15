@@ -387,7 +387,10 @@ export default function Profile() {
             <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 14 }}>📍 Position de la bannière</div>
             <div style={{ height: 160, backgroundImage: `url(${profile.banner_url})`, backgroundSize: 'cover', backgroundPosition: bannerPosition }} />
             <div style={{ padding: '16px 20px' }}>
-              <div style={{ fontSize: 12, color: C.textDim, marginBottom: 10, textAlign: 'center' }}>Glisse pour ajuster la position verticale</div>
+              <div style={{ fontSize: 12, color: C.textDim, marginBottom: 10, textAlign: 'center' }}>
+                Glisse pour ajuster la position verticale
+                <span style={{ marginLeft: 8, fontSize: 10, opacity: .6 }}>— Taille recommandée : <strong>1640 × 856 px</strong></span>
+              </div>
               <input type="range" min={0} max={100} step={1}
                 value={bannerPosition === 'top' ? 0 : bannerPosition === 'bottom' ? 100 : parseInt(bannerPosition) || 50}
                 onChange={e => {
