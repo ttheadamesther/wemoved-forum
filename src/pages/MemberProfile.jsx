@@ -572,6 +572,34 @@ export default function MemberProfile() {
         </div>
       )}
 
+
+      {friendsList.length > 0 && (
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid #3498db', borderRadius: 16, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 14 }}>👥 Amis ({friendsList.length})</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: 10 }}>
+            {friendsList.map(f => {
+              const fColor = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63'][(f.pseudo?.charCodeAt(0) || 0) % 8]
+              const ring = ROLE_RING[f.role] || null
+              return (
+                <div key={f.id} onClick={() => navigate(`/members/${f.id}`)}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 8px', background: 'var(--surfaceB)', borderRadius: 12, border: '1px solid var(--border)', cursor: 'pointer', transition: 'all .15s' }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = '#3498db'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ width: 48, height: 48, borderRadius: '50%', background: f.avatar_url ? '#444' : fColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, color: '#fff', overflow: 'hidden', border: ring ? `2.5px solid ${ring}` : '2px solid rgba(255,255,255,.15)', boxShadow: ring ? `0 0 10px ${ring}66` : '0 2px 6px rgba(0,0,0,.1)' }}>
+                      {f.avatar_url ? <img loading="lazy" decoding="async" src={f.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : f.initials || f.pseudo?.slice(0,2).toUpperCase()}
+                    </div>
+                    {f.online && <div style={{ position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: '50%', background: '#2ecc71', border: '2px solid var(--white)', boxShadow: '0 0 6px #2ecc71' }} />}
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>@{f.pseudo}</div>
+                  {f.online && <span style={{ fontSize: 9, color: '#2ecc71', fontWeight: 700 }}>● En ligne</span>}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       </div>{/* ── fin colonne gauche ── */}
 
       {/* ── COLONNE DROITE : Intérêts + Badges + Amis ── */}
@@ -600,33 +628,6 @@ export default function MemberProfile() {
                 <span style={{ fontSize: 11, fontWeight: 700, color: b.color || '#7a6200', textAlign: 'center', maxWidth: 64, lineHeight: 1.2 }}>{b.label}</span>
               </div>
             ))}
-          </div>
-        </div>
-      )}
-
-      {friendsList.length > 0 && (
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid #3498db', borderRadius: 16, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-          <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 14 }}>👥 Amis ({friendsList.length})</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: 10 }}>
-            {friendsList.map(f => {
-              const fColor = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63'][(f.pseudo?.charCodeAt(0) || 0) % 8]
-              const ring = ROLE_RING[f.role] || null
-              return (
-                <div key={f.id} onClick={() => navigate(`/members/${f.id}`)}
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 8px', background: 'var(--surfaceB)', borderRadius: 12, border: '1px solid var(--border)', cursor: 'pointer', transition: 'all .15s' }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = '#3498db'}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
-                  <div style={{ position: 'relative' }}>
-                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: f.avatar_url ? '#444' : fColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', overflow: 'hidden', border: ring ? `2.5px solid ${ring}` : '2px solid rgba(255,255,255,.15)', boxShadow: ring ? `0 0 10px ${ring}66` : '0 2px 6px rgba(0,0,0,.1)' }}>
-                      {f.avatar_url ? <img loading="lazy" decoding="async" src={f.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : f.initials || f.pseudo?.slice(0,2).toUpperCase()}
-                    </div>
-                    {f.online && <div style={{ position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: '50%', background: '#2ecc71', border: '2px solid var(--white)', boxShadow: '0 0 6px #2ecc71' }} />}
-                  </div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.text, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>@{f.pseudo}</div>
-                  {f.online && <span style={{ fontSize: 9, color: '#2ecc71', fontWeight: 700 }}>● En ligne</span>}
-                </div>
-              )
-            })}
           </div>
         </div>
       )}
