@@ -89,14 +89,14 @@ const Tag = ({ icon, label }) => (
 
 
 function BannerPositionModal({ url, initialPosition, onConfirm, onCancel }) {
-  const containerRef = React.useRef()
-  const [pos, setPos] = React.useState(() => {
+  const containerRef = useRef()
+  const [pos, setPos] = useState(() => {
     const parts = (initialPosition || '50% 50%').split(' ')
     return { x: parseFloat(parts[0]) || 50, y: parseFloat(parts[1]) || 50 }
   })
-  const [zoom, setZoom] = React.useState(1)
-  const [dragging, setDragging] = React.useState(false)
-  const dragStart = React.useRef(null)
+  const [zoom, setZoom] = useState(1)
+  const [dragging, setDragging] = useState(false)
+  const dragStart = useRef(null)
 
   const onMouseDown = (e) => {
     e.preventDefault()
