@@ -387,10 +387,10 @@ export default function Profile() {
 
       {bannerCropSrc && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
-          <div style={{ background: C.white, borderRadius: 12, overflow: 'hidden', width: '100%', maxWidth: 600, boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
+          <div style={{ background: C.white, borderRadius: 12, overflow: 'hidden', width: '100%', maxWidth: 860, boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
             <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 14 }}>Recadrer la bannière</div>
-            <div style={{ position: 'relative', width: '100%', height: 200, background: '#222' }}>
-              <Cropper image={bannerCropSrc} crop={bannerCrop} zoom={bannerZoom} aspect={1200/220} showGrid={false} onCropChange={setBannerCrop} onZoomChange={setBannerZoom} onCropComplete={onBannerCropComplete} />
+            <div style={{ position: 'relative', width: '100%', height: 280, background: '#222' }}>
+              <Cropper image={bannerCropSrc} crop={bannerCrop} zoom={bannerZoom} aspect={940/220} showGrid={false} onCropChange={setBannerCrop} onZoomChange={setBannerZoom} onCropComplete={onBannerCropComplete} />
             </div>
             <div style={{ padding: '14px 20px', borderTop: `1px solid ${C.border}` }}>
               <div style={{ fontSize: 11, color: C.textDim, marginBottom: 6, textAlign: 'center' }}>
