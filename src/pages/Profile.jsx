@@ -270,7 +270,7 @@ export default function Profile() {
   const colors     = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
   const avatarColor = colors[(profile.pseudo?.charCodeAt(0) || 0) % colors.length]
   const bannerStyle = profile.banner_url
-    ? { backgroundImage: `url(${profile.banner_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    ? { backgroundImage: `url(${profile.banner_url})`, backgroundSize: '100% 100%', backgroundPosition: 'top left' }
     : { background: profile.banner_gradient || BANNER_GRADIENTS[0] }
   const topVote = VOTES_DEF.reduce((best, v) => (votes[v.key] || 0) > (votes[best?.key] || 0) ? v : best, null)
 
