@@ -234,7 +234,7 @@ export default function Profile() {
   const confirmBannerCrop = async () => {
     if (!bannerCropSrc || !bannerCroppedArea) return; setUploadingBanner(true)
     const croppedBlob = await getCroppedBlob(bannerCropSrc, bannerCroppedArea)
-    const resized = await resizeImage(new File([croppedBlob], 'banner.jpg', { type: 'image/jpeg' }), 1200)
+    const resized = await resizeImage(new File([croppedBlob], 'banner.jpg', { type: 'image/jpeg' }), 1400)
     const ts = Date.now()
     const path = `${user.id}/banner_${ts}.jpg`; const token = await getToken()
     await fetch(`${SUPABASE_URL}/storage/v1/object/avatars/${path}`, { method: 'POST', headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' }, body: resized })
@@ -390,7 +390,7 @@ export default function Profile() {
           <div style={{ background: C.white, borderRadius: 12, overflow: 'hidden', width: '100%', maxWidth: 600, boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
             <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 14 }}>Recadrer la bannière</div>
             <div style={{ position: 'relative', width: '100%', height: 200, background: '#222' }}>
-              <Cropper image={bannerCropSrc} crop={bannerCrop} zoom={bannerZoom} aspect={3} showGrid={false} onCropChange={setBannerCrop} onZoomChange={setBannerZoom} onCropComplete={onBannerCropComplete} />
+              <Cropper image={bannerCropSrc} crop={bannerCrop} zoom={bannerZoom} aspect={1200/180} showGrid={false} onCropChange={setBannerCrop} onZoomChange={setBannerZoom} onCropComplete={onBannerCropComplete} />
             </div>
             <div style={{ padding: '14px 20px', borderTop: `1px solid ${C.border}` }}>
               <input type="range" min={1} max={3} step={0.01} value={bannerZoom} onChange={e => setBannerZoom(Number(e.target.value))} style={{ width: '100%', accentColor: C.accentDk }} />
