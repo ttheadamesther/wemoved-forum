@@ -393,6 +393,9 @@ export default function Profile() {
               <Cropper image={bannerCropSrc} crop={bannerCrop} zoom={bannerZoom} aspect={1200/180} showGrid={false} onCropChange={setBannerCrop} onZoomChange={setBannerZoom} onCropComplete={onBannerCropComplete} />
             </div>
             <div style={{ padding: '14px 20px', borderTop: `1px solid ${C.border}` }}>
+              <div style={{ fontSize: 11, color: C.textDim, marginBottom: 6, textAlign: 'center' }}>
+                📐 Taille recommandée : <strong>1200 × 180 px</strong> — Ratio 6.7:1
+              </div>
               <input type="range" min={1} max={3} step={0.01} value={bannerZoom} onChange={e => setBannerZoom(Number(e.target.value))} style={{ width: '100%', accentColor: C.accentDk }} />
             </div>
             <div style={{ padding: '0 20px 16px', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
