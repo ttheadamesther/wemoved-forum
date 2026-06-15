@@ -91,7 +91,8 @@ export default function Profile() {
     if (!user) return
     const loadFriends = async () => {
       setFriendsLoading(true)
-      const h = { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+      const token = await getToken()
+      const h = { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
       const r1 = await fetch(`${SUPABASE_URL}/rest/v1/friendships?user_a=eq.${user.id}&status=eq.accepted&select=user_b`, { headers: h })
       const d1 = await r1.json()
       const r2 = await fetch(`${SUPABASE_URL}/rest/v1/friendships?user_b=eq.${user.id}&status=eq.accepted&select=user_a`, { headers: h })
