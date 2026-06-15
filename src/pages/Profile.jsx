@@ -390,11 +390,11 @@ export default function Profile() {
           <div style={{ background: C.white, borderRadius: 12, overflow: 'hidden', width: '100%', maxWidth: 600, boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
             <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 14 }}>Recadrer la bannière</div>
             <div style={{ position: 'relative', width: '100%', height: 200, background: '#222' }}>
-              <Cropper image={bannerCropSrc} crop={bannerCrop} zoom={bannerZoom} aspect={1640/856} showGrid={false} onCropChange={setBannerCrop} onZoomChange={setBannerZoom} onCropComplete={onBannerCropComplete} />
+              <Cropper image={bannerCropSrc} crop={bannerCrop} zoom={bannerZoom} aspect={1200/220} showGrid={false} onCropChange={setBannerCrop} onZoomChange={setBannerZoom} onCropComplete={onBannerCropComplete} />
             </div>
             <div style={{ padding: '14px 20px', borderTop: `1px solid ${C.border}` }}>
               <div style={{ fontSize: 11, color: C.textDim, marginBottom: 6, textAlign: 'center' }}>
-                📐 Taille recommandée : <strong>1640 × 856 px</strong> — Ratio 1.91:1
+                📐 Taille recommandée : <strong>1200 × 220 px</strong> — Format bannière
               </div>
               <input type="range" min={1} max={3} step={0.01} value={bannerZoom} onChange={e => setBannerZoom(Number(e.target.value))} style={{ width: '100%', accentColor: C.accentDk }} />
             </div>
@@ -406,7 +406,7 @@ export default function Profile() {
         </div>
       )}
 
-      <div style={{ position: 'relative', aspectRatio: '1640/856', maxHeight: 420, ...bannerStyle }}>
+      <div style={{ position: 'relative', height: 220, ...bannerStyle }}>
         <div style={{ position: 'absolute', top: 12, right: 12 }}>
           <button onClick={() => setShowBannerPicker(p => !p)} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
             🎨 Bannière
