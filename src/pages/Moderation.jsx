@@ -27,9 +27,15 @@ async function getToken() {
 
 async function apiAuth(path, opts = {}) {
   const token = await getToken()
+  const { headers: extraHeaders, ...restOpts } = opts
   return fetch(`${SUPABASE_URL}${path}`, {
-    ...opts,
-    headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', ...opts.headers }
+    ...restOpts,
+    headers: {
+      'apikey': ANON_KEY,
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...(extraHeaders || {}),
+    }
   })
 }
 
