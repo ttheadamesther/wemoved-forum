@@ -4,6 +4,7 @@ import { C, ROLE_RING } from '../lib/constants'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import EmojiPicker from 'emoji-picker-react'
+import { useMention } from '../hooks/useMention'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -240,6 +241,8 @@ export default function Chatroom() {
     setTimeout(() => { el.focus(); el.setSelectionRange(start + emojiData.emoji.length, start + emojiData.emoji.length) }, 0)
   }
 
+  const { handleMentionInput, handleKeyDown: handleMentionKey, MentionDropdown } = useMention(members, inputRef, text, setText)
+
   const getMember = (id) => members[id] || null
 
   return (
@@ -398,6 +401,7 @@ export default function Chatroom() {
           {!isBanned && (
             <div style={{ display: 'flex', gap: 8, position: 'relative' }}>
               <div ref={emojiRef} style={{ position: 'relative' }}>
+                  <MentionDropdown />
                 <button onClick={() => setShowEmoji(s => !s)}
                   style={{ width: 46, height: 46, borderRadius: '50%', border: `1.5px solid ${room.border}`, background: room.bg, cursor: 'pointer', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>😊</button>
                 {showEmoji && (
@@ -406,8 +410,8 @@ export default function Chatroom() {
                   </div>
                 )}
               </div>
-              <input ref={inputRef} value={text} onChange={e => handleTyping(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
+              <input ref={inputRef} value={text} onChange={e => { handleTyping(e.target.value); handleMentionInput(e.target.value, e.target.selectionStart) }}
+                onKeyDown={e => { handleMentionKey(e); if (e.key === 'Enter' && !e.shiftKey && !e.defaultPrevented) send() }}
                 placeholder={`Écrire dans ${room.label}…`}
                 maxLength={500}
                 style={{ flex: 1, padding: '12px 16px', borderRadius: 24, border: `1.5px solid ${room.border}`, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: 'var(--white)', color: 'var(--text)', transition: 'border .2s, box-shadow .2s' }}

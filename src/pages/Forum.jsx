@@ -5,6 +5,7 @@ import { RoleBadge, Btn, Input } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
 import EmojiPicker from 'emoji-picker-react'
 import { awardXP } from '../lib/xp'
+import { useMention, renderWithMentions } from '../hooks/useMention'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -63,10 +64,33 @@ const CAT_COLORS = {
   '+18': '#e74c3c', 'Tous': C?.accentDk || '#c8a200'
 }
 
-function RichText({ text }) {
+function RichText({ text, members = [], navigate = null }) {
   if (!text) return null
   const lines = text.split('\n')
   const urlRegex = /(https?:\/\/[^\s]+)/g
+  const mentionRegex = /(@\w+)/g
+  const membersList = Array.isArray(members) ? members : Object.values(members)
+
+  const renderPart = (part, j) => {
+    if (urlRegex.test(part)) {
+      urlRegex.lastIndex = 0
+      return <a key={j} href={part} target="_blank" rel="noopener noreferrer" style={{ color: C.accentTxt, textDecoration: 'underline', wordBreak: 'break-all' }}>{part}</a>
+    }
+    if (part.startsWith('@') && navigate) {
+      const pseudo = part.slice(1)
+      const member = membersList.find(m => m?.pseudo?.toLowerCase() === pseudo.toLowerCase())
+      if (member) return (
+        <span key={j} onClick={(e) => { e.stopPropagation(); navigate(`/members/${member.id}`) }}
+          style={{ color: 'var(--accentTxt, #c8a200)', fontWeight: 700, cursor: 'pointer' }}
+          onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
+          onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}>
+          {part}
+        </span>
+      )
+    }
+    return <span key={j}>{part}</span>
+  }
+
   return (
     <span>
       {lines.map((line, i) => {
@@ -77,14 +101,11 @@ function RichText({ text }) {
             </span>
           </span>
         )
-        const parts = line.split(urlRegex)
+        const combined = /(https?:\/\/[^\s]+)|(@\w+)/g
+        const parts = line.split(combined).filter(p => p !== undefined)
         return (
           <span key={i}>
-            {parts.map((part, j) =>
-              urlRegex.test(part)
-                ? <a key={j} href={part} target="_blank" rel="noopener noreferrer" style={{ color: C.accentTxt, textDecoration: 'underline', wordBreak: 'break-all' }}>{part}</a>
-                : <span key={j}>{part}</span>
-            )}
+            {parts.map((part, j) => renderPart(part, j))}
             {i < lines.length - 1 && <br />}
           </span>
         )
@@ -93,15 +114,20 @@ function RichText({ text }) {
   )
 }
 
-function RichInput({ value, onChange, placeholder, rows = 3 }) {
+function RichInput({ value, onChange, placeholder, rows = 3, members = [] }) {
   const [showEmoji, setShowEmoji] = useState(false)
   const textareaRef = useRef()
   const emojiRef    = useRef()
+
+  const setValue = (v) => onChange({ target: { value: v } })
+  const { handleMentionInput, handleKeyDown, MentionDropdown } = useMention(members, textareaRef, value, setValue)
+
   useEffect(() => {
     const handler = (e) => { if (emojiRef.current && !emojiRef.current.contains(e.target)) setShowEmoji(false) }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
   const insertEmoji = (emojiData) => {
     const el = textareaRef.current
     const start = el.selectionStart; const end = el.selectionEnd
@@ -109,9 +135,16 @@ function RichInput({ value, onChange, placeholder, rows = 3 }) {
     onChange({ target: { value: newVal } })
     setTimeout(() => { el.focus(); el.setSelectionRange(start + emojiData.emoji.length, start + emojiData.emoji.length) }, 0)
   }
+
+  const handleChange = (e) => {
+    onChange(e)
+    handleMentionInput(e.target.value, e.target.selectionStart)
+  }
+
   return (
     <div style={{ position: 'relative' }}>
-      <textarea ref={textareaRef} value={value} onChange={onChange} placeholder={placeholder} rows={rows}
+      <MentionDropdown />
+      <textarea ref={textareaRef} value={value} onChange={handleChange} onKeyDown={handleKeyDown} placeholder={placeholder} rows={rows}
         style={{ width: '100%', border: `1px solid ${C.borderMid}`, borderRadius: 10, padding: '10px 44px 10px 14px', fontSize: 13, color: C.text, background: C.surfaceB, fontFamily: 'inherit', resize: 'vertical', lineHeight: 1.6, outline: 'none', transition: 'border .2s', boxSizing: 'border-box' }}
         onFocus={e => e.target.style.borderColor = '#c8a200'}
         onBlur={e => e.target.style.borderColor = C.borderMid}
@@ -471,7 +504,7 @@ export default function ForumPage() {
               {editingThread ? (
                 <div>
                   <Input value={editingThread.title} onChange={e => setEditingThread(v => ({ ...v, title: e.target.value }))} placeholder="Titre…" style={{ width: '100%', marginBottom: 10, borderRadius: 10, padding: '10px 14px' }} />
-                  <RichInput value={editingThread.body} onChange={e => setEditingThread(v => ({ ...v, body: e.target.value }))} rows={4} />
+                  <RichInput value={editingThread.body} onChange={e => setEditingThread(v => ({ ...v, body: e.target.value }))} rows={4} members={members} />
                   <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'flex-end' }}>
                     <Btn onClick={() => setEditingThread(null)} variant="ghost">Annuler</Btn>
                     <Btn onClick={async () => { await updateThread(currentThread.id, editingThread.title, editingThread.body); setEditingThread(null) }} variant="yellow">Sauvegarder</Btn>
@@ -480,7 +513,7 @@ export default function ForumPage() {
               ) : (
                 <>
                   <h2 style={{ fontSize: isMobile ? 16 : 19, fontWeight: 700, color: C.text, lineHeight: 1.3, marginBottom: 12 }}>{currentThread.title}</h2>
-                  <p style={{ fontSize: 13, color: C.textMid, lineHeight: 1.8, whiteSpace: 'pre-wrap', margin: 0 }}><RichText text={currentThread.body} /></p>
+                  <p style={{ fontSize: 13, color: C.textMid, lineHeight: 1.8, whiteSpace: 'pre-wrap', margin: 0 }}><RichText text={currentThread.body} members={members} navigate={navigate} /></p>
                 </>
               )}
               <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -530,14 +563,14 @@ export default function ForumPage() {
                   </div>
                   {isEditingThis ? (
                     <div>
-                      <RichInput value={editingReply.body} onChange={e => setEditingReply(v => ({ ...v, body: e.target.value }))} rows={3} />
+                      <RichInput value={editingReply.body} onChange={e => setEditingReply(v => ({ ...v, body: e.target.value }))} rows={3} members={members} />
                       <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'flex-end' }}>
                         <Btn onClick={() => setEditingReply(null)} variant="ghost" style={{ fontSize: 11 }}>Annuler</Btn>
                         <Btn onClick={async () => { await updateReply(r.id, editingReply.body); setEditingReply(null) }} variant="yellow" style={{ fontSize: 11 }}>Sauvegarder</Btn>
                       </div>
                     </div>
                   ) : (
-                    <p style={{ fontSize: 13, color: C.textMid, lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}><RichText text={r.body} /></p>
+                    <p style={{ fontSize: 13, color: C.textMid, lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}><RichText text={r.body} members={members} navigate={navigate} /></p>
                   )}
                   <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                     {Object.entries(rReactions).filter(([, count]) => count > 0).map(([emoji, count]) => (
@@ -601,7 +634,7 @@ export default function ForumPage() {
                 <button onClick={() => setQuoting(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, fontSize: 14 }}>✕</button>
               </div>
             )}
-            <RichInput value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Écris ta réponse…" rows={3} />
+            <RichInput value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Écris ta réponse…" rows={3} members={members} />
             {spamError && <div style={{ fontSize: 11, color: C.red, marginTop: 8, fontWeight: 600 }}>⏳ {spamError}</div>}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
               <Btn onClick={postReply} variant="yellow">{posting ? '…' : 'Publier ma réponse'}</Btn>
@@ -668,7 +701,7 @@ export default function ForumPage() {
           <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 6 }}>Titre</div>
           <Input value={nTitle} onChange={e => setNTitle(e.target.value)} placeholder="Titre de ta discussion…" style={{ width: '100%', marginBottom: 14, borderRadius: 10, padding: '10px 14px' }} />
           <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 6 }}>Message</div>
-          <RichInput value={nBody} onChange={e => setNBody(e.target.value)} placeholder="Développe ta discussion…" rows={4} />
+          <RichInput value={nBody} onChange={e => setNBody(e.target.value)} placeholder="Développe ta discussion…" rows={4} members={members} />
           {spamError && <div style={{ fontSize: 11, color: C.red, marginTop: 8, fontWeight: 600 }}>⏳ {spamError}</div>}
           <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'flex-end' }}>
             <Btn onClick={() => setComposing(false)} variant="ghost">Annuler</Btn>

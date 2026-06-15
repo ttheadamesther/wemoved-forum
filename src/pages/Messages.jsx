@@ -4,6 +4,7 @@ import { C } from '../lib/constants'
 import { RoleBadge } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
 import EmojiPicker from 'emoji-picker-react'
+import { useMention } from '../hooks/useMention'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -231,6 +232,8 @@ export default function MessagesPage() {
       el.setSelectionRange(start + emojiData.emoji.length, start + emojiData.emoji.length)
     }, 0)
   }
+
+  const { handleMentionInput, handleKeyDown: handleMentionKey, MentionDropdown } = useMention(members, inputRef, text, setText)
 
   const sendMessage = async (body) => {
     if (!body || !activeId || !user) return
@@ -598,11 +601,14 @@ export default function MessagesPage() {
                     )}
                   </div>
 
-                  <input ref={inputRef} value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <MentionDropdown />
+                  <input ref={inputRef} value={text} onChange={e => { setText(e.target.value); handleMentionInput(e.target.value, e.target.selectionStart) }} onKeyDown={e => { handleMentionKey(e); if (e.key === 'Enter' && !e.defaultPrevented) send() }}
                     placeholder={`Message à @${activeMember.pseudo}…`}
-                    style={{ flex: 1, border: `1px solid ${C.borderMid}`, borderRadius: 24, padding: '10px 18px', fontSize: 13, color: C.text, fontFamily: 'inherit', outline: 'none', background: C.surfaceB }}
+                    style={{ width: '100%', border: `1px solid ${C.borderMid}`, borderRadius: 24, padding: '10px 18px', fontSize: 13, color: C.text, fontFamily: 'inherit', outline: 'none', background: C.surfaceB }}
                     onFocus={e => e.target.style.borderColor = '#c8a200'}
                     onBlur={e => e.target.style.borderColor = C.borderMid} />
+                  </div>
 
                   <button onClick={send} disabled={sending || !text.trim()}
                     style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: text.trim() ? 'linear-gradient(135deg,#f0c800,#c8a200)' : '#e0e0e0', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
