@@ -16,6 +16,17 @@ function apiFetch(path) {
   }).then(r => r.json())
 }
 
+async function getToken() {
+  try {
+    const { supabase } = await import('../lib/supabase')
+    if (supabase) {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.access_token) return session.access_token
+    }
+  } catch {}
+  return ANON_KEY
+}
+
 function SkeletonThread() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
@@ -239,9 +250,10 @@ export default function Home() {
   const postThread = async () => {
     if (!title.trim() || !body.trim() || !user) return
     setPosting(true)
+    const token = await getToken()
     await fetch(`${SUPABASE_URL}/rest/v1/threads`, {
       method: 'POST',
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json' },
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ author_id: user.id, cat, title, body, likes: 0, pinned: false, locked: false, hidden: false })
     })
     setTitle(''); setBody(''); setNewThread(false); setPosting(false)
@@ -403,12 +415,12 @@ export default function Home() {
                 <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titre de la discussion…" className="wmi" style={{ ...inputStyle, flex: 1 }} />
               </div>
               <div style={{ position: 'relative', marginBottom: 12 }}>
-                <textarea ref={bodyRef} value={body} onChange={e => setBody(e.target.value)} placeholder="Contenu…" rows={3} className="wmi" style={{ ...inputStyle, width: '100%', resize: 'vertical', boxSizing: 'border-box', paddingRight: 44 }} />
+                <textarea ref={bodyRef} value={body} onChange={e => setBody(e.target.value)} placeholder="Contenu…" rows={3} className="wmi" spellCheck lang="fr" style={{ ...inputStyle, width: '100%', resize: 'vertical', boxSizing: 'border-box', paddingRight: 44 }} />
                 <div ref={emojiRef} style={{ position: 'absolute', bottom: 8, right: 8 }}>
                   <button onClick={() => setShowEmoji(s => !s)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 2, opacity: .7 }}>😊</button>
                   {showEmoji && (
                     <div style={{ position: 'absolute', bottom: 32, right: 0, zIndex: 100 }}>
-                      <EmojiPicker onEmojiClick={insertEmoji} width={300} height={350} />
+                      <EmojiPicker onEmojiClick={insertEmoji} width={300} height={350} theme="dark" />
                     </div>
                   )}
                 </div>
