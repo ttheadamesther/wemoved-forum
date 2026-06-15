@@ -32,7 +32,6 @@ async function apiFetch(path, opts = {}) {
 function getCroppedBlob(imageSrc, pixelCrop) {
   return new Promise((resolve, reject) => {
     const image = new Image()
-    image.crossOrigin = 'anonymous'
     image.onload = () => {
       const canvas = document.createElement('canvas')
       canvas.width = Math.round(pixelCrop.width)
@@ -45,7 +44,7 @@ function getCroppedBlob(imageSrc, pixelCrop) {
         0, 0,
         Math.round(pixelCrop.width), Math.round(pixelCrop.height)
       )
-      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('toBlob failed')), 'image/jpeg', 0.92)
+      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('toBlob failed')), 'image/jpeg', 0.95)
     }
     image.onerror = reject
     image.src = imageSrc
@@ -237,7 +236,7 @@ export default function Profile() {
     const ts = Date.now()
     const path = `${user.id}/banner_${ts}.jpg`; const token = await getToken()
     await fetch(`${SUPABASE_URL}/storage/v1/object/avatars/${path}`, { method: 'POST', headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' }, body: croppedBlob })
-    await patchProfile({ banner_url: `${SUPABASE_URL}/storage/v1/object/public/avatars/${path}`, banner_gradient: null })
+    await patchProfile({ banner_url: `${SUPABASE_URL}/storage/v1/object/public/avatars/${path}`, banner_gradient: null, banner_position: 'center top' })
     URL.revokeObjectURL(bannerCropSrc); setBannerCropSrc(null); setUploadingBanner(false)
   }
   const cancelBannerCrop = () => { if (bannerCropSrc) URL.revokeObjectURL(bannerCropSrc); setBannerCropSrc(null) }
@@ -271,7 +270,7 @@ export default function Profile() {
   const colors     = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
   const avatarColor = colors[(profile.pseudo?.charCodeAt(0) || 0) % colors.length]
   const bannerStyle = profile.banner_url
-    ? { backgroundImage: `url(${profile.banner_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    ? {}
     : { background: profile.banner_gradient || BANNER_GRADIENTS[0] }
   const topVote = VOTES_DEF.reduce((best, v) => (votes[v.key] || 0) > (votes[best?.key] || 0) ? v : best, null)
 
@@ -405,7 +404,10 @@ export default function Profile() {
         </div>
       )}
 
-      <div style={{ position: 'relative', height: 220, ...bannerStyle }}>
+      <div style={{ position: 'relative', height: 220, overflow: 'hidden', ...bannerStyle }}>
+        {profile.banner_url && (
+          <img src={profile.banner_url} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
+        )}
         <div style={{ position: 'absolute', top: 12, right: 12 }}>
           <button onClick={() => setShowBannerPicker(p => !p)} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
             🎨 Bannière
