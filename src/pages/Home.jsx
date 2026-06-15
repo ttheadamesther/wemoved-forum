@@ -208,7 +208,7 @@ export default function Home() {
       if (Array.isArray(d)) setActivity(d)
       setLoadingA(false)
     })
-    apiFetch('/rest/v1/messages?select=id').then(d => {
+    apiFetch('/rest/v1/replies?select=id').then(d => {
       if (Array.isArray(d)) setStats(s => ({ ...s, messages: d.length }))
     })
     apiFetch('/rest/v1/announcements?select=*&order=pinned.desc,created_at.desc').then(d => {
@@ -371,7 +371,7 @@ export default function Home() {
               {[
                 { icon: '👥', label: 'Membres',         value: stats.members },
                 { icon: '💬', label: 'Discussions',      value: stats.threads },
-                { icon: '✉️', label: 'Messages',         value: stats.messages },
+                { icon: '✉️', label: 'Réponses',          value: stats.messages },
                 { icon: '🟢', label: 'En ligne',          value: stats.online },
               ].map(s => (
                 <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 18px', borderBottom: '1px solid var(--border)' }}>
