@@ -592,7 +592,7 @@ export default function MessagesPage() {
                       😊
                     </button>
                     {showEmoji && (
-                      <div style={{ position: 'absolute', bottom: '110%', left: 0, zIndex: 1000 }}>
+                      <div style={{ position: 'fixed', bottom: 80, right: 20, zIndex: 1000 }}>
                         <EmojiPicker onEmojiClick={insertEmoji} width={350} height={450} theme="dark" />
                       </div>
                     )}

@@ -401,7 +401,7 @@ export default function Chatroom() {
                 <button onClick={() => setShowEmoji(s => !s)}
                   style={{ width: 46, height: 46, borderRadius: '50%', border: `1.5px solid ${room.border}`, background: room.bg, cursor: 'pointer', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>😊</button>
                 {showEmoji && (
-                  <div style={{ position: 'absolute', bottom: '110%', left: 0, zIndex: 1000 }}>
+                  <div style={{ position: 'fixed', bottom: 80, right: 20, zIndex: 1000 }}>
                     <EmojiPicker onEmojiClick={insertEmoji} width={350} height={450} theme="dark" />
                   </div>
                 )}
