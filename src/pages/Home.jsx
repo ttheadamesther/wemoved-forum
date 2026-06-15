@@ -613,6 +613,8 @@ export default function Home() {
             </div>
           </SectionCard>
         </div>
+      </div>{/* fin grid */}
+
       {/* Banner communauté */}
       <div style={{
         background: 'linear-gradient(135deg,#0e0e1e 0%,#141428 50%,#0a0a18 100%)',
@@ -621,12 +623,12 @@ export default function Home() {
         textAlign: 'center',
         border: '1px solid rgba(200,162,0,.18)',
         boxShadow: '0 4px 24px rgba(0,0,0,.25), inset 0 1px 0 rgba(200,162,0,.08)',
-        maxWidth: 1300, margin: '0 auto', width: '100%',
+        maxWidth: 1300, margin: '14px auto 0', width: '100%', boxSizing: 'border-box',
+        padding: isMobile ? '24px 12px' : '30px 40px',
       }}>
         <div style={{ fontSize: 40, color: 'var(--accent)', lineHeight: 1, marginBottom: 12, opacity: .6, fontFamily: 'Georgia, serif' }}>"</div>
-        <p style={{ fontSize: 16, color: '#fff', fontWeight: 700, marginBottom: 10, lineHeight: 1.5 }}>La communauté, c'est ce qui nous fait avancer.</p>
+        <p style={{ fontSize: isMobile ? 15 : 18, color: '#fff', fontWeight: 700, marginBottom: 10, lineHeight: 1.5 }}>La communauté, c'est ce qui nous fait avancer.</p>
         <p style={{ fontSize: 13, color: 'rgba(255,255,255,.45)', lineHeight: 1.6 }}>Restons respectueux, ouverts et bienveillants envers tous.</p>
-      </div>
       </div>
     </div>
   )
