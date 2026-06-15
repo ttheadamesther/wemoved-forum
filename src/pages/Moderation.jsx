@@ -107,9 +107,13 @@ function AnnouncementsPanel({ user }) {
       if (editing) {
         await apiAuth(`/rest/v1/announcements?id=eq.${editing}`, {
           method: 'PATCH',
+          headers: { Prefer: 'return=minimal' },
           body: JSON.stringify({ title: form.title, body: form.body, emoji: form.emoji, pinned: form.pinned })
         })
-        setAnnouncements(prev => prev.map(a => a.id === editing ? { ...a, ...form } : a))
+        setAnnouncements(prev =>
+          prev.map(a => a.id === editing ? { ...a, title: form.title, body: form.body, emoji: form.emoji, pinned: form.pinned } : a)
+              .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || new Date(b.created_at) - new Date(a.created_at))
+        )
       } else {
         const r = await apiAuth('/rest/v1/announcements', {
           method: 'POST',
