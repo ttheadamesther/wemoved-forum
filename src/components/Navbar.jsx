@@ -230,7 +230,7 @@ export default function Navbar() {
       ) : '👤', label: user ? 'Mon profil' : 'Connexion' },
       { to: '/messages', icon: '✉️', label: 'Messages', badge: unreadMessages },
       { to: '/members',  icon: '👥', label: 'Membres' },
-      { to: '/chat',     icon: '🎤', label: 'Salon' },
+      { to: '/chat',     icon: '#️⃣', label: 'Salon' },
     ]
     return (
       <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 999, height: 64, background: 'rgba(6,6,14,.97)', borderTop: '1px solid rgba(200,162,0,.2)', display: 'flex', alignItems: 'stretch', paddingBottom: 'env(safe-area-inset-bottom)', boxShadow: '0 -4px 24px rgba(0,0,0,.5)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
@@ -350,7 +350,7 @@ export default function Navbar() {
               { icon: '🐛', label: 'Signaler un bug',  to: '/bug-report',    show: !!user },
               { icon: '🏆', label: 'Récompenses',      to: '/rewards',       show: true },
               { icon: '📊', label: 'Classements',      to: '/rankings',      show: true },
-              { icon: '🎤', label: 'Salon général',    to: '/chat',          show: true },
+              { icon: '#️⃣', label: 'Salon général',    to: '/chat',          show: true },
               { icon: '🛡️', label: 'Modération',       to: '/moderation',    show: !!user && canMod },
               { icon: '📜', label: 'Mentions légales', to: '/legal',         show: true },
             ].filter(i => i.show).map(item => (
