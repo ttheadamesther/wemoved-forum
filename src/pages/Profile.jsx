@@ -235,9 +235,10 @@ export default function Profile() {
     if (!bannerCropSrc || !bannerCroppedArea) return; setUploadingBanner(true)
     const croppedBlob = await getCroppedBlob(bannerCropSrc, bannerCroppedArea)
     const resized = await resizeImage(new File([croppedBlob], 'banner.jpg', { type: 'image/jpeg' }), 1200)
-    const path = `${user.id}/banner.jpg`; const token = await getToken()
+    const ts = Date.now()
+    const path = `${user.id}/banner_${ts}.jpg`; const token = await getToken()
     await fetch(`${SUPABASE_URL}/storage/v1/object/avatars/${path}`, { method: 'POST', headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' }, body: resized })
-    await patchProfile({ banner_url: `${SUPABASE_URL}/storage/v1/object/public/avatars/${path}?t=${Date.now()}`, banner_gradient: null })
+    await patchProfile({ banner_url: `${SUPABASE_URL}/storage/v1/object/public/avatars/${path}`, banner_gradient: null })
     URL.revokeObjectURL(bannerCropSrc); setBannerCropSrc(null); setUploadingBanner(false)
   }
   const cancelBannerCrop = () => { if (bannerCropSrc) URL.revokeObjectURL(bannerCropSrc); setBannerCropSrc(null) }
