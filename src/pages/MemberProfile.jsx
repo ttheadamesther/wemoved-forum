@@ -421,7 +421,7 @@ export default function MemberProfile() {
       <Btn onClick={() => navigate('/members')} variant="ghost" style={{ marginBottom: 16, fontSize: 12 }}>← Retour</Btn>
 
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden', marginBottom: 16, boxShadow: '0 4px 24px rgba(0,0,0,.1), 0 1px 4px rgba(0,0,0,.06)' }}>
-        <div style={{ height: 180, background: member.banner_url ? `url(${member.banner_url}) center/cover no-repeat` : 'linear-gradient(135deg,#0e0e1e 0%,#1a1240 50%,#0a0a18 100%)', position: 'relative' }}>
+        <div style={{ aspectRatio: '1640/856', maxHeight: 420, background: member.banner_url ? `url(${member.banner_url}) center/cover no-repeat` : 'linear-gradient(135deg,#0e0e1e 0%,#1a1240 50%,#0a0a18 100%)', position: 'relative' }}>
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 60%, rgba(0,0,0,.3))' }} />
         </div>
         <div style={{ padding: '0 24px 24px', position: 'relative' }}>
