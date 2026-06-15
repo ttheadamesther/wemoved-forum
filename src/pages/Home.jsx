@@ -419,7 +419,7 @@ export default function Home() {
                 <div ref={emojiRef} style={{ position: 'absolute', bottom: 8, right: 8 }}>
                   <button onClick={() => setShowEmoji(s => !s)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 2, opacity: .7 }}>😊</button>
                   {showEmoji && (
-                    <div style={{ position: 'absolute', bottom: 32, right: 0, zIndex: 100 }}>
+                    <div style={{ position: 'absolute', top: 32, right: 0, zIndex: 100 }}>
                       <EmojiPicker onEmojiClick={insertEmoji} width={300} height={350} theme="dark" />
                     </div>
                   )}
