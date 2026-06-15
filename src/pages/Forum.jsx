@@ -119,7 +119,7 @@ function RichInput({ value, onChange, placeholder, rows = 3 }) {
       <button type="button" onClick={() => setShowEmoji(s => !s)} style={{ position: 'absolute', bottom: 10, right: 10, background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, lineHeight: 1, opacity: .6 }}>😊</button>
       {showEmoji && (
         <div ref={emojiRef} style={{ position: 'absolute', bottom: '110%', right: 0, zIndex: 1000 }}>
-          <EmojiPicker onEmojiClick={insertEmoji} width={300} height={350} />
+          <EmojiPicker onEmojiClick={insertEmoji} width={300} height={350} theme="dark" />
         </div>
       )}
     </div>
