@@ -222,7 +222,7 @@ export default function Navbar() {
   const BottomBar = () => {
     const tabs = [
       { to: '/',         icon: '🏠', label: 'Accueil' },
-      { to: '/forum',    icon: '📋', label: 'Forum' },
+      { to: '/forum',    icon: '💬', label: 'Forum' },
       { to: user ? '/profile' : '/login', icon: user ? (
         <div style={{ width: 26, height: 26, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', border: `2px solid ${path === '/profile' ? C.accentDk : '#444'}` }}>
           {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
@@ -230,7 +230,7 @@ export default function Navbar() {
       ) : '👤', label: user ? 'Mon profil' : 'Connexion' },
       { to: '/messages', icon: '✉️', label: 'Messages', badge: unreadMessages },
       { to: '/members',  icon: '👥', label: 'Membres' },
-      { to: '/chat',     icon: '🎙️', label: 'Salon' },
+      { to: '/chat',     icon: '🎤', label: 'Salon' },
     ]
     return (
       <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 999, height: 64, background: 'rgba(6,6,14,.97)', borderTop: '1px solid rgba(200,162,0,.2)', display: 'flex', alignItems: 'stretch', paddingBottom: 'env(safe-area-inset-bottom)', boxShadow: '0 -4px 24px rgba(0,0,0,.5)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
@@ -350,7 +350,7 @@ export default function Navbar() {
               { icon: '🐛', label: 'Signaler un bug',  to: '/bug-report',    show: !!user },
               { icon: '🏆', label: 'Récompenses',      to: '/rewards',       show: true },
               { icon: '📊', label: 'Classements',      to: '/rankings',      show: true },
-              { icon: '🎙️', label: 'Salon général',    to: '/chat',          show: true },
+              { icon: '🎤', label: 'Salon général',    to: '/chat',          show: true },
               { icon: '🛡️', label: 'Modération',       to: '/moderation',    show: !!user && canMod },
               { icon: '📜', label: 'Mentions légales', to: '/legal',         show: true },
             ].filter(i => i.show).map(item => (
@@ -388,7 +388,7 @@ export default function Navbar() {
       <nav ref={navRef} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999, height: 64, display: 'flex', alignItems: 'center', padding: '0 16px', background: 'rgba(6,6,14,.97)', borderBottom: '1px solid rgba(200,162,0,.25)', gap: 4, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: '0 2px 20px rgba(0,0,0,.4)' }}>
         <Link to="/" style={{ flexShrink: 0, marginRight: 4 }}><Logo height={45} /></Link>
         <NavLink to="/"           label="Accueil"    icon="🏠" />
-        <NavLink to="/forum"      label="Forum"      icon="📋" />
+        <NavLink to="/forum"      label="Forum"      icon="💬" />
         <NavLink to="/members"    label="Membres"    icon="👥" />
         <NavLink to="/chat"        label="Salon"      icon="💬" />
         {user && (
