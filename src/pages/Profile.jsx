@@ -87,6 +87,102 @@ const Tag = ({ icon, label }) => (
   </span>
 )
 
+
+function BannerPositionModal({ url, initialPosition, onConfirm, onCancel }) {
+  const containerRef = React.useRef()
+  const [pos, setPos] = React.useState(() => {
+    const parts = (initialPosition || '50% 50%').split(' ')
+    return { x: parseFloat(parts[0]) || 50, y: parseFloat(parts[1]) || 50 }
+  })
+  const [zoom, setZoom] = React.useState(1)
+  const [dragging, setDragging] = React.useState(false)
+  const dragStart = React.useRef(null)
+
+  const onMouseDown = (e) => {
+    e.preventDefault()
+    setDragging(true)
+    dragStart.current = { mx: e.clientX, my: e.clientY, px: pos.x, py: pos.y }
+  }
+  const onMouseMove = (e) => {
+    if (!dragging || !dragStart.current || !containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const dx = (e.clientX - dragStart.current.mx) / rect.width * 100 / zoom
+    const dy = (e.clientY - dragStart.current.my) / rect.height * 100 / zoom
+    setPos({
+      x: Math.min(100, Math.max(0, dragStart.current.px - dx)),
+      y: Math.min(100, Math.max(0, dragStart.current.py - dy))
+    })
+  }
+  const onMouseUp = () => setDragging(false)
+
+  const onTouchStart = (e) => {
+    const t = e.touches[0]
+    setDragging(true)
+    dragStart.current = { mx: t.clientX, my: t.clientY, px: pos.x, py: pos.y }
+  }
+  const onTouchMove = (e) => {
+    if (!dragging || !dragStart.current || !containerRef.current) return
+    const t = e.touches[0]
+    const rect = containerRef.current.getBoundingClientRect()
+    const dx = (t.clientX - dragStart.current.mx) / rect.width * 100 / zoom
+    const dy = (t.clientY - dragStart.current.my) / rect.height * 100 / zoom
+    setPos({
+      x: Math.min(100, Math.max(0, dragStart.current.px - dx)),
+      y: Math.min(100, Math.max(0, dragStart.current.py - dy))
+    })
+  }
+
+  const posStr = `${pos.x.toFixed(1)}% ${pos.y.toFixed(1)}%`
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
+      <div style={{ background: '#1a1a2e', borderRadius: 14, overflow: 'hidden', width: '100%', maxWidth: 800, boxShadow: '0 8px 40px rgba(0,0,0,.6)' }}>
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,.1)', fontWeight: 700, fontSize: 14, color: '#fff' }}>
+          🖼️ Repositionner la bannière
+          <span style={{ marginLeft: 10, fontSize: 10, opacity: .5, fontWeight: 400 }}>Taille recommandée : 1640 × 856 px</span>
+        </div>
+        <div style={{ padding: '8px 16px 4px', fontSize: 11, color: 'rgba(255,255,255,.5)', textAlign: 'center' }}>
+          Glisse l'image · Molette pour zoomer
+        </div>
+        <div
+          ref={containerRef}
+          onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
+          onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onMouseUp}
+          onWheel={e => { e.preventDefault(); setZoom(z => Math.min(3, Math.max(1, z - e.deltaY * 0.001))) }}
+          style={{ height: 220, overflow: 'hidden', cursor: dragging ? 'grabbing' : 'grab', position: 'relative', userSelect: 'none' }}
+        >
+          <img
+            src={url} alt=""
+            style={{
+              position: 'absolute',
+              width: `${zoom * 100}%`,
+              height: `${zoom * 100}%`,
+              objectFit: 'cover',
+              left: `${(1 - zoom) * pos.x}%`,
+              top: `${(1 - zoom) * pos.y}%`,
+              pointerEvents: 'none',
+              draggable: false,
+            }}
+          />
+        </div>
+        <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,.1)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', whiteSpace: 'nowrap' }}>🔍 Zoom</span>
+            <input type="range" min={1} max={3} step={0.01} value={zoom}
+              onChange={e => setZoom(Number(e.target.value))}
+              style={{ flex: 1, accentColor: '#c8a200' }} />
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', minWidth: 32 }}>{zoom.toFixed(1)}x</span>
+          </div>
+        </div>
+        <div style={{ padding: '0 20px 16px', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button onClick={onCancel} style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid rgba(255,255,255,.2)', background: 'transparent', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Annuler</button>
+          <button onClick={() => onConfirm(posStr)} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#f0c800,#c8a200)', color: '#3a2e00', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Confirmer</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Profile() {
   const { user, profile, loading, refreshProfile } = useAuth()
   const navigate = useNavigate()
@@ -266,7 +362,7 @@ export default function Profile() {
   const statutDef  = STATUTS.find(s => s.value === (profile.statut || '')) || STATUTS[0]
   const colors     = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
   const avatarColor = colors[(profile.pseudo?.charCodeAt(0) || 0) % colors.length]
-  const bannerPos = profile.banner_position || 'center'
+  const bannerPos = profile.banner_position || '50% 50%'
   const bannerStyle = profile.banner_url
     ? { backgroundImage: `url(${profile.banner_url})`, backgroundSize: 'cover', backgroundPosition: bannerPos }
     : { background: profile.banner_gradient || BANNER_GRADIENTS[0] }
@@ -382,33 +478,12 @@ export default function Profile() {
       )}
 
       {showPositionSlider && profile.banner_url && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
-          <div style={{ background: C.white, borderRadius: 12, overflow: 'hidden', width: '100%', maxWidth: 700, boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
-            <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 14 }}>📍 Position de la bannière</div>
-            <div style={{ height: 160, backgroundImage: `url(${profile.banner_url})`, backgroundSize: 'cover', backgroundPosition: bannerPosition }} />
-            <div style={{ padding: '16px 20px' }}>
-              <div style={{ fontSize: 12, color: C.textDim, marginBottom: 10, textAlign: 'center' }}>
-                Glisse pour ajuster la position verticale
-                <span style={{ marginLeft: 8, fontSize: 10, opacity: .6 }}>— Taille recommandée : <strong>1640 × 856 px</strong></span>
-              </div>
-              <input type="range" min={0} max={100} step={1}
-                value={bannerPosition === 'top' ? 0 : bannerPosition === 'bottom' ? 100 : parseInt(bannerPosition) || 50}
-                onChange={e => {
-                  const v = Number(e.target.value)
-                  const pos = v === 0 ? 'top' : v === 100 ? 'bottom' : `center ${v}%`
-                  setBannerPosition(pos)
-                }}
-                style={{ width: '100%', accentColor: C.accentDk }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: C.textDim, marginTop: 4 }}>
-                <span>Haut</span><span>Centre</span><span>Bas</span>
-              </div>
-            </div>
-            <div style={{ padding: '0 20px 16px', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <Btn onClick={() => setShowPositionSlider(false)} variant="ghost">Annuler</Btn>
-              <Btn onClick={async () => { await saveBannerPosition(bannerPosition); setShowPositionSlider(false) }} variant="yellow">Confirmer</Btn>
-            </div>
-          </div>
-        </div>
+        <BannerPositionModal
+          url={profile.banner_url}
+          initialPosition={profile.banner_position || '50% 50%'}
+          onConfirm={async (pos) => { await saveBannerPosition(pos); setShowPositionSlider(false) }}
+          onCancel={() => setShowPositionSlider(false)}
+        />
       )}
 
       <div style={{ position: 'relative', height: 220, ...bannerStyle }}>
