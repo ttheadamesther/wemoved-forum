@@ -32,13 +32,23 @@ async function apiFetch(path, opts = {}) {
 function getCroppedBlob(imageSrc, pixelCrop) {
   return new Promise((resolve, reject) => {
     const image = new Image()
+    image.crossOrigin = 'anonymous'
     image.onload = () => {
       const canvas = document.createElement('canvas')
-      canvas.width = pixelCrop.width; canvas.height = pixelCrop.height
-      canvas.getContext('2d').drawImage(image, pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height, 0, 0, pixelCrop.width, pixelCrop.height)
-      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('toBlob failed')), 'image/jpeg', 0.9)
+      canvas.width = Math.round(pixelCrop.width)
+      canvas.height = Math.round(pixelCrop.height)
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(
+        image,
+        Math.round(pixelCrop.x), Math.round(pixelCrop.y),
+        Math.round(pixelCrop.width), Math.round(pixelCrop.height),
+        0, 0,
+        Math.round(pixelCrop.width), Math.round(pixelCrop.height)
+      )
+      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('toBlob failed')), 'image/jpeg', 0.92)
     }
-    image.onerror = reject; image.src = imageSrc
+    image.onerror = reject
+    image.src = imageSrc
   })
 }
 
