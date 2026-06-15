@@ -98,6 +98,14 @@ function BannerPositionModal({ url, initialPosition, onConfirm, onCancel }) {
   const [dragging, setDragging] = useState(false)
   const dragStart = useRef(null)
 
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const handler = (e) => { e.preventDefault(); setZoom(z => Math.min(3, Math.max(1, z - e.deltaY * 0.001))) }
+    el.addEventListener('wheel', handler, { passive: false })
+    return () => el.removeEventListener('wheel', handler)
+  }, [])
+
   const onMouseDown = (e) => {
     e.preventDefault()
     setDragging(true)
@@ -148,7 +156,7 @@ function BannerPositionModal({ url, initialPosition, onConfirm, onCancel }) {
           ref={containerRef}
           onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
           onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onMouseUp}
-          onWheel={e => { e.preventDefault(); setZoom(z => Math.min(3, Math.max(1, z - e.deltaY * 0.001))) }}
+          onWheel={e => { setZoom(z => Math.min(3, Math.max(1, z - e.deltaY * 0.001))) }}
           style={{ height: 220, overflow: 'hidden', cursor: dragging ? 'grabbing' : 'grab', position: 'relative', userSelect: 'none' }}
         >
           <img
