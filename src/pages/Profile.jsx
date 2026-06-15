@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Cropper from 'react-easy-crop'
 import { useAuth } from '../hooks/useAuth'
 import { C, VOTES_DEF, ROLE_RING } from '../lib/constants'
 import { BADGES_DEF } from '../lib/xp'
@@ -173,11 +172,9 @@ export default function Profile() {
   const [crop,         setCrop]         = useState({ x: 0, y: 0 })
   const [zoom,         setZoom]         = useState(1)
   const [croppedArea,  setCroppedArea]  = useState(null)
-  const [bannerCropSrc, setBannerCropSrc]     = useState(null)
-  const [bannerCrop,    setBannerCrop]         = useState({ x: 0, y: 0 })
-  const [bannerZoom,    setBannerZoom]         = useState(1)
-  const [bannerCroppedArea, setBannerCroppedArea] = useState(null)
   const [uploadingBanner, setUploadingBanner] = useState(false)
+  const [bannerPosition, setBannerPosition] = useState('center')
+  const [showPositionSlider, setShowPositionSlider] = useState(false)
   const [editingInfos, setEditingInfos] = useState(false)
   const [infosRegion,  setInfosRegion]  = useState('')
   const [infosDept,    setInfosDept]    = useState('')
@@ -192,7 +189,6 @@ export default function Profile() {
   const bannerRef = useRef()
 
   const onCropComplete       = useCallback((_, p) => setCroppedArea(p), [])
-  const onBannerCropComplete = useCallback((_, p) => setBannerCroppedArea(p), [])
 
   if (loading)  return <div style={{ padding: 40, textAlign: 'center', color: C.textMid }}>Chargement…</div>
   if (!user)    return <div style={{ padding: 40, textAlign: 'center', color: C.textMid }}>Non connecté</div>
@@ -226,20 +222,21 @@ export default function Profile() {
   }
   const cancelAvatarCrop = () => { if (cropSrc) URL.revokeObjectURL(cropSrc); setCropSrc(null) }
 
-  const selectBanner = (e) => {
+  const selectBanner = async (e) => {
     const file = e.target.files[0]; if (!file) return
-    setBannerCropSrc(URL.createObjectURL(file)); setBannerCrop({ x: 0, y: 0 }); setBannerZoom(1); e.target.value = ''; setShowBannerPicker(false)
-  }
-  const confirmBannerCrop = async () => {
-    if (!bannerCropSrc || !bannerCroppedArea) return; setUploadingBanner(true)
-    const croppedBlob = await getCroppedBlob(bannerCropSrc, bannerCroppedArea)
+    setUploadingBanner(true); setShowBannerPicker(false)
+    const token = await getToken()
     const ts = Date.now()
-    const path = `${user.id}/banner_${ts}.jpg`; const token = await getToken()
-    await fetch(`${SUPABASE_URL}/storage/v1/object/avatars/${path}`, { method: 'POST', headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' }, body: croppedBlob })
-    await patchProfile({ banner_url: `${SUPABASE_URL}/storage/v1/object/public/avatars/${path}`, banner_gradient: null })
-    URL.revokeObjectURL(bannerCropSrc); setBannerCropSrc(null); setUploadingBanner(false)
+    const path = `${user.id}/banner_${ts}.jpg`
+    await fetch(`${SUPABASE_URL}/storage/v1/object/avatars/${path}`, { method: 'POST', headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': file.type, 'x-upsert': 'true' }, body: file })
+    const pos = profile.banner_position || 'center'
+    await patchProfile({ banner_url: `${SUPABASE_URL}/storage/v1/object/public/avatars/${path}`, banner_gradient: null, banner_position: pos })
+    setUploadingBanner(false); setShowPositionSlider(true)
+    e.target.value = ''
   }
-  const cancelBannerCrop = () => { if (bannerCropSrc) URL.revokeObjectURL(bannerCropSrc); setBannerCropSrc(null) }
+  const saveBannerPosition = async (pos) => {
+    await patchProfile({ banner_position: pos })
+  }
 
   const uploadPhoto = async (e) => {
     const file = e.target.files[0]; if (!file) return; setUploadingPhoto(true)
@@ -269,8 +266,9 @@ export default function Profile() {
   const statutDef  = STATUTS.find(s => s.value === (profile.statut || '')) || STATUTS[0]
   const colors     = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
   const avatarColor = colors[(profile.pseudo?.charCodeAt(0) || 0) % colors.length]
+  const bannerPos = profile.banner_position || 'center'
   const bannerStyle = profile.banner_url
-    ? { backgroundImage: `url(${profile.banner_url})`, backgroundSize: '100% 100%', backgroundPosition: 'top left' }
+    ? { backgroundImage: `url(${profile.banner_url})`, backgroundSize: 'cover', backgroundPosition: bannerPos }
     : { background: profile.banner_gradient || BANNER_GRADIENTS[0] }
   const topVote = VOTES_DEF.reduce((best, v) => (votes[v.key] || 0) > (votes[best?.key] || 0) ? v : best, null)
 
@@ -383,22 +381,28 @@ export default function Profile() {
         </div>
       )}
 
-      {bannerCropSrc && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
-          <div style={{ background: C.white, borderRadius: 12, overflow: 'hidden', width: '100%', maxWidth: 860, boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
-            <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 14 }}>Recadrer la bannière</div>
-            <div style={{ position: 'relative', width: '100%', height: 280, background: '#222' }}>
-              <Cropper image={bannerCropSrc} crop={bannerCrop} zoom={bannerZoom} aspect={940/220} showGrid={false} onCropChange={setBannerCrop} onZoomChange={setBannerZoom} onCropComplete={onBannerCropComplete} />
-            </div>
-            <div style={{ padding: '14px 20px', borderTop: `1px solid ${C.border}` }}>
-              <div style={{ fontSize: 11, color: C.textDim, marginBottom: 6, textAlign: 'center' }}>
-                📐 Taille recommandée : <strong>1200 × 220 px</strong> — Format bannière
+      {showPositionSlider && profile.banner_url && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
+          <div style={{ background: C.white, borderRadius: 12, overflow: 'hidden', width: '100%', maxWidth: 700, boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
+            <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 14 }}>📍 Position de la bannière</div>
+            <div style={{ height: 160, backgroundImage: `url(${profile.banner_url})`, backgroundSize: 'cover', backgroundPosition: bannerPosition }} />
+            <div style={{ padding: '16px 20px' }}>
+              <div style={{ fontSize: 12, color: C.textDim, marginBottom: 10, textAlign: 'center' }}>Glisse pour ajuster la position verticale</div>
+              <input type="range" min={0} max={100} step={1}
+                value={bannerPosition === 'top' ? 0 : bannerPosition === 'bottom' ? 100 : parseInt(bannerPosition) || 50}
+                onChange={e => {
+                  const v = Number(e.target.value)
+                  const pos = v === 0 ? 'top' : v === 100 ? 'bottom' : `center ${v}%`
+                  setBannerPosition(pos)
+                }}
+                style={{ width: '100%', accentColor: C.accentDk }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: C.textDim, marginTop: 4 }}>
+                <span>Haut</span><span>Centre</span><span>Bas</span>
               </div>
-              <input type="range" min={1} max={3} step={0.01} value={bannerZoom} onChange={e => setBannerZoom(Number(e.target.value))} style={{ width: '100%', accentColor: C.accentDk }} />
             </div>
             <div style={{ padding: '0 20px 16px', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <Btn onClick={cancelBannerCrop} variant="ghost">Annuler</Btn>
-              <Btn onClick={confirmBannerCrop} variant="yellow">{uploadingBanner ? '…' : 'Confirmer'}</Btn>
+              <Btn onClick={() => setShowPositionSlider(false)} variant="ghost">Annuler</Btn>
+              <Btn onClick={async () => { await saveBannerPosition(bannerPosition); setShowPositionSlider(false) }} variant="yellow">Confirmer</Btn>
             </div>
           </div>
         </div>
@@ -406,9 +410,16 @@ export default function Profile() {
 
       <div style={{ position: 'relative', height: 220, ...bannerStyle }}>
         <div style={{ position: 'absolute', top: 12, right: 12 }}>
-          <button onClick={() => setShowBannerPicker(p => !p)} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
-            🎨 Bannière
-          </button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {profile.banner_url && (
+              <button onClick={() => { setBannerPosition(profile.banner_position || 'center'); setShowPositionSlider(true) }} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
+                ↕️ Position
+              </button>
+            )}
+            <button onClick={() => setShowBannerPicker(p => !p)} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
+              🎨 Bannière
+            </button>
+          </div>
         </div>
         {showBannerPicker && (
           <div style={{ position: 'absolute', top: 44, right: 12, background: C.white, borderRadius: 12, padding: 14, boxShadow: '0 8px 32px rgba(0,0,0,.2)', zIndex: 100, width: 260 }}>
@@ -421,7 +432,7 @@ export default function Profile() {
             </div>
             <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Image</div>
             <button onClick={() => bannerRef.current.click()} style={{ width: '100%', padding: '8px', borderRadius: 8, border: `1px dashed ${C.borderMid}`, background: C.surfaceB, color: C.textMid, fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
-              📸 Importer et recadrer
+              📸 Importer une image
             </button>
             <input ref={bannerRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={selectBanner} />
           </div>
