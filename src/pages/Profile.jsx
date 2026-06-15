@@ -101,7 +101,7 @@ export default function Profile() {
         ...(Array.isArray(d2) ? d2.map(f => f.user_a) : [])
       ]
       if (friendIds.length > 0) {
-        const rp = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=in.(${friendIds.join(',')})&select=id,pseudo,initials,avatar_url,online`, { headers: h })
+        const rp = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=in.(${friendIds.join(',')})&select=id,pseudo,initials,avatar_url,online,role`, { headers: h })
         const dp = await rp.json()
         setFriendsList(Array.isArray(dp) ? dp : [])
       } else {
@@ -621,8 +621,11 @@ export default function Profile() {
                       <div key={f.id} onClick={() => navigate(`/members/${f.id}`)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 8px', background: C.surfaceB, borderRadius: 12, border: `1px solid ${C.border}`, cursor: 'pointer', transition: 'all .15s' }}
                         onMouseEnter={e => e.currentTarget.style.borderColor = '#3498db'}
                         onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
-                        <div style={{ width: 44, height: 44, borderRadius: '50%', background: f.avatar_url ? '#444' : fColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', overflow: 'hidden', border: '2px solid #fff', boxShadow: '0 2px 6px rgba(0,0,0,.1)' }}>
-                          {f.avatar_url ? <img loading="lazy" decoding="async" src={f.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : f.initials || f.pseudo?.slice(0,2).toUpperCase()}
+                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                          <div style={{ width: 44, height: 44, borderRadius: '50%', background: f.avatar_url ? '#444' : fColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', overflow: 'hidden', border: ROLE_RING[f.role] ? `2.5px solid ${ROLE_RING[f.role]}` : '2px solid rgba(255,255,255,.15)', boxShadow: ROLE_RING[f.role] ? `0 0 10px ${ROLE_RING[f.role]}66` : '0 2px 6px rgba(0,0,0,.1)' }}>
+                            {f.avatar_url ? <img loading="lazy" decoding="async" src={f.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : f.initials || f.pseudo?.slice(0,2).toUpperCase()}
+                          </div>
+                          {f.online && <div style={{ position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: '50%', background: '#2ecc71', border: '2px solid var(--white)', boxShadow: '0 0 6px #2ecc71' }} />}
                         </div>
                         <div style={{ fontSize: 11, fontWeight: 700, color: C.text, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>@{f.pseudo}</div>
                         {f.online && <span style={{ fontSize: 9, color: '#2ecc71', fontWeight: 700 }}>● En ligne</span>}
