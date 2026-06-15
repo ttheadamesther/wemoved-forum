@@ -4,7 +4,7 @@ import { C } from '../lib/constants'
 import { RoleBadge } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
 import EmojiPicker from 'emoji-picker-react'
-import { useMention } from '../hooks/useMention'
+import { useMention } from '../hooks/useMention.jsx'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY

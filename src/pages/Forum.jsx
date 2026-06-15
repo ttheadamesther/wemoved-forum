@@ -5,7 +5,7 @@ import { RoleBadge, Btn, Input } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
 import EmojiPicker from 'emoji-picker-react'
 import { awardXP } from '../lib/xp'
-import { useMention, renderWithMentions } from '../hooks/useMention'
+import { useMention, renderWithMentions } from '../hooks/useMention.jsx'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
