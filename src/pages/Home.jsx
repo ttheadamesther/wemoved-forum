@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react'
-import EmojiPicker from 'emoji-picker-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { C, VOTES_DEF, CATS, ROLE_RING } from '../lib/constants'
 import { RoleBadge } from '../components/UI'
@@ -14,17 +13,6 @@ function apiFetch(path) {
   return fetch(`${SUPABASE_URL}${path}`, {
     headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
   }).then(r => r.json())
-}
-
-async function getToken() {
-  try {
-    const { supabase } = await import('../lib/supabase')
-    if (supabase) {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.access_token) return session.access_token
-    }
-  } catch {}
-  return ANON_KEY
 }
 
 function SkeletonThread() {
@@ -157,9 +145,6 @@ export default function Home() {
   const [cat,        setCat]        = useState('Divers')
   const [posting,    setPosting]    = useState(false)
   const [announcements, setAnnouncements] = useState([])
-  const [showEmoji,   setShowEmoji]   = useState(false)
-  const bodyRef = useRef()
-  const emojiRef = useRef()
 
   useEffect(() => {
     const observer = new ResizeObserver(entries => {
@@ -168,24 +153,6 @@ export default function Home() {
     if (containerRef.current) observer.observe(containerRef.current)
     return () => observer.disconnect()
   }, [])
-
-  useEffect(() => {
-    const handler = (e) => {
-      if (emojiRef.current && !emojiRef.current.contains(e.target)) setShowEmoji(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
-
-  const insertEmoji = (emojiData) => {
-    const el = bodyRef.current
-    if (!el) return
-    const start = el.selectionStart; const end = el.selectionEnd
-    const newVal = body.slice(0, start) + emojiData.emoji + body.slice(end)
-    setBody(newVal)
-    setShowEmoji(false)
-    setTimeout(() => { el.focus(); el.setSelectionRange(start + emojiData.emoji.length, start + emojiData.emoji.length) }, 0)
-  }
 
   useEffect(() => {
     apiFetch('/rest/v1/profiles?select=*&order=created_at.desc').then(d => {
@@ -208,7 +175,7 @@ export default function Home() {
       if (Array.isArray(d)) setActivity(d)
       setLoadingA(false)
     })
-    apiFetch('/rest/v1/replies?select=id').then(d => {
+    apiFetch('/rest/v1/messages?select=id').then(d => {
       if (Array.isArray(d)) setStats(s => ({ ...s, messages: d.length }))
     })
     apiFetch('/rest/v1/announcements?select=*&order=pinned.desc,created_at.desc').then(d => {
@@ -250,10 +217,9 @@ export default function Home() {
   const postThread = async () => {
     if (!title.trim() || !body.trim() || !user) return
     setPosting(true)
-    const token = await getToken()
     await fetch(`${SUPABASE_URL}/rest/v1/threads`, {
       method: 'POST',
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ author_id: user.id, cat, title, body, likes: 0, pinned: false, locked: false, hidden: false })
     })
     setTitle(''); setBody(''); setNewThread(false); setPosting(false)
@@ -268,7 +234,7 @@ export default function Home() {
   }
   const xpPercent = profile ? ((profile.xp || 0) % 1000) / 10 : 0
   const gridStyle = isMobile
-    ? { display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'stretch' }
+    ? { display: 'flex', flexDirection: 'column', gap: 14 }
     : { display: 'grid', gridTemplateColumns: '260px 1fr 280px', gap: 18 }
 
   const colors = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
@@ -291,11 +257,10 @@ export default function Home() {
     <div ref={containerRef}>
       <div style={{ maxWidth: 1300, margin: '0 auto', padding: isMobile ? '14px 12px' : '22px 18px', ...gridStyle }}>
 
-        {/* Mobile: Activité d'abord, Desktop: ordre normal */}
         {isMobile ? (
           <>
         {/* ── SIDEBAR DROITE ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, order: isMobile ? 2 : 3 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
           {/* Activité */}
           <SectionCard>
@@ -390,9 +355,9 @@ export default function Home() {
               ))}
             </div>
           </SectionCard>
-        </div>
+
         {/* ── CONTENU CENTRAL ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, order: isMobile ? 1 : 2 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 style={{ fontWeight: 800, fontSize: isMobile ? 14 : 16, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: 1.2 }}>Discussions récentes</h2>
@@ -421,17 +386,7 @@ export default function Home() {
                 </select>
                 <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titre de la discussion…" className="wmi" style={{ ...inputStyle, flex: 1 }} />
               </div>
-              <div style={{ position: 'relative', marginBottom: 12 }}>
-                <textarea ref={bodyRef} value={body} onChange={e => setBody(e.target.value)} placeholder="Contenu…" rows={3} className="wmi" spellCheck lang="fr" style={{ ...inputStyle, width: '100%', resize: 'vertical', boxSizing: 'border-box', paddingRight: 44 }} />
-                <div ref={emojiRef} style={{ position: 'absolute', bottom: 8, right: 8 }}>
-                  <button onClick={() => setShowEmoji(s => !s)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 2, opacity: .7 }}>😊</button>
-                  {showEmoji && (
-                    <div style={{ position: 'fixed', bottom: 80, right: 20, zIndex: 1000 }}>
-                      <EmojiPicker onEmojiClick={insertEmoji} width={400} height={550} theme="dark" />
-                    </div>
-                  )}
-                </div>
-              </div>
+              <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Contenu…" rows={3} className="wmi" style={{ ...inputStyle, width: '100%', resize: 'vertical', marginBottom: 12, boxSizing: 'border-box' }} />
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button onClick={() => setNewThread(false)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--borderMid)', background: 'var(--surfaceB)', cursor: 'pointer', fontSize: 12, color: 'var(--textMid)', fontFamily: 'inherit' }}>Annuler</button>
                 <button onClick={postThread} disabled={posting} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#f0c800,#c8a200)', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#3a2e00', fontFamily: 'inherit', opacity: posting ? .7 : 1 }}>{posting ? '…' : 'Publier'}</button>
@@ -521,7 +476,22 @@ export default function Home() {
             </div>
           </SectionCard>
 
+          {/* Banner */}
+          <div style={{
+            background: 'linear-gradient(135deg,#0e0e1e 0%,#141428 50%,#0a0a18 100%)',
+            borderRadius: 16,
+            padding: isMobile ? '24px 20px' : '30px 40px',
+            textAlign: 'center',
+            border: '1px solid rgba(200,162,0,.18)',
+            boxShadow: '0 4px 24px rgba(0,0,0,.25), inset 0 1px 0 rgba(200,162,0,.08)',
+          }}>
+            <div style={{ fontSize: 40, color: 'var(--accent)', lineHeight: 1, marginBottom: 12, opacity: .6, fontFamily: 'Georgia, serif' }}>"</div>
+            <p style={{ fontSize: isMobile ? 15 : 18, color: '#fff', fontWeight: 700, marginBottom: 10, lineHeight: 1.5 }}>La communauté, c'est ce qui nous fait avancer.</p>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,.45)', lineHeight: 1.6 }}>Restons respectueux, ouverts et bienveillants envers tous.</p>
+          </div>
         </div>
+
+
         {/* ── SIDEBAR GAUCHE ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
@@ -602,7 +572,7 @@ export default function Home() {
               {[
                 { icon: '👥', label: 'Membres',         value: stats.members },
                 { icon: '💬', label: 'Discussions',      value: stats.threads },
-                { icon: '✉️', label: 'Réponses',          value: stats.messages },
+                { icon: '✉️', label: 'Messages',         value: stats.messages },
                 { icon: '🟢', label: 'En ligne',          value: stats.online },
               ].map(s => (
                 <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 18px', borderBottom: '1px solid var(--border)' }}>
@@ -614,6 +584,7 @@ export default function Home() {
             </div>
           </SectionCard>
         </div>
+
           </>
         ) : (
           <>
@@ -697,7 +668,7 @@ export default function Home() {
               {[
                 { icon: '👥', label: 'Membres',         value: stats.members },
                 { icon: '💬', label: 'Discussions',      value: stats.threads },
-                { icon: '✉️', label: 'Réponses',          value: stats.messages },
+                { icon: '✉️', label: 'Messages',         value: stats.messages },
                 { icon: '🟢', label: 'En ligne',          value: stats.online },
               ].map(s => (
                 <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 18px', borderBottom: '1px solid var(--border)' }}>
@@ -709,8 +680,9 @@ export default function Home() {
             </div>
           </SectionCard>
         </div>
+
         {/* ── CONTENU CENTRAL ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, order: isMobile ? 1 : 2 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 style={{ fontWeight: 800, fontSize: isMobile ? 14 : 16, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: 1.2 }}>Discussions récentes</h2>
@@ -739,17 +711,7 @@ export default function Home() {
                 </select>
                 <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titre de la discussion…" className="wmi" style={{ ...inputStyle, flex: 1 }} />
               </div>
-              <div style={{ position: 'relative', marginBottom: 12 }}>
-                <textarea ref={bodyRef} value={body} onChange={e => setBody(e.target.value)} placeholder="Contenu…" rows={3} className="wmi" spellCheck lang="fr" style={{ ...inputStyle, width: '100%', resize: 'vertical', boxSizing: 'border-box', paddingRight: 44 }} />
-                <div ref={emojiRef} style={{ position: 'absolute', bottom: 8, right: 8 }}>
-                  <button onClick={() => setShowEmoji(s => !s)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 2, opacity: .7 }}>😊</button>
-                  {showEmoji && (
-                    <div style={{ position: 'fixed', bottom: 80, right: 20, zIndex: 1000 }}>
-                      <EmojiPicker onEmojiClick={insertEmoji} width={400} height={550} theme="dark" />
-                    </div>
-                  )}
-                </div>
-              </div>
+              <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Contenu…" rows={3} className="wmi" style={{ ...inputStyle, width: '100%', resize: 'vertical', marginBottom: 12, boxSizing: 'border-box' }} />
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button onClick={() => setNewThread(false)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--borderMid)', background: 'var(--surfaceB)', cursor: 'pointer', fontSize: 12, color: 'var(--textMid)', fontFamily: 'inherit' }}>Annuler</button>
                 <button onClick={postThread} disabled={posting} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#f0c800,#c8a200)', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#3a2e00', fontFamily: 'inherit', opacity: posting ? .7 : 1 }}>{posting ? '…' : 'Publier'}</button>
@@ -759,6 +721,9 @@ export default function Home() {
 
           {/* Threads */}
           <SectionCard>
+            <SectionHeader accent>
+              <span style={{ fontWeight: 700, fontSize: 11, color: 'var(--textDim)', textTransform: 'uppercase', letterSpacing: 1 }}>Discussions récentes</span>
+            </SectionHeader>
             {loadingT
               ? Array.from({ length: 5 }).map((_, i) => <SkeletonThread key={i} />)
               : threads.length === 0
@@ -836,9 +801,24 @@ export default function Home() {
             </div>
           </SectionCard>
 
+          {/* Banner */}
+          <div style={{
+            background: 'linear-gradient(135deg,#0e0e1e 0%,#141428 50%,#0a0a18 100%)',
+            borderRadius: 16,
+            padding: isMobile ? '24px 20px' : '30px 40px',
+            textAlign: 'center',
+            border: '1px solid rgba(200,162,0,.18)',
+            boxShadow: '0 4px 24px rgba(0,0,0,.25), inset 0 1px 0 rgba(200,162,0,.08)',
+          }}>
+            <div style={{ fontSize: 40, color: 'var(--accent)', lineHeight: 1, marginBottom: 12, opacity: .6, fontFamily: 'Georgia, serif' }}>"</div>
+            <p style={{ fontSize: isMobile ? 15 : 18, color: '#fff', fontWeight: 700, marginBottom: 10, lineHeight: 1.5 }}>La communauté, c'est ce qui nous fait avancer.</p>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,.45)', lineHeight: 1.6 }}>Restons respectueux, ouverts et bienveillants envers tous.</p>
+          </div>
         </div>
+
+
         {/* ── SIDEBAR DROITE ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, order: isMobile ? 2 : 3 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
           {/* Activité */}
           <SectionCard>
@@ -933,25 +913,10 @@ export default function Home() {
               ))}
             </div>
           </SectionCard>
-        </div>
+
           </>
         )}
-      </div>{/* fin grid */}
-
-      {/* Banner communauté */}
-      <div style={{
-        background: 'linear-gradient(135deg,#0e0e1e 0%,#141428 50%,#0a0a18 100%)',
-        borderRadius: 16,
-        padding: '24px 20px',
-        textAlign: 'center',
-        border: '1px solid rgba(200,162,0,.18)',
-        boxShadow: '0 4px 24px rgba(0,0,0,.25), inset 0 1px 0 rgba(200,162,0,.08)',
-        maxWidth: 1300, margin: '14px auto 0', width: '100%', boxSizing: 'border-box',
-        padding: isMobile ? '24px 12px' : '30px 40px',
-      }}>
-        <div style={{ fontSize: 40, color: 'var(--accent)', lineHeight: 1, marginBottom: 12, opacity: .6, fontFamily: 'Georgia, serif' }}>"</div>
-        <p style={{ fontSize: isMobile ? 15 : 18, color: '#fff', fontWeight: 700, marginBottom: 10, lineHeight: 1.5 }}>La communauté, c'est ce qui nous fait avancer.</p>
-        <p style={{ fontSize: 13, color: 'rgba(255,255,255,.45)', lineHeight: 1.6 }}>Restons respectueux, ouverts et bienveillants envers tous.</p>
+        </div>
       </div>
     </div>
   )
