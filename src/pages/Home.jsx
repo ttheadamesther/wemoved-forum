@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import EmojiPicker from 'emoji-picker-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { C, VOTES_DEF, CATS, ROLE_RING } from '../lib/constants'
 import { RoleBadge } from '../components/UI'
@@ -145,6 +146,9 @@ export default function Home() {
   const [cat,        setCat]        = useState('Divers')
   const [posting,    setPosting]    = useState(false)
   const [announcements, setAnnouncements] = useState([])
+  const [showEmoji,   setShowEmoji]   = useState(false)
+  const bodyRef = useRef()
+  const emojiRef = useRef()
 
   useEffect(() => {
     const observer = new ResizeObserver(entries => {
@@ -153,6 +157,24 @@ export default function Home() {
     if (containerRef.current) observer.observe(containerRef.current)
     return () => observer.disconnect()
   }, [])
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (emojiRef.current && !emojiRef.current.contains(e.target)) setShowEmoji(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const insertEmoji = (emojiData) => {
+    const el = bodyRef.current
+    if (!el) return
+    const start = el.selectionStart; const end = el.selectionEnd
+    const newVal = body.slice(0, start) + emojiData.emoji + body.slice(end)
+    setBody(newVal)
+    setShowEmoji(false)
+    setTimeout(() => { el.focus(); el.setSelectionRange(start + emojiData.emoji.length, start + emojiData.emoji.length) }, 0)
+  }
 
   useEffect(() => {
     apiFetch('/rest/v1/profiles?select=*&order=created_at.desc').then(d => {
@@ -380,7 +402,17 @@ export default function Home() {
                 </select>
                 <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titre de la discussion…" className="wmi" style={{ ...inputStyle, flex: 1 }} />
               </div>
-              <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Contenu…" rows={3} className="wmi" style={{ ...inputStyle, width: '100%', resize: 'vertical', marginBottom: 12, boxSizing: 'border-box' }} />
+              <div style={{ position: 'relative', marginBottom: 12 }}>
+                <textarea ref={bodyRef} value={body} onChange={e => setBody(e.target.value)} placeholder="Contenu…" rows={3} className="wmi" style={{ ...inputStyle, width: '100%', resize: 'vertical', boxSizing: 'border-box', paddingRight: 44 }} />
+                <div ref={emojiRef} style={{ position: 'absolute', bottom: 8, right: 8 }}>
+                  <button onClick={() => setShowEmoji(s => !s)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 2, opacity: .7 }}>😊</button>
+                  {showEmoji && (
+                    <div style={{ position: 'absolute', bottom: 32, right: 0, zIndex: 100 }}>
+                      <EmojiPicker onEmojiClick={insertEmoji} width={300} height={350} />
+                    </div>
+                  )}
+                </div>
+              </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button onClick={() => setNewThread(false)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--borderMid)', background: 'var(--surfaceB)', cursor: 'pointer', fontSize: 12, color: 'var(--textMid)', fontFamily: 'inherit' }}>Annuler</button>
                 <button onClick={postThread} disabled={posting} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#f0c800,#c8a200)', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#3a2e00', fontFamily: 'inherit', opacity: posting ? .7 : 1 }}>{posting ? '…' : 'Publier'}</button>
