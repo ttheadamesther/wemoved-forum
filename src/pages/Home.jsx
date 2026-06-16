@@ -68,6 +68,7 @@ function MemberAvatar({ member, size = 34, colors }) {
   )
 }
 
+/* ── Petit composant carte section ── */
 function SectionCard({ children, style = {} }) {
   return (
     <div style={{
@@ -83,7 +84,7 @@ function SectionCard({ children, style = {} }) {
   )
 }
 
-function SectionHeader({ children }) {
+function SectionHeader({ children, accent = false }) {
   return (
     <div style={{
       padding: '13px 18px',
@@ -113,9 +114,15 @@ function CatBadge({ cat }) {
   const c = CAT_COLORS[cat] || CAT_COLORS.Divers
   return (
     <span style={{
-      display: 'inline-block', padding: '3px 10px', borderRadius: 99,
-      fontSize: 10, fontWeight: 700, letterSpacing: .3,
-      background: c.bg, color: c.color, border: `1px solid ${c.border}`,
+      display: 'inline-block',
+      padding: '3px 10px',
+      borderRadius: 99,
+      fontSize: 10,
+      fontWeight: 700,
+      letterSpacing: .3,
+      background: c.bg,
+      color: c.color,
+      border: `1px solid ${c.border}`,
     }}>{cat}</span>
   )
 }
@@ -168,7 +175,7 @@ export default function Home() {
       if (Array.isArray(d)) setActivity(d)
       setLoadingA(false)
     })
-    apiFetch('/rest/v1/replies?select=id').then(d => {
+    apiFetch('/rest/v1/messages?select=id').then(d => {
       if (Array.isArray(d)) setStats(s => ({ ...s, messages: d.length }))
     })
     apiFetch('/rest/v1/announcements?select=*&order=pinned.desc,created_at.desc').then(d => {
@@ -233,9 +240,15 @@ export default function Home() {
   const colors = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
 
   const inputStyle = {
-    padding: '9px 13px', borderRadius: 10, border: '1px solid var(--borderMid)',
-    fontSize: 13, color: 'var(--text)', background: 'var(--surfaceB)',
-    fontFamily: 'inherit', outline: 'none', transition: 'border-color .15s, box-shadow .15s',
+    padding: '9px 13px',
+    borderRadius: 10,
+    border: '1px solid var(--borderMid)',
+    fontSize: 13,
+    color: 'var(--text)',
+    background: 'var(--surfaceB)',
+    fontFamily: 'inherit',
+    outline: 'none',
+    transition: 'border-color .15s, box-shadow .15s',
   }
 
   const onlineMems = members.filter(m => m.online)
@@ -244,8 +257,8 @@ export default function Home() {
     <div ref={containerRef}>
       <div style={{ maxWidth: 1300, margin: '0 auto', padding: isMobile ? '14px 12px' : '22px 18px', ...gridStyle }}>
 
-        {/* ── SIDEBAR GAUCHE ── order 3 mobile */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, order: isMobile ? 3 : 'unset' }}>
+        {/* ── SIDEBAR GAUCHE ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
           {/* Top du mois */}
           <SectionCard>
@@ -322,10 +335,10 @@ export default function Home() {
             </SectionHeader>
             <div style={{ padding: '4px 0' }}>
               {[
-                { icon: '👥', label: 'Membres',    value: stats.members },
-                { icon: '💬', label: 'Discussions', value: stats.threads },
-                { icon: '✉️', label: 'Réponses',    value: stats.messages },
-                { icon: '🟢', label: 'En ligne',    value: stats.online },
+                { icon: '👥', label: 'Membres',         value: stats.members },
+                { icon: '💬', label: 'Discussions',      value: stats.threads },
+                { icon: '✉️', label: 'Messages',         value: stats.messages },
+                { icon: '🟢', label: 'En ligne',          value: stats.online },
               ].map(s => (
                 <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 18px', borderBottom: '1px solid var(--border)' }}>
                   <span style={{ fontSize: 15 }}>{s.icon}</span>
@@ -337,8 +350,8 @@ export default function Home() {
           </SectionCard>
         </div>
 
-        {/* ── CONTENU CENTRAL ── order 2 mobile */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, order: isMobile ? 2 : 'unset' }}>
+        {/* ── CONTENU CENTRAL ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 style={{ fontWeight: 800, fontSize: isMobile ? 14 : 16, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: 1.2 }}>Discussions récentes</h2>
@@ -349,7 +362,8 @@ export default function Home() {
                 border: 'none', borderRadius: 10, cursor: 'pointer',
                 fontWeight: 700, fontSize: 13, color: '#3a2e00',
                 boxShadow: '0 2px 12px rgba(200,162,0,.35)',
-                transition: 'transform .15s, box-shadow .15s', fontFamily: 'inherit',
+                transition: 'transform .15s, box-shadow .15s',
+                fontFamily: 'inherit',
               }}
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(200,162,0,.45)' }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(200,162,0,.35)' }}>
@@ -376,6 +390,9 @@ export default function Home() {
 
           {/* Threads */}
           <SectionCard>
+            <SectionHeader accent>
+              <span style={{ fontWeight: 700, fontSize: 11, color: 'var(--textDim)', textTransform: 'uppercase', letterSpacing: 1 }}>Discussions récentes</span>
+            </SectionHeader>
             {loadingT
               ? Array.from({ length: 5 }).map((_, i) => <SkeletonThread key={i} />)
               : threads.length === 0
@@ -393,7 +410,9 @@ export default function Home() {
                           </div>
                         )}
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ marginBottom: 5 }}><CatBadge cat={t.cat} /></div>
+                          <div style={{ marginBottom: 5 }}>
+                            <CatBadge cat={t.cat} />
+                          </div>
                           <div style={{ fontWeight: 700, fontSize: isMobile ? 13 : 14, color: 'var(--text)', marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>{t.title}</div>
                           <div style={{ fontSize: 11, color: 'var(--textMid)', display: 'flex', alignItems: 'center', gap: 4 }}>
                             <span style={{ fontWeight: 600 }}>{author ? `@${author.pseudo}` : 'Inconnu'}</span>
@@ -422,7 +441,7 @@ export default function Home() {
 
           {/* Catégories */}
           <SectionCard>
-            <SectionHeader>
+            <SectionHeader accent>
               <span style={{ fontWeight: 700, fontSize: 11, color: 'var(--textDim)', textTransform: 'uppercase', letterSpacing: 1 }}>Catégories</span>
             </SectionHeader>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 0 }}>
@@ -432,7 +451,7 @@ export default function Home() {
                 { cat: 'Culture',    icon: '🎭', desc: 'Cinéma, séries, livres…' },
                 { cat: 'Lifestyle',  icon: '☕', desc: 'Bien-être, mode de vie…' },
                 { cat: 'Voyages',    icon: '✈️', desc: 'Destinations, bons plans…' },
-                { cat: 'Divers',     icon: '💬', desc: 'Tout le reste !' },
+                { cat: 'Divers',     icon: '💬', desc: "Tout le reste !" },
               ].map((c, i) => {
                 const cc = CAT_COLORS[c.cat] || CAT_COLORS.Divers
                 return (
@@ -450,12 +469,26 @@ export default function Home() {
               })}
             </div>
           </SectionCard>
+
+          {/* Banner */}
+          <div style={{
+            background: 'linear-gradient(135deg,#0e0e1e 0%,#141428 50%,#0a0a18 100%)',
+            borderRadius: 16,
+            padding: isMobile ? '24px 20px' : '30px 40px',
+            textAlign: 'center',
+            border: '1px solid rgba(200,162,0,.18)',
+            boxShadow: '0 4px 24px rgba(0,0,0,.25), inset 0 1px 0 rgba(200,162,0,.08)',
+          }}>
+            <div style={{ fontSize: 40, color: 'var(--accent)', lineHeight: 1, marginBottom: 12, opacity: .6, fontFamily: 'Georgia, serif' }}>"</div>
+            <p style={{ fontSize: isMobile ? 15 : 18, color: '#fff', fontWeight: 700, marginBottom: 10, lineHeight: 1.5 }}>La communauté, c'est ce qui nous fait avancer.</p>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,.45)', lineHeight: 1.6 }}>Restons respectueux, ouverts et bienveillants envers tous.</p>
+          </div>
         </div>
 
-        {/* ── SIDEBAR DROITE ── order 1 mobile */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, order: isMobile ? 1 : 'unset' }}>
+        {/* ── SIDEBAR DROITE ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-          {/* Activité récente */}
+          {/* Activité */}
           <SectionCard>
             <SectionHeader>
               <span style={{ fontWeight: 700, fontSize: 11, color: 'var(--textDim)', textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -488,9 +521,9 @@ export default function Home() {
             }
           </SectionCard>
 
-          {/* Récompenses — order 4 mobile (après discussions et gauche) */}
+          {/* Récompenses */}
           {user && profile && (
-            <SectionCard style={{ padding: 0, order: isMobile ? 4 : 'unset' }}>
+            <SectionCard style={{ padding: 0 }}>
               <SectionHeader>
                 <span style={{ fontWeight: 700, fontSize: 11, color: 'var(--textDim)', textTransform: 'uppercase', letterSpacing: 1 }}>Vos récompenses</span>
               </SectionHeader>
@@ -519,8 +552,8 @@ export default function Home() {
             </SectionCard>
           )}
 
-          {/* Annonces — order 5 mobile */}
-          <SectionCard style={{ order: isMobile ? 5 : 'unset' }}>
+          {/* Annonces */}
+          <SectionCard>
             <SectionHeader>
               <span style={{ fontWeight: 700, fontSize: 11, color: 'var(--textDim)', textTransform: 'uppercase', letterSpacing: 1 }}>📢 Annonces</span>
             </SectionHeader>
@@ -532,7 +565,7 @@ export default function Home() {
               ) : announcements.map((a, i) => (
                 <div key={a.id} style={{
                   background: i === 0 && a.pinned ? 'var(--accentBg)' : 'transparent',
-                  border: i === 0 && a.pinned ? '1px solid rgba(200,162,0,.25)' : 'none',
+                  border: i === 0 && a.pinned ? '1px solid rgba(200,162,0,.25)' : (i > 0 ? 'none' : 'none'),
                   borderBottom: i < announcements.length - 1 ? '1px solid var(--border)' : 'none',
                   borderRadius: i === 0 && a.pinned ? 10 : 0,
                   padding: i === 0 && a.pinned ? '11px 13px' : '8px 2px',
@@ -548,23 +581,7 @@ export default function Home() {
               ))}
             </div>
           </SectionCard>
-
-          {/* Banner communauté — order 6 mobile (tout en bas) */}
-          <div style={{
-            order: isMobile ? 6 : 'unset',
-            background: 'linear-gradient(135deg,#0e0e1e 0%,#141428 50%,#0a0a18 100%)',
-            borderRadius: 16,
-            padding: isMobile ? '24px 20px' : '30px 40px',
-            textAlign: 'center',
-            border: '1px solid rgba(200,162,0,.18)',
-            boxShadow: '0 4px 24px rgba(0,0,0,.25), inset 0 1px 0 rgba(200,162,0,.08)',
-          }}>
-            <div style={{ fontSize: 40, color: 'var(--accent)', lineHeight: 1, marginBottom: 12, opacity: .6, fontFamily: 'Georgia, serif' }}>"</div>
-            <p style={{ fontSize: isMobile ? 15 : 18, color: '#fff', fontWeight: 700, marginBottom: 10, lineHeight: 1.5 }}>La communauté, c'est ce qui nous fait avancer.</p>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,.45)', lineHeight: 1.6 }}>Restons respectueux, ouverts et bienveillants envers tous.</p>
-          </div>
         </div>
-
       </div>
     </div>
   )
