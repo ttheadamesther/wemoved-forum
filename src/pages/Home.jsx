@@ -354,7 +354,7 @@ export default function Home() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 style={{ fontWeight: 800, fontSize: isMobile ? 14 : 16, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: 1.2 }}>Discussions récentes</h2>
+  
             {user && (
               <button onClick={() => setNewThread(t => !t)} style={{
                 padding: isMobile ? '8px 14px' : '9px 20px',
