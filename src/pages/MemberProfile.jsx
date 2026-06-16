@@ -374,8 +374,8 @@ export default function MemberProfile() {
           </div>
 
           {/* Stats + votes */}
-          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
               {[{ icon: '👥', label: 'Amis', value: friendsLoading ? '…' : friendsList.length, color: '#3498db' }, { icon: '⭐', label: 'Votes', value: totalVotes, color: '#c8a200' }].map(s => (
                 <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <span style={{ fontSize: 13 }}>{s.icon}</span>
@@ -386,15 +386,15 @@ export default function MemberProfile() {
                 </div>
               ))}
             </div>
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginLeft: 'auto' }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {VOTES_DEF.map(v => {
                 const voted = myVotes[v.key]; const count = votes[v.key] || 0
                 return (
                   <button key={v.key} onClick={() => user && user.id !== id && !isBlocked && vote(v.key)}
                     disabled={!!voting || !user || user.id === id || isBlocked} title={v.label}
-                    style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '3px 8px', borderRadius: 20, border: `1px solid ${voted ? C.accentDk : C.border}`, background: voted ? C.accentBg : C.surfaceB, color: voted ? C.accentTxt : C.textMid, fontWeight: voted ? 700 : 500, fontSize: 12, cursor: (!user || user.id === id || isBlocked || !!voting) ? 'default' : 'pointer', fontFamily: 'inherit' }}>
-                    <span style={{ fontSize: 14 }}>{v.emoji}</span>
-                    <span>{count}</span>
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 12px', borderRadius: 20, border: `1px solid ${voted ? C.accentDk : C.border}`, background: voted ? C.accentBg : C.surfaceB, color: voted ? C.accentTxt : C.textMid, fontWeight: voted ? 700 : 500, fontSize: 12, cursor: (!user || user.id === id || isBlocked || !!voting) ? 'default' : 'pointer', fontFamily: 'inherit' }}>
+                    <span style={{ fontSize: 16 }}>{v.emoji}</span>
+                    <span style={{ fontWeight: 700 }}>{count}</span>
                     {user && user.id !== id && !isBlocked && <span style={{ fontSize: 10, opacity: .6 }}>{voting === v.key ? '…' : voted ? '✓' : '+'}</span>}
                   </button>
                 )
