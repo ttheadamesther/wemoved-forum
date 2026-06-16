@@ -88,13 +88,13 @@ const Tag = ({ icon, label }) => (
 )
 
 
-function BannerPositionModal({ url, initialPosition, onConfirm, onCancel }) {
+function BannerPositionModal({ url, initialPosition, initialZoom = 1, onConfirm, onCancel }) {
   const containerRef = useRef()
   const [pos, setPos] = useState(() => {
     const parts = (initialPosition || '50% 50%').split(' ')
     return { x: parseFloat(parts[0]) || 50, y: parseFloat(parts[1]) || 50 }
   })
-  const [zoom, setZoom] = useState(1)
+  const [zoom, setZoom] = useState(initialZoom)
   const [dragging, setDragging] = useState(false)
   const dragStart = useRef(null)
 
@@ -184,7 +184,7 @@ function BannerPositionModal({ url, initialPosition, onConfirm, onCancel }) {
         </div>
         <div style={{ padding: '0 20px 16px', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button onClick={onCancel} style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid rgba(255,255,255,.2)', background: 'transparent', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Annuler</button>
-          <button onClick={() => onConfirm(posStr)} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#f0c800,#c8a200)', color: '#3a2e00', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Confirmer</button>
+          <button onClick={() => onConfirm(posStr, zoom)} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#f0c800,#c8a200)', color: '#3a2e00', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Confirmer</button>
         </div>
       </div>
     </div>
@@ -338,8 +338,9 @@ export default function Profile() {
     setUploadingBanner(false); setShowPositionSlider(true)
     e.target.value = ''
   }
-  const saveBannerPosition = async (pos) => {
-    await patchProfile({ banner_position: pos })
+  const saveBannerPosition = async (pos, zoom = 1) => {
+    const size = zoom > 1 ? `${Math.round(zoom * 100)}%` : 'cover'
+    await patchProfile({ banner_position: pos, banner_size: size })
   }
 
   const uploadPhoto = async (e) => {
@@ -371,8 +372,9 @@ export default function Profile() {
   const colors     = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
   const avatarColor = colors[(profile.pseudo?.charCodeAt(0) || 0) % colors.length]
   const bannerPos = profile.banner_position || '50% 50%'
+  const bannerSize = profile.banner_size || 'cover'
   const bannerStyle = profile.banner_url
-    ? { backgroundImage: `url(${profile.banner_url})`, backgroundSize: 'cover', backgroundPosition: bannerPos }
+    ? { backgroundImage: `url(${profile.banner_url})`, backgroundSize: bannerSize, backgroundPosition: bannerPos }
     : { background: profile.banner_gradient || BANNER_GRADIENTS[0] }
   const topVote = VOTES_DEF.reduce((best, v) => (votes[v.key] || 0) > (votes[best?.key] || 0) ? v : best, null)
 
@@ -489,7 +491,8 @@ export default function Profile() {
         <BannerPositionModal
           url={profile.banner_url}
           initialPosition={profile.banner_position || '50% 50%'}
-          onConfirm={async (pos) => { await saveBannerPosition(pos); setShowPositionSlider(false) }}
+          initialZoom={profile.banner_size ? Math.round(parseInt(profile.banner_size) / 100) : 1}
+          onConfirm={async (pos, zoom) => { await saveBannerPosition(pos, zoom); setShowPositionSlider(false) }}
           onCancel={() => setShowPositionSlider(false)}
         />
       )}
