@@ -491,7 +491,7 @@ export default function Profile() {
         <BannerPositionModal
           url={profile.banner_url}
           initialPosition={profile.banner_position || '50% 50%'}
-          initialZoom={profile.banner_size ? Math.round(parseInt(profile.banner_size) / 100) : 1}
+          initialZoom={profile.banner_size && profile.banner_size !== 'cover' ? parseFloat(profile.banner_size) / 100 : 1}
           onConfirm={async (pos, zoom) => { await saveBannerPosition(pos, zoom); setShowPositionSlider(false) }}
           onCancel={() => setShowPositionSlider(false)}
         />
