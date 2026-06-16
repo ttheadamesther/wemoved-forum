@@ -380,7 +380,12 @@ export default function Profile() {
 
   const photoLikes = profile.photo_likes || {}
 
-  const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024
+  const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' && window.innerWidth >= 1024)
+  useEffect(() => {
+    const handler = () => setIsDesktop(window.innerWidth >= 1024)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', paddingBottom: 80 }}>
