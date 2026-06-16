@@ -390,6 +390,9 @@ export default function Home() {
 
           {/* Threads */}
           <SectionCard>
+            <SectionHeader>
+              <span style={{ fontWeight: 700, fontSize: 11, color: 'var(--textDim)', textTransform: 'uppercase', letterSpacing: 1 }}>Discussions récentes</span>
+            </SectionHeader>
             {loadingT
               ? Array.from({ length: 5 }).map((_, i) => <SkeletonThread key={i} />)
               : threads.length === 0
