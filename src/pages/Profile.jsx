@@ -87,14 +87,16 @@ const Tag = ({ icon, label }) => (
   </span>
 )
 
+// Convertit "42.3% 18.7%" → { x: 42.3, y: 18.7 }
+function parsePos(str) {
+  const parts = (str || '50% 50%').split(' ')
+  return { x: parseFloat(parts[0]) || 50, y: parseFloat(parts[1]) || 50 }
+}
 
-function BannerPositionModal({ url, initialPosition, initialZoom = 1, onConfirm, onCancel }) {
+function BannerPositionModal({ url, initialPosition, onConfirm, onCancel }) {
   const containerRef = useRef()
-  const [pos, setPos] = useState(() => {
-    const parts = (initialPosition || '50% 50%').split(' ')
-    return { x: parseFloat(parts[0]) || 50, y: parseFloat(parts[1]) || 50 }
-  })
-  const [zoom, setZoom] = useState(initialZoom)
+  const [pos, setPos] = useState(() => parsePos(initialPosition))
+  const [zoom, setZoom] = useState(1)
   const [dragging, setDragging] = useState(false)
   const dragStart = useRef(null)
 
@@ -106,34 +108,16 @@ function BannerPositionModal({ url, initialPosition, initialZoom = 1, onConfirm,
     return () => el.removeEventListener('wheel', handler)
   }, [])
 
-  const onMouseDown = (e) => {
-    e.preventDefault()
+  const startDrag = (mx, my) => {
     setDragging(true)
-    dragStart.current = { mx: e.clientX, my: e.clientY, px: pos.x, py: pos.y }
+    dragStart.current = { mx, my, px: pos.x, py: pos.y }
   }
-  const onMouseMove = (e) => {
+  const moveDrag = (mx, my) => {
     if (!dragging || !dragStart.current || !containerRef.current) return
     const rect = containerRef.current.getBoundingClientRect()
-    const dx = (e.clientX - dragStart.current.mx) / rect.width * 100 / zoom
-    const dy = (e.clientY - dragStart.current.my) / rect.height * 100 / zoom
-    setPos({
-      x: Math.min(100, Math.max(0, dragStart.current.px - dx)),
-      y: Math.min(100, Math.max(0, dragStart.current.py - dy))
-    })
-  }
-  const onMouseUp = () => setDragging(false)
-
-  const onTouchStart = (e) => {
-    const t = e.touches[0]
-    setDragging(true)
-    dragStart.current = { mx: t.clientX, my: t.clientY, px: pos.x, py: pos.y }
-  }
-  const onTouchMove = (e) => {
-    if (!dragging || !dragStart.current || !containerRef.current) return
-    const t = e.touches[0]
-    const rect = containerRef.current.getBoundingClientRect()
-    const dx = (t.clientX - dragStart.current.mx) / rect.width * 100 / zoom
-    const dy = (t.clientY - dragStart.current.my) / rect.height * 100 / zoom
+    // Déplacement en % de la taille du conteneur, divisé par zoom pour être cohérent
+    const dx = (mx - dragStart.current.mx) / rect.width * 100 / zoom
+    const dy = (my - dragStart.current.my) / rect.height * 100 / zoom
     setPos({
       x: Math.min(100, Math.max(0, dragStart.current.px - dx)),
       y: Math.min(100, Math.max(0, dragStart.current.py - dy))
@@ -142,34 +126,42 @@ function BannerPositionModal({ url, initialPosition, initialZoom = 1, onConfirm,
 
   const posStr = `${pos.x.toFixed(1)}% ${pos.y.toFixed(1)}%`
 
+  // objectPosition utilise directement pos.x% pos.y% — même valeur que ce qu'on sauvegarde
+  // zoom est simulé via transform: scale() sur l'image
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
       <div style={{ background: '#1a1a2e', borderRadius: 14, overflow: 'hidden', width: '100%', maxWidth: 800, boxShadow: '0 8px 40px rgba(0,0,0,.6)' }}>
         <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,.1)', fontWeight: 700, fontSize: 14, color: '#fff' }}>
           🖼️ Repositionner la bannière
-          <span style={{ marginLeft: 10, fontSize: 10, opacity: .5, fontWeight: 400 }}>Taille recommandée : 1640 × 856 px</span>
+          <span style={{ marginLeft: 10, fontSize: 10, opacity: .5, fontWeight: 400 }}>Glisse pour repositionner</span>
         </div>
         <div style={{ padding: '8px 16px 4px', fontSize: 11, color: 'rgba(255,255,255,.5)', textAlign: 'center' }}>
           Glisse l'image · Molette pour zoomer
         </div>
+        {/* Preview — utilise objectPosition exactement comme l'affichage final */}
         <div
           ref={containerRef}
-          onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
-          onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onMouseUp}
-          onWheel={e => { setZoom(z => Math.min(3, Math.max(1, z - e.deltaY * 0.001))) }}
+          onMouseDown={e => { e.preventDefault(); startDrag(e.clientX, e.clientY) }}
+          onMouseMove={e => moveDrag(e.clientX, e.clientY)}
+          onMouseUp={() => setDragging(false)}
+          onMouseLeave={() => setDragging(false)}
+          onTouchStart={e => { const t = e.touches[0]; startDrag(t.clientX, t.clientY) }}
+          onTouchMove={e => { const t = e.touches[0]; moveDrag(t.clientX, t.clientY) }}
+          onTouchEnd={() => setDragging(false)}
           style={{ height: 220, overflow: 'hidden', cursor: dragging ? 'grabbing' : 'grab', position: 'relative', userSelect: 'none' }}
         >
           <img
-            src={url} alt=""
+            src={url}
+            alt=""
             style={{
-              position: 'absolute',
-              width: `${zoom * 100}%`,
-              height: `${zoom * 100}%`,
+              width: '100%',
+              height: '100%',
               objectFit: 'cover',
-              left: `${(1 - zoom) * pos.x}%`,
-              top: `${(1 - zoom) * pos.y}%`,
+              objectPosition: posStr,
+              transform: `scale(${zoom})`,
+              transformOrigin: posStr,
               pointerEvents: 'none',
-              draggable: false,
+              display: 'block',
             }}
           />
         </div>
@@ -184,7 +176,7 @@ function BannerPositionModal({ url, initialPosition, initialZoom = 1, onConfirm,
         </div>
         <div style={{ padding: '0 20px 16px', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button onClick={onCancel} style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid rgba(255,255,255,.2)', background: 'transparent', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Annuler</button>
-          <button onClick={() => onConfirm(posStr)} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#f0c800,#c8a200)', color: '#3a2e00', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Confirmer</button>
+          <button onClick={() => onConfirm(posStr, zoom)} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#f0c800,#c8a200)', color: '#3a2e00', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Confirmer</button>
         </div>
       </div>
     </div>
@@ -277,7 +269,6 @@ export default function Profile() {
   const [zoom,         setZoom]         = useState(1)
   const [croppedArea,  setCroppedArea]  = useState(null)
   const [uploadingBanner, setUploadingBanner] = useState(false)
-  const [bannerPosition, setBannerPosition] = useState('center')
   const [showPositionSlider, setShowPositionSlider] = useState(false)
   const [editingInfos, setEditingInfos] = useState(false)
   const [infosRegion,  setInfosRegion]  = useState('')
@@ -292,7 +283,7 @@ export default function Profile() {
   const photoRef  = useRef()
   const bannerRef = useRef()
 
-  const onCropComplete       = useCallback((_, p) => setCroppedArea(p), [])
+  const onCropComplete = useCallback((_, p) => setCroppedArea(p), [])
 
   if (loading)  return <div style={{ padding: 40, textAlign: 'center', color: C.textMid }}>Chargement…</div>
   if (!user)    return <div style={{ padding: 40, textAlign: 'center', color: C.textMid }}>Non connecté</div>
@@ -333,11 +324,11 @@ export default function Profile() {
     const ts = Date.now()
     const path = `${user.id}/banner_${ts}.jpg`
     await fetch(`${SUPABASE_URL}/storage/v1/object/avatars/${path}`, { method: 'POST', headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': file.type, 'x-upsert': 'true' }, body: file })
-    const pos = profile.banner_position || 'center'
-    await patchProfile({ banner_url: `${SUPABASE_URL}/storage/v1/object/public/avatars/${path}`, banner_gradient: null, banner_position: pos })
+    await patchProfile({ banner_url: `${SUPABASE_URL}/storage/v1/object/public/avatars/${path}`, banner_gradient: null, banner_position: '50% 50%' })
     setUploadingBanner(false); setShowPositionSlider(true)
     e.target.value = ''
   }
+
   const saveBannerPosition = async (pos) => {
     await patchProfile({ banner_position: pos })
   }
@@ -370,12 +361,10 @@ export default function Profile() {
   const statutDef  = STATUTS.find(s => s.value === (profile.statut || '')) || STATUTS[0]
   const colors     = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
   const avatarColor = colors[(profile.pseudo?.charCodeAt(0) || 0) % colors.length]
-  const bannerPos = profile.banner_position || '50% 50%'
-  const bannerStyle = profile.banner_url
-    ? { backgroundImage: `url(${profile.banner_url})`, backgroundSize: 'cover', backgroundPosition: bannerPos }
-    : { background: profile.banner_gradient || BANNER_GRADIENTS[0] }
-  const topVote = VOTES_DEF.reduce((best, v) => (votes[v.key] || 0) > (votes[best?.key] || 0) ? v : best, null)
 
+  // Position sauvegardée ex: "42.3% 18.7%"
+  const bannerPos = profile.banner_position || '50% 50%'
+  const topVote = VOTES_DEF.reduce((best, v) => (votes[v.key] || 0) > (votes[best?.key] || 0) ? v : best, null)
   const photoLikes = profile.photo_likes || {}
 
   const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' && window.innerWidth >= 1024)
@@ -401,7 +390,6 @@ export default function Profile() {
             onKeyDown={e => { if (e.key === 'ArrowLeft') goTo(lightbox.index - 1); if (e.key === 'ArrowRight') goTo(lightbox.index + 1); if (e.key === 'Escape') setLightbox(null) }}
             tabIndex={0} ref={el => el?.focus()}>
 
-            {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', flexShrink: 0 }}>
               <div style={{ fontSize: 13, color: 'rgba(255,255,255,.6)', fontWeight: 600 }}>
                 {lightbox.index + 1} / {total}
@@ -412,7 +400,6 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Image centrale avec nav */}
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}
               onClick={() => setLightbox(null)}>
 
@@ -438,9 +425,7 @@ export default function Profile() {
               )}
             </div>
 
-            {/* Bas : likes + thumbnails */}
             <div style={{ flexShrink: 0, padding: '12px 20px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {/* Likers */}
               {likerProfiles.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
                   {likerProfiles.map(lk => {
@@ -456,7 +441,6 @@ export default function Profile() {
                   })}
                 </div>
               )}
-              {/* Thumbnails strip */}
               {total > 1 && (
                 <div style={{ display: 'flex', gap: 6, justifyContent: 'center', overflowX: 'auto', paddingBottom: 2 }}>
                   {photos.map((url, i) => (
@@ -494,17 +478,30 @@ export default function Profile() {
         <BannerPositionModal
           url={profile.banner_url}
           initialPosition={profile.banner_position || '50% 50%'}
-          initialZoom={profile.banner_size && profile.banner_size !== 'cover' ? parseFloat(profile.banner_size) / 100 : 1}
           onConfirm={async (pos) => { await saveBannerPosition(pos); setShowPositionSlider(false) }}
           onCancel={() => setShowPositionSlider(false)}
         />
       )}
 
-      <div style={{ position: 'relative', height: 220, ...bannerStyle }}>
-        <div style={{ position: 'absolute', top: 12, right: 12 }}>
+      {/* ── BANNIÈRE — img avec objectPosition ── */}
+      <div style={{ position: 'relative', height: 220, overflow: 'hidden', background: profile.banner_url ? 'transparent' : (profile.banner_gradient || BANNER_GRADIENTS[0]) }}>
+        {profile.banner_url && (
+          <img
+            src={profile.banner_url}
+            alt=""
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: bannerPos,
+              display: 'block',
+            }}
+          />
+        )}
+        <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
           <div style={{ display: 'flex', gap: 6 }}>
             {profile.banner_url && (
-              <button onClick={() => { setBannerPosition(profile.banner_position || 'center'); setShowPositionSlider(true) }} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
+              <button onClick={() => setShowPositionSlider(true)} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
                 ↕️ Position
               </button>
             )}
@@ -570,7 +567,6 @@ export default function Profile() {
 
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-        {/* ── LAYOUT 2 COLONNES sur desktop ── */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: isDesktop ? '1fr 340px' : '1fr',
@@ -578,7 +574,6 @@ export default function Profile() {
           alignItems: 'start',
         }}>
 
-        {/* ── COLONNE GAUCHE : Bio + Photos + Badges + Demandes d'amis ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
         <div style={PANEL}>
@@ -719,9 +714,8 @@ export default function Profile() {
           </div>
         )}
 
-        </div>{/* ── fin colonne gauche ── */}
+        </div>
 
-        {/* ── COLONNE DROITE : Amis + Intérêts ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
         <div style={{ ...PANEL, borderTop: '3px solid #3498db' }}>
@@ -772,8 +766,8 @@ export default function Profile() {
           </div>
         </div>
 
-        </div>{/* ── fin colonne droite ── */}
-        </div>{/* ── fin grid 2 colonnes ── */}
+        </div>
+        </div>
 
       </div>
     </div>
