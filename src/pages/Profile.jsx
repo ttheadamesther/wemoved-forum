@@ -95,39 +95,43 @@ function parsePos(str) {
 
 function BannerPositionModal({ url, initialPosition, onConfirm, onCancel }) {
   const containerRef = useRef()
-  const [pos, setPos] = useState(() => parsePos(initialPosition))
+  // offset = décalage en px de l'image par rapport à son point "cover centré"
+  // On part de la position sauvegardée pour initialiser
+  const [offset, setOffset] = useState(() => {
+    const p = parsePos(initialPosition)
+    return { x: p.x, y: p.y }
+  })
   const [zoom, setZoom] = useState(1)
-  const [dragging, setDragging] = useState(false)
-  const dragStart = useRef(null)
+  const dragging = useRef(false)
+  const last = useRef({ x: 0, y: 0 })
 
+  // Bloque le scroll pendant le drag sur mobile
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
-    const handler = (e) => { e.preventDefault(); setZoom(z => Math.min(3, Math.max(1, z - e.deltaY * 0.001))) }
-    el.addEventListener('wheel', handler, { passive: false })
-    return () => el.removeEventListener('wheel', handler)
+    const onWheel = (e) => { e.preventDefault(); setZoom(z => Math.min(3, Math.max(1, z - e.deltaY * 0.001))) }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
   }, [])
 
-  const startDrag = (mx, my) => {
-    setDragging(true)
-    dragStart.current = { mx, my, px: pos.x, py: pos.y }
-  }
-  const moveDrag = (mx, my) => {
-    if (!dragging || !dragStart.current || !containerRef.current) return
+  const startDrag = (x, y) => { dragging.current = true; last.current = { x, y } }
+  const moveDrag = (x, y) => {
+    if (!dragging.current || !containerRef.current) return
     const rect = containerRef.current.getBoundingClientRect()
-    // Déplacement en % de la taille du conteneur, divisé par zoom pour être cohérent
-    const dx = (mx - dragStart.current.mx) / rect.width * 100 / zoom
-    const dy = (my - dragStart.current.my) / rect.height * 100 / zoom
-    setPos({
-      x: Math.min(100, Math.max(0, dragStart.current.px - dx)),
-      y: Math.min(100, Math.max(0, dragStart.current.py - dy))
-    })
+    // dx en px → convertit en % de l'image (100% = largeur conteneur)
+    // divise par zoom car l'image est agrandie
+    const dx = (x - last.current.x) / rect.width * 100 / zoom
+    const dy = (y - last.current.y) / rect.height * 100 / zoom
+    last.current = { x, y }
+    setOffset(o => ({
+      x: Math.min(100, Math.max(0, o.x - dx)),
+      y: Math.min(100, Math.max(0, o.y - dy))
+    }))
   }
+  const stopDrag = () => { dragging.current = false }
 
-  const posStr = `${pos.x.toFixed(1)}% ${pos.y.toFixed(1)}%`
+  const posStr = `${offset.x.toFixed(1)}% ${offset.y.toFixed(1)}%`
 
-  // objectPosition utilise directement pos.x% pos.y% — même valeur que ce qu'on sauvegarde
-  // zoom est simulé via transform: scale() sur l'image
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
       <div style={{ background: '#1a1a2e', borderRadius: 14, overflow: 'hidden', width: '100%', maxWidth: 800, boxShadow: '0 8px 40px rgba(0,0,0,.6)' }}>
@@ -138,30 +142,28 @@ function BannerPositionModal({ url, initialPosition, onConfirm, onCancel }) {
         <div style={{ padding: '8px 16px 4px', fontSize: 11, color: 'rgba(255,255,255,.5)', textAlign: 'center' }}>
           Glisse l'image · Molette pour zoomer
         </div>
-        {/* Preview — utilise objectPosition exactement comme l'affichage final */}
         <div
           ref={containerRef}
           onMouseDown={e => { e.preventDefault(); startDrag(e.clientX, e.clientY) }}
           onMouseMove={e => moveDrag(e.clientX, e.clientY)}
-          onMouseUp={() => setDragging(false)}
-          onMouseLeave={() => setDragging(false)}
-          onTouchStart={e => { const t = e.touches[0]; startDrag(t.clientX, t.clientY) }}
-          onTouchMove={e => { const t = e.touches[0]; moveDrag(t.clientX, t.clientY) }}
-          onTouchEnd={() => setDragging(false)}
-          style={{ height: 220, overflow: 'hidden', cursor: dragging ? 'grabbing' : 'grab', position: 'relative', userSelect: 'none' }}
+          onMouseUp={stopDrag}
+          onMouseLeave={stopDrag}
+          onTouchStart={e => { e.preventDefault(); const t = e.touches[0]; startDrag(t.clientX, t.clientY) }}
+          onTouchMove={e => { e.preventDefault(); const t = e.touches[0]; moveDrag(t.clientX, t.clientY) }}
+          onTouchEnd={stopDrag}
+          style={{ height: 220, overflow: 'hidden', cursor: 'grab', position: 'relative', userSelect: 'none' }}
         >
           <img
             src={url}
             alt=""
             style={{
-              width: '100%',
-              height: '100%',
+              width: `${zoom * 100}%`,
+              height: `${zoom * 100}%`,
               objectFit: 'cover',
               objectPosition: posStr,
-              transform: `scale(${zoom})`,
-              transformOrigin: posStr,
               pointerEvents: 'none',
               display: 'block',
+              maxWidth: 'none',
             }}
           />
         </div>
@@ -176,7 +178,7 @@ function BannerPositionModal({ url, initialPosition, onConfirm, onCancel }) {
         </div>
         <div style={{ padding: '0 20px 16px', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button onClick={onCancel} style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid rgba(255,255,255,.2)', background: 'transparent', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Annuler</button>
-          <button onClick={() => onConfirm(posStr, zoom)} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#f0c800,#c8a200)', color: '#3a2e00', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Confirmer</button>
+          <button onClick={() => onConfirm(posStr)} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#f0c800,#c8a200)', color: '#3a2e00', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Confirmer</button>
         </div>
       </div>
     </div>
