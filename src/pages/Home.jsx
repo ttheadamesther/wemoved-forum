@@ -353,25 +353,6 @@ export default function Home() {
         {/* ── CONTENU CENTRAL ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-  
-            {user && (
-              <button onClick={() => setNewThread(t => !t)} style={{
-                padding: isMobile ? '8px 14px' : '9px 20px',
-                background: 'linear-gradient(135deg,#f0c800,#c8a200)',
-                border: 'none', borderRadius: 10, cursor: 'pointer',
-                fontWeight: 700, fontSize: 13, color: '#3a2e00',
-                boxShadow: '0 2px 12px rgba(200,162,0,.35)',
-                transition: 'transform .15s, box-shadow .15s',
-                fontFamily: 'inherit',
-              }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(200,162,0,.45)' }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(200,162,0,.35)' }}>
-                + Nouvelle discussion
-              </button>
-            )}
-          </div>
-
           {newThread && (
             <SectionCard style={{ padding: 18, animation: 'fadein .2s ease' }}>
               <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 10, marginBottom: 12 }}>
