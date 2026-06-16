@@ -457,49 +457,49 @@ export default function Profile() {
         />
       )}
 
-      {/* ── BANNIÈRE — img avec objectPosition ── */}
-      <div style={{ position: 'relative', height: 220, overflow: 'hidden', background: profile.banner_url ? 'transparent' : (profile.banner_gradient || BANNER_GRADIENTS[0]) }}>
-        {profile.banner_url && (
-          <img
-            src={profile.banner_url}
-            alt=""
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              objectPosition: bannerPos,
-              display: 'block',
-            }}
-          />
-        )}
+      {/* ── BANNIÈRE ── */}
+      <div style={{ position: 'relative' }}>
+        {/* Image bannière — overflow hidden séparé des boutons */}
+        <div style={{ height: 220, overflow: 'hidden', background: profile.banner_url ? 'transparent' : (profile.banner_gradient || BANNER_GRADIENTS[0]) }}>
+          {profile.banner_url && (
+            <img
+              src={profile.banner_url}
+              alt=""
+              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: bannerPos, display: 'block' }}
+            />
+          )}
+        </div>
+        {/* Boutons flottants — hors du overflow:hidden */}
         <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
           <div style={{ display: 'flex', gap: 6 }}>
             {profile.banner_url && (
-              <button onClick={() => setShowPositionSlider(true)} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
+              <button onClick={() => { setShowBannerPicker(false); setShowPositionSlider(true) }}
+                style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
                 ↕️ Position
               </button>
             )}
-            <button onClick={() => setShowBannerPicker(p => !p)} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
+            <button onClick={() => setShowBannerPicker(p => !p)}
+              style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
               🎨 Bannière
             </button>
           </div>
-        </div>
-        {showBannerPicker && (
-          <div style={{ position: 'absolute', top: 44, right: 12, background: C.white, borderRadius: 12, padding: 14, boxShadow: '0 8px 32px rgba(0,0,0,.2)', zIndex: 100, width: 260 }}>
-            <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 10 }}>Dégradé</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6, marginBottom: 12 }}>
-              {BANNER_GRADIENTS.map((g, i) => (
-                <div key={i} onClick={async () => { await patchProfile({ banner_gradient: g, banner_url: null }); setShowBannerPicker(false) }}
-                  style={{ height: 36, borderRadius: 8, background: g, cursor: 'pointer', border: profile.banner_gradient === g ? '2px solid #c8a200' : '2px solid transparent' }} />
-              ))}
+          {showBannerPicker && (
+            <div style={{ position: 'absolute', top: 36, right: 0, background: C.white, borderRadius: 12, padding: 14, boxShadow: '0 8px 32px rgba(0,0,0,.3)', zIndex: 200, width: 260 }}>
+              <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 10 }}>Dégradé</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6, marginBottom: 12 }}>
+                {BANNER_GRADIENTS.map((g, i) => (
+                  <div key={i} onClick={async () => { await patchProfile({ banner_gradient: g, banner_url: null }); setShowBannerPicker(false) }}
+                    style={{ height: 36, borderRadius: 8, background: g, cursor: 'pointer', border: profile.banner_gradient === g ? '2px solid #c8a200' : '2px solid transparent' }} />
+                ))}
+              </div>
+              <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Image</div>
+              <button onClick={() => bannerRef.current.click()} style={{ width: '100%', padding: '8px', borderRadius: 8, border: `1px dashed ${C.borderMid}`, background: C.surfaceB, color: C.textMid, fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+                📸 Importer une image
+              </button>
+              <input ref={bannerRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={selectBanner} />
             </div>
-            <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Image</div>
-            <button onClick={() => bannerRef.current.click()} style={{ width: '100%', padding: '8px', borderRadius: 8, border: `1px dashed ${C.borderMid}`, background: C.surfaceB, color: C.textMid, fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
-              📸 Importer une image
-            </button>
-            <input ref={bannerRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={selectBanner} />
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <div style={{ background: C.white, borderBottom: '1px solid #e8e0c8', padding: '0 20px 20px', marginBottom: 16 }}>
