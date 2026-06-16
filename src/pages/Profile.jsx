@@ -502,7 +502,7 @@ export default function Profile() {
         />
       )}
 
-      <div style={{ position: 'relative', height: 'min(220px, 35vw)', ...bannerStyle }}>
+      <div style={{ position: 'relative', height: 220, ...bannerStyle }}>
         <div style={{ position: 'absolute', top: 12, right: 12 }}>
           <div style={{ display: 'flex', gap: 6 }}>
             {profile.banner_url && (
