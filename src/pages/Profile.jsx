@@ -365,7 +365,8 @@ export default function Profile() {
       )}
 
       {/* ── BLOC BANNIÈRE + HEADER ── */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 16px rgba(0,0,0,.1)', marginBottom: 16 }}>
+      <div style={{ padding: '0 16px', marginBottom: 16 }}>
+      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 16px rgba(0,0,0,.1)' }}>
 
         {/* Bannière */}
         <div style={{ height: 200, overflow: 'hidden', position: 'relative', background: profile.banner_url ? 'transparent' : (profile.banner_gradient || BANNER_GRADIENTS[0]), flexShrink: 0 }}>
@@ -440,7 +441,8 @@ export default function Profile() {
             </div>
           </div>
         </div>
-      </div>{/* fin bloc bannière+header */}
+      </div>
+      </div>{/* fin padding wrapper + bloc bannière+header */}
 
       {/* ── GRILLE 2 COLONNES ── */}
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
