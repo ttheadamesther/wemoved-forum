@@ -326,8 +326,6 @@ export default function MemberProfile() {
             <div style={{ width: 88, height: 88, borderRadius: '50%', background: member.avatar_url ? '#444' : avatarColor, border: ROLE_RING[member.role] ? `4px solid ${ROLE_RING[member.role]}` : '4px solid var(--white)', boxShadow: ROLE_RING[member.role] ? `0 0 16px ${ROLE_RING[member.role]}99` : '0 4px 16px rgba(0,0,0,.2)', marginTop: -44, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, position: 'relative', zIndex: 2 }}>
               {member.avatar_url ? <img loading="lazy" src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
             </div>
-              {member.avatar_url ? <img loading="lazy" src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
-            </div>
             {user && user.id !== id && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 {canManageRoles && <Btn onClick={() => setShowRolePanel(v => !v)} variant="ghost" style={{ fontSize: 12 }}>🛡️ Gérer le rôle</Btn>}
