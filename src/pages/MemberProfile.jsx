@@ -307,25 +307,24 @@ export default function MemberProfile() {
         )
       })()}
 
-      {/* Bannière pleine largeur */}
-      <div style={{ position: 'relative', overflow: 'hidden' }}>
-        <div style={{ height: 220, overflow: 'hidden', background: member.banner_url ? 'transparent' : 'linear-gradient(135deg,#0e0e1e 0%,#1a1240 50%,#0a0a18 100%)' }}>
-          {member.banner_url && (
-            <img src={member.banner_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: member.banner_position || 'center', display: 'block' }} />
-          )}
-        </div>
-        <div style={{ position: 'absolute', top: 12, left: 16, zIndex: 10 }}>
-          <Btn onClick={() => navigate('/members')} variant="ghost" style={{ fontSize: 12, background: 'rgba(0,0,0,.45)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,.15)', color: '#fff' }}>← Retour</Btn>
-        </div>
-      </div>
+      {/* BLOC PRINCIPAL : bannière + header */}
+      <div style={{ maxWidth: 1200, margin: '0 auto 16px', padding: '0 16px' }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 16px rgba(0,0,0,.1)' }}>
 
-      {/* Header sous bannière */}
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '0 20px 20px', marginBottom: 16 }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div style={{ width: 88, height: 88, borderRadius: '50%', background: member.avatar_url ? '#444' : avatarColor, border: ROLE_RING[member.role] ? `4px solid ${ROLE_RING[member.role]}` : '4px solid var(--white)', boxShadow: ROLE_RING[member.role] ? `0 0 16px ${ROLE_RING[member.role]}99` : '0 4px 16px rgba(0,0,0,.2)', marginTop: -44, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, position: 'relative', zIndex: 2 }}>
-              {member.avatar_url ? <img loading="lazy" src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
+          {/* Bannière */}
+          <div style={{ height: 200, overflow: 'hidden', position: 'relative', background: 'linear-gradient(135deg,#0e0e1e 0%,#1a1240 50%,#0a0a18 100%)', flexShrink: 0 }}>
+            {member.banner_url && <img src={member.banner_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: member.banner_position || 'center', display: 'block' }} />}
+            <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10 }}>
+              <Btn onClick={() => navigate('/members')} variant="ghost" style={{ fontSize: 12, background: 'rgba(0,0,0,.5)', border: '1px solid rgba(255,255,255,.2)', color: '#fff' }}>← Retour</Btn>
             </div>
+          </div>
+
+          {/* Header */}
+          <div style={{ padding: '0 20px 20px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ width: 88, height: 88, borderRadius: '50%', background: member.avatar_url ? '#444' : avatarColor, border: ROLE_RING[member.role] ? `4px solid ${ROLE_RING[member.role]}` : '4px solid var(--white)', boxShadow: ROLE_RING[member.role] ? `0 0 16px ${ROLE_RING[member.role]}99` : '0 4px 16px rgba(0,0,0,.2)', marginTop: -44, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, position: 'relative', zIndex: 2 }}>
+                {member.avatar_url ? <img loading="lazy" src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
+              </div>
             {user && user.id !== id && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 {canManageRoles && <Btn onClick={() => setShowRolePanel(v => !v)} variant="ghost" style={{ fontSize: 12 }}>🛡️ Gérer le rôle</Btn>}
@@ -379,8 +378,9 @@ export default function MemberProfile() {
               <span key={i} style={{ fontSize: 12, color: 'var(--textMid)', background: 'var(--surfaceB)', padding: '4px 12px', borderRadius: 99, border: '1px solid var(--border)', fontWeight: 500 }}>{t.icon} {t.label}</span>
             ))}
           </div>
-        </div>
-      </div>
+          </div>{/* fin Header */}
+        </div>{/* fin bloc bordure */}
+      </div>{/* fin maxWidth wrapper */}
 
       {/* Grille 2 colonnes */}
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 16px' }}>
