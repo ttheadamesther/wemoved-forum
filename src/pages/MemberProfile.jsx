@@ -307,14 +307,12 @@ export default function MemberProfile() {
         )
       })()}
 
-      {/* Retour */}
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 16px 0' }}>
-        <Btn onClick={() => navigate('/members')} variant="ghost" style={{ marginBottom: 12, fontSize: 12 }}>← Retour</Btn>
-      </div>
-
-      {/* Bannière pleine largeur */}
-      <div style={{ height: 220, width: '100%', background: member.banner_url ? `url(${member.banner_url}) ${member.banner_position || 'center'}/cover no-repeat` : 'linear-gradient(135deg,#0e0e1e 0%,#1a1240 50%,#0a0a18 100%)', position: 'relative', overflow: 'hidden' }}>
+      {/* Bannière pleine largeur avec bouton retour en overlay */}
+      <div style={{ height: 200, width: '100%', background: member.banner_url ? `url(${member.banner_url}) ${member.banner_position || 'center'}/cover no-repeat` : 'linear-gradient(135deg,#0e0e1e 0%,#1a1240 50%,#0a0a18 100%)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 60%, rgba(0,0,0,.3))' }} />
+        <div style={{ position: 'absolute', top: 12, left: 16, zIndex: 10 }}>
+          <Btn onClick={() => navigate('/members')} variant="ghost" style={{ fontSize: 12, background: 'rgba(0,0,0,.45)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,.15)', color: '#fff' }}>← Retour</Btn>
+        </div>
       </div>
 
       {/* Header sous bannière */}
