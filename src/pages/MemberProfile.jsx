@@ -312,7 +312,7 @@ export default function MemberProfile() {
         <div style={{ border: '1px solid var(--border)', borderRadius: 16, overflow: 'visible', boxShadow: '0 2px 16px rgba(0,0,0,.1)' }}>
 
           {/* Bannière */}
-          <div style={{ height: 200, width: '100%', borderRadius: '16px 16px 0 0', overflow: 'hidden', background: member.banner_url ? 'transparent' : 'linear-gradient(135deg,#0e0e1e 0%,#1a1240 50%,#0a0a18 100%)', position: 'relative' }}>
+          <div style={{ height: 200, maxHeight: 200, width: '100%', borderRadius: '16px 16px 0 0', overflow: 'hidden', background: member.banner_url ? 'transparent' : 'linear-gradient(135deg,#0e0e1e 0%,#1a1240 50%,#0a0a18 100%)', position: 'relative', flexShrink: 0 }}>
             {member.banner_url && (
               <img src={member.banner_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: member.banner_position || 'center', display: 'block' }} />
             )}
