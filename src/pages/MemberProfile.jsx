@@ -307,27 +307,25 @@ export default function MemberProfile() {
         )
       })()}
 
-      {/* Bannière + header dans un bloc avec bordure */}
-      <div style={{ maxWidth: 1200, margin: '0 auto 16px', padding: '0 16px' }}>
-        <div style={{ border: '1px solid var(--border)', borderRadius: 16, overflow: 'visible', boxShadow: '0 2px 16px rgba(0,0,0,.1)' }}>
+      {/* Bannière pleine largeur */}
+      <div style={{ position: 'relative' }}>
+        <div style={{ height: 220, overflow: 'hidden', background: member.banner_url ? 'transparent' : 'linear-gradient(135deg,#0e0e1e 0%,#1a1240 50%,#0a0a18 100%)' }}>
+          {member.banner_url && (
+            <img src={member.banner_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: member.banner_position || 'center', display: 'block' }} />
+          )}
+        </div>
+        <div style={{ position: 'absolute', top: 12, left: 16, zIndex: 10 }}>
+          <Btn onClick={() => navigate('/members')} variant="ghost" style={{ fontSize: 12, background: 'rgba(0,0,0,.45)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,.15)', color: '#fff' }}>← Retour</Btn>
+        </div>
+      </div>
 
-          {/* Bannière */}
-          <div style={{ height: 200, maxHeight: 200, width: '100%', borderRadius: '16px 16px 0 0', overflow: 'hidden', background: member.banner_url ? 'transparent' : 'linear-gradient(135deg,#0e0e1e 0%,#1a1240 50%,#0a0a18 100%)', position: 'relative', flexShrink: 0 }}>
-            {member.banner_url && (
-              <img src={member.banner_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: member.banner_position || 'center', display: 'block' }} />
-            )}
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 60%, rgba(0,0,0,.3))' }} />
-            <div style={{ position: 'absolute', top: 12, left: 16, zIndex: 10 }}>
-              <Btn onClick={() => navigate('/members')} variant="ghost" style={{ fontSize: 12, background: 'rgba(0,0,0,.45)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,.15)', color: '#fff' }}>← Retour</Btn>
+      {/* Header sous bannière */}
+      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '0 20px 20px', marginBottom: 16 }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ width: 88, height: 88, borderRadius: '50%', background: member.avatar_url ? '#444' : avatarColor, border: ROLE_RING[member.role] ? `4px solid ${ROLE_RING[member.role]}` : '4px solid var(--white)', boxShadow: ROLE_RING[member.role] ? `0 0 16px ${ROLE_RING[member.role]}99` : '0 4px 16px rgba(0,0,0,.2)', marginTop: -44, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, position: 'relative', zIndex: 2 }}>
+              {member.avatar_url ? <img loading="lazy" src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
             </div>
-          </div>
-
-          {/* Header sous bannière */}
-          <div style={{ background: 'var(--white)', borderRadius: '0 0 16px 16px', padding: '0 20px 20px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ width: 88, height: 88, borderRadius: '50%', background: member.avatar_url ? '#444' : avatarColor, border: ROLE_RING[member.role] ? `3px solid ${ROLE_RING[member.role]}` : '3px solid var(--white)', boxShadow: ROLE_RING[member.role] ? `0 0 20px ${ROLE_RING[member.role]}88` : '0 4px 16px rgba(0,0,0,.2)', marginTop: -44, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, position: 'relative', zIndex: 2 }}>
-                {member.avatar_url ? <img loading="lazy" src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
-              </div>
               {member.avatar_url ? <img loading="lazy" src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
             </div>
             {user && user.id !== id && (
