@@ -316,10 +316,10 @@ export default function MemberProfile() {
       </div>
 
       {/* Header sous bannière */}
-      <div style={{ background: C.white, borderBottom: '1px solid #e8e0c8', padding: '0 20px 20px', marginBottom: 16 }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 16px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div style={{ width: 88, height: 88, borderRadius: '50%', background: member.avatar_url ? '#444' : avatarColor, border: ROLE_RING[member.role] ? `3px solid ${ROLE_RING[member.role]}` : '3px solid var(--white)', boxShadow: ROLE_RING[member.role] ? `0 0 20px ${ROLE_RING[member.role]}88` : '0 4px 16px rgba(0,0,0,.2)', marginTop: -56, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, position: 'relative', zIndex: 2 }}>
+      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', paddingBottom: 20, marginBottom: 16 }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12, minHeight: 52 }}>
+            <div style={{ width: 88, height: 88, borderRadius: '50%', background: member.avatar_url ? '#444' : avatarColor, border: ROLE_RING[member.role] ? `3px solid ${ROLE_RING[member.role]}` : '3px solid var(--white)', boxShadow: ROLE_RING[member.role] ? `0 0 20px ${ROLE_RING[member.role]}88` : '0 4px 16px rgba(0,0,0,.2)', marginTop: -44, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, position: 'relative', zIndex: 2 }}>
               {member.avatar_url ? <img loading="lazy" src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
             </div>
             {user && user.id !== id && (
