@@ -209,7 +209,7 @@ export default function Navbar() {
     const active = path === to
     return (
       <Link to={to} style={{ textDecoration: 'none' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 14px', height: 64, color: active ? '#f0c800' : 'rgba(255,255,255,.6)', fontWeight: active ? 700 : 500, fontSize: 13, borderBottom: active ? '2px solid #c8a200' : '2px solid transparent', cursor: 'pointer', transition: 'all .18s', whiteSpace: 'nowrap', letterSpacing: .2 }}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '0 10px', height: 64, color: active ? '#f0c800' : 'rgba(255,255,255,.6)', fontWeight: active ? 700 : 500, fontSize: 12, borderBottom: active ? '2px solid #c8a200' : '2px solid transparent', cursor: 'pointer', transition: 'all .18s', whiteSpace: 'nowrap', letterSpacing: .2 }}
           onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'rgba(255,255,255,.9)' }}
           onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'rgba(255,255,255,.6)' }}>
           <span style={{ fontSize: 14 }}>{icon}</span>
@@ -386,7 +386,7 @@ export default function Navbar() {
   return (
     <>
       <nav ref={navRef} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999, height: 64, display: 'flex', alignItems: 'center', padding: '0 16px', background: 'rgba(6,6,14,.97)', borderBottom: '1px solid rgba(200,162,0,.25)', gap: 4, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: '0 2px 20px rgba(0,0,0,.4)' }}>
-        <Link to="/" style={{ flexShrink: 0, marginRight: 4 }}><Logo height={45} /></Link>
+        <Link to="/" style={{ flexShrink: 0, marginRight: 20 }}><Logo height={45} /></Link>
         <NavLink to="/"           label="Accueil"    icon="🏠" />
         <NavLink to="/forum"      label="Forum"      icon="💬" />
         <NavLink to="/members"    label="Membres"    icon="👥" />
