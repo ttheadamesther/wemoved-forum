@@ -255,7 +255,7 @@ export default function MemberProfile() {
   const photos     = member.photos || []
 
   return (
-    <div style={{ paddingBottom: 80 }}>
+    <div style={{ paddingBottom: 80, overflowX: 'hidden' }}>
 
       {/* Lightbox */}
       {lightbox && (() => {
@@ -313,7 +313,7 @@ export default function MemberProfile() {
       </div>
 
       {/* Bannière pleine largeur */}
-      <div style={{ height: 220, background: member.banner_url ? `url(${member.banner_url}) ${member.banner_position || 'center'}/cover no-repeat` : 'linear-gradient(135deg,#0e0e1e 0%,#1a1240 50%,#0a0a18 100%)', position: 'relative' }}>
+      <div style={{ height: 220, width: '100%', background: member.banner_url ? `url(${member.banner_url}) ${member.banner_position || 'center'}/cover no-repeat` : 'linear-gradient(135deg,#0e0e1e 0%,#1a1240 50%,#0a0a18 100%)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 60%, rgba(0,0,0,.3))' }} />
       </div>
 
