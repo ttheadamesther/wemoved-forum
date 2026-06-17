@@ -308,7 +308,7 @@ export default function MemberProfile() {
       })()}
 
       {/* Bannière pleine largeur */}
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative', overflow: 'hidden' }}>
         <div style={{ height: 220, overflow: 'hidden', background: member.banner_url ? 'transparent' : 'linear-gradient(135deg,#0e0e1e 0%,#1a1240 50%,#0a0a18 100%)' }}>
           {member.banner_url && (
             <img src={member.banner_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: member.banner_position || 'center', display: 'block' }} />
