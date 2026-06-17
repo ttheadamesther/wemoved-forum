@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider } from './hooks/AuthContext'
 import { useAuth } from './hooks/useAuth'
 import Navbar        from './components/Navbar'
@@ -21,6 +21,7 @@ import Rewards       from './pages/Rewards'
 import Rankings      from './pages/Rankings'
 import Chatroom      from './pages/Chatroom'
 import NotFound      from './pages/NotFound'
+import { motion, AnimatePresence } from 'framer-motion'
 
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { error: null } }
@@ -62,6 +63,49 @@ function PublicOnlyRoute({ children }) {
   return children
 }
 
+// Rideau doré + blur sur le contenu
+const curtainVariants = {
+  initial: { scaleY: 0, originY: '0%' },
+  animate: {
+    scaleY: 1,
+    transition: { duration: 0.32, ease: [0.76, 0, 0.24, 1] }
+  },
+  exit: {
+    scaleY: 0,
+    originY: '100%',
+    transition: { duration: 0.32, ease: [0.76, 0, 0.24, 1], delay: 0.08 }
+  },
+}
+
+const pageVariants = {
+  initial: { opacity: 0, filter: 'blur(5px)', y: 8 },
+  animate: {
+    opacity: 1,
+    filter: 'blur(0px)',
+    y: 0,
+    transition: { duration: 0.38, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.28 }
+  },
+  exit: {
+    opacity: 0,
+    filter: 'blur(3px)',
+    y: -6,
+    transition: { duration: 0.18, ease: 'easeIn' }
+  },
+}
+
+function PageTransition({ children }) {
+  return (
+    <motion.div
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+    >
+      {children}
+    </motion.div>
+  )
+}
+
 function Layout({ children }) {
   const isMobile = window.innerWidth < 768
   return (
@@ -82,31 +126,67 @@ function Layout({ children }) {
   )
 }
 
+// Rideau global monté une seule fois, piloté par le pathname
+function CurtainOverlay() {
+  const location = useLocation()
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        variants={curtainVariants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'var(--gold, #D4A017)',
+          zIndex: 9999,
+          pointerEvents: 'none',
+          transformOrigin: 'top',
+        }}
+      />
+    </AnimatePresence>
+  )
+}
+
+function AnimatedRoutes() {
+  const location = useLocation()
+  return (
+    <>
+      <CurtainOverlay />
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route path="/login"    element={<PublicOnlyRoute><PageTransition><Login /></PageTransition></PublicOnlyRoute>} />
+          <Route path="/register" element={<PublicOnlyRoute><PageTransition><Register /></PageTransition></PublicOnlyRoute>} />
+          <Route path="/"         element={<Layout><PageTransition><Home /></PageTransition></Layout>} />
+          <Route path="/forum"           element={<Layout><PageTransition><Forum /></PageTransition></Layout>} />
+          <Route path="/forum/:threadId" element={<Layout><PageTransition><Forum /></PageTransition></Layout>} />
+          <Route path="/members"  element={<Layout><PageTransition><Members /></PageTransition></Layout>} />
+          <Route path="/members/:id" element={<Layout><PageTransition><MemberProfile /></PageTransition></Layout>} />
+          <Route path="/legal"    element={<Layout><PageTransition><Legal /></PageTransition></Layout>} />
+          <Route path="/rewards"  element={<Layout><PageTransition><Rewards /></PageTransition></Layout>} />
+          <Route path="/rankings" element={<Layout><PageTransition><Rankings /></PageTransition></Layout>} />
+          <Route path="/chat"     element={<Layout><PageTransition><Chatroom /></PageTransition></Layout>} />
+          <Route path="/messages"      element={<PrivateRoute><Layout><PageTransition><Messages /></PageTransition></Layout></PrivateRoute>} />
+          <Route path="/bug-report"    element={<PrivateRoute><Layout><PageTransition><BugReport /></PageTransition></Layout></PrivateRoute>} />
+          <Route path="/moderation"    element={<PrivateRoute><Layout><PageTransition><Moderation /></PageTransition></Layout></PrivateRoute>} />
+          <Route path="/notifications" element={<PrivateRoute><Layout><PageTransition><Notifications /></PageTransition></Layout></PrivateRoute>} />
+          <Route path="/profile"       element={<PrivateRoute><Layout><PageTransition><ErrorBoundary><Profile /></ErrorBoundary></PageTransition></Layout></PrivateRoute>} />
+          <Route path="/settings"      element={<PrivateRoute><Layout><PageTransition><Settings /></PageTransition></Layout></PrivateRoute>} />
+          <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
+        </Routes>
+      </AnimatePresence>
+    </>
+  )
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
         <BrowserRouter>
-          <Routes>
-            <Route path="/login"    element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
-            <Route path="/register" element={<PublicOnlyRoute><Register /></PublicOnlyRoute>} />
-            <Route path="/"         element={<Layout><Home /></Layout>} />
-            <Route path="/forum"           element={<Layout><Forum /></Layout>} />
-            <Route path="/forum/:threadId" element={<Layout><Forum /></Layout>} />
-            <Route path="/members"  element={<Layout><Members /></Layout>} />
-            <Route path="/members/:id" element={<Layout><MemberProfile /></Layout>} />
-            <Route path="/legal"    element={<Layout><Legal /></Layout>} />
-            <Route path="/rewards"  element={<Layout><Rewards /></Layout>} />
-            <Route path="/rankings" element={<Layout><Rankings /></Layout>} />
-            <Route path="/chat"     element={<Layout><Chatroom /></Layout>} />
-            <Route path="/messages"      element={<PrivateRoute><Layout><Messages /></Layout></PrivateRoute>} />
-            <Route path="/bug-report"    element={<PrivateRoute><Layout><BugReport /></Layout></PrivateRoute>} />
-            <Route path="/moderation"    element={<PrivateRoute><Layout><Moderation /></Layout></PrivateRoute>} />
-            <Route path="/notifications" element={<PrivateRoute><Layout><Notifications /></Layout></PrivateRoute>} />
-            <Route path="/profile"       element={<PrivateRoute><Layout><ErrorBoundary><Profile /></ErrorBoundary></Layout></PrivateRoute>} />
-            <Route path="/settings"      element={<PrivateRoute><Layout><Settings /></Layout></PrivateRoute>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AnimatedRoutes />
         </BrowserRouter>
       </AuthProvider>
     </ErrorBoundary>
