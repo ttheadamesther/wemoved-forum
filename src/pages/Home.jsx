@@ -68,7 +68,6 @@ function MemberAvatar({ member, size = 34, colors }) {
   )
 }
 
-/* ── Petit composant carte section ── */
 function SectionCard({ children, style = {} }) {
   return (
     <div style={{
@@ -84,7 +83,7 @@ function SectionCard({ children, style = {} }) {
   )
 }
 
-function SectionHeader({ children, accent = false }) {
+function SectionHeader({ children }) {
   return (
     <div style={{
       padding: '13px 18px',
@@ -335,10 +334,10 @@ export default function Home() {
             </SectionHeader>
             <div style={{ padding: '4px 0' }}>
               {[
-                { icon: '👥', label: 'Membres',         value: stats.members },
-                { icon: '💬', label: 'Discussions',      value: stats.threads },
-                { icon: '✉️', label: 'Messages',         value: stats.messages },
-                { icon: '🟢', label: 'En ligne',          value: stats.online },
+                { icon: '👥', label: 'Membres',    value: stats.members },
+                { icon: '💬', label: 'Discussions', value: stats.threads },
+                { icon: '✉️', label: 'Messages',    value: stats.messages },
+                { icon: '🟢', label: 'En ligne',    value: stats.online },
               ].map(s => (
                 <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 18px', borderBottom: '1px solid var(--border)' }}>
                   <span style={{ fontSize: 15 }}>{s.icon}</span>
@@ -391,9 +390,7 @@ export default function Home() {
                           </div>
                         )}
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ marginBottom: 5 }}>
-                            <CatBadge cat={t.cat} />
-                          </div>
+                          <div style={{ marginBottom: 5 }}><CatBadge cat={t.cat} /></div>
                           <div style={{ fontWeight: 700, fontSize: isMobile ? 13 : 14, color: 'var(--text)', marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>{t.title}</div>
                           <div style={{ fontSize: 11, color: 'var(--textMid)', display: 'flex', alignItems: 'center', gap: 4 }}>
                             <span style={{ fontWeight: 600 }}>{author ? `@${author.pseudo}` : 'Inconnu'}</span>
@@ -422,7 +419,7 @@ export default function Home() {
 
           {/* Catégories */}
           <SectionCard>
-            <SectionHeader accent>
+            <SectionHeader>
               <span style={{ fontWeight: 700, fontSize: 11, color: 'var(--textDim)', textTransform: 'uppercase', letterSpacing: 1 }}>Catégories</span>
             </SectionHeader>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 0 }}>
@@ -450,20 +447,6 @@ export default function Home() {
               })}
             </div>
           </SectionCard>
-
-          {/* Banner */}
-          <div style={{
-            background: 'linear-gradient(135deg,#0e0e1e 0%,#141428 50%,#0a0a18 100%)',
-            borderRadius: 16,
-            padding: isMobile ? '24px 20px' : '30px 40px',
-            textAlign: 'center',
-            border: '1px solid rgba(200,162,0,.18)',
-            boxShadow: '0 4px 24px rgba(0,0,0,.25), inset 0 1px 0 rgba(200,162,0,.08)',
-          }}>
-            <div style={{ fontSize: 40, color: 'var(--accent)', lineHeight: 1, marginBottom: 12, opacity: .6, fontFamily: 'Georgia, serif' }}>"</div>
-            <p style={{ fontSize: isMobile ? 15 : 18, color: '#fff', fontWeight: 700, marginBottom: 10, lineHeight: 1.5 }}>La communauté, c'est ce qui nous fait avancer.</p>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,.45)', lineHeight: 1.6 }}>Restons respectueux, ouverts et bienveillants envers tous.</p>
-          </div>
         </div>
 
         {/* ── SIDEBAR DROITE ── */}
@@ -546,7 +529,7 @@ export default function Home() {
               ) : announcements.map((a, i) => (
                 <div key={a.id} style={{
                   background: i === 0 && a.pinned ? 'var(--accentBg)' : 'transparent',
-                  border: i === 0 && a.pinned ? '1px solid rgba(200,162,0,.25)' : (i > 0 ? 'none' : 'none'),
+                  border: i === 0 && a.pinned ? '1px solid rgba(200,162,0,.25)' : 'none',
                   borderBottom: i < announcements.length - 1 ? '1px solid var(--border)' : 'none',
                   borderRadius: i === 0 && a.pinned ? 10 : 0,
                   padding: i === 0 && a.pinned ? '11px 13px' : '8px 2px',
