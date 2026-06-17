@@ -46,6 +46,8 @@ const statutLabel = (s) => {
   return null
 }
 
+const PANEL = { background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid var(--accent)', borderRadius: 16, padding: 20, boxShadow: '0 2px 16px rgba(0,0,0,.07)' }
+
 function FriendBtn({ user, id, friendship, friendLoading, onAdd, onAccept, onRemove }) {
   if (!user || user.id === id) return null
   if (friendLoading) return <button disabled style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.surfaceB, color: C.textDim, fontSize: 12, fontWeight: 600, cursor: 'wait', fontFamily: 'inherit' }}>…</button>
@@ -81,7 +83,14 @@ export default function MemberProfile() {
   const [likingPhoto,     setLikingPhoto]     = useState(null)
   const [lightbox,        setLightbox]        = useState(null)
   const [likerProfiles,   setLikerProfiles]   = useState([])
+  const [isDesktop,       setIsDesktop]       = useState(typeof window !== 'undefined' && window.innerWidth >= 1024)
   const notifSentRef = useRef(false)
+
+  useEffect(() => {
+    const handler = () => setIsDesktop(window.innerWidth >= 1024)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
 
   const isAdmin        = profile?.role === 'admin'
   const isManager      = profile?.role === 'manager'
@@ -223,7 +232,7 @@ export default function MemberProfile() {
   if (loading) return <div style={{ padding: 60, textAlign: 'center', color: 'var(--textMid)' }}>Chargement…</div>
 
   if (blockedByThem) return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: '20px 16px 80px' }}>
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 16px 80px' }}>
       <Btn onClick={() => navigate('/members')} variant="ghost" style={{ marginBottom: 16, fontSize: 12 }}>← Retour</Btn>
       <div style={{ background: 'var(--white)', borderRadius: 20, padding: 48, textAlign: 'center' }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>🚫</div>
@@ -246,7 +255,7 @@ export default function MemberProfile() {
   const photos     = member.photos || []
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '16px 16px 80px' }}>
+    <div style={{ maxWidth: 1200, margin: '0 auto', paddingBottom: 80 }}>
 
       {/* Lightbox */}
       {lightbox && (() => {
@@ -298,24 +307,23 @@ export default function MemberProfile() {
         )
       })()}
 
-      <Btn onClick={() => navigate('/members')} variant="ghost" style={{ marginBottom: 12, fontSize: 12 }}>← Retour</Btn>
+      {/* Retour */}
+      <div style={{ padding: '16px 16px 0' }}>
+        <Btn onClick={() => navigate('/members')} variant="ghost" style={{ marginBottom: 12, fontSize: 12 }}>← Retour</Btn>
+      </div>
 
-      {/* Carte principale */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden', marginBottom: 16, boxShadow: '0 4px 24px rgba(0,0,0,.1)' }}>
+      {/* Bannière pleine largeur */}
+      <div style={{ height: 220, background: member.banner_url ? `url(${member.banner_url}) ${member.banner_position || 'center'}/cover no-repeat` : 'linear-gradient(135deg,#0e0e1e 0%,#1a1240 50%,#0a0a18 100%)', position: 'relative' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 60%, rgba(0,0,0,.3))' }} />
+      </div>
 
-        {/* Bannière */}
-        <div style={{ height: 180, background: member.banner_url ? `url(${member.banner_url}) ${member.banner_position || 'center'}/cover no-repeat` : 'linear-gradient(135deg,#0e0e1e 0%,#1a1240 50%,#0a0a18 100%)', position: 'relative' }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 60%, rgba(0,0,0,.3))' }} />
-        </div>
-
-        {/* Header profil */}
-        <div style={{ padding: '0 20px 20px' }}>
+      {/* Header sous bannière */}
+      <div style={{ background: C.white, borderBottom: '1px solid #e8e0c8', padding: '0 20px 20px', marginBottom: 16 }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12 }}>
-            {/* Avatar */}
             <div style={{ width: 88, height: 88, borderRadius: '50%', background: member.avatar_url ? '#444' : avatarColor, border: ROLE_RING[member.role] ? `3px solid ${ROLE_RING[member.role]}` : '3px solid var(--white)', boxShadow: ROLE_RING[member.role] ? `0 0 20px ${ROLE_RING[member.role]}88` : '0 4px 16px rgba(0,0,0,.2)', marginTop: -44, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
               {member.avatar_url ? <img loading="lazy" src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
             </div>
-            {/* Actions */}
             {user && user.id !== id && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 {canManageRoles && <Btn onClick={() => setShowRolePanel(v => !v)} variant="ghost" style={{ fontSize: 12 }}>🛡️ Gérer le rôle</Btn>}
@@ -328,7 +336,6 @@ export default function MemberProfile() {
             )}
           </div>
 
-          {/* Panneau rôle */}
           {canManageRoles && showRolePanel && (
             <div style={{ background: C.surfaceB, border: `1px solid ${C.accentDk}`, borderRadius: 12, padding: 16, marginBottom: 14 }}>
               <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>🛡️ Attribuer un rôle à @{member.pseudo}</div>
@@ -349,7 +356,6 @@ export default function MemberProfile() {
             </div>
           )}
 
-          {/* Nom + badges */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
             <h1 style={{ fontWeight: 800, fontSize: 20, color: 'var(--text)', margin: 0 }}>@{member.pseudo}</h1>
             {member.is_bot && <span style={{ padding: '1px 6px', borderRadius: 4, fontSize: 9, fontWeight: 700, background: '#5865f2', color: '#fff' }}>BOT</span>}
@@ -358,8 +364,7 @@ export default function MemberProfile() {
             {member.online && <span style={{ fontSize: 11, color: '#2ecc71', fontWeight: 600 }}>● En ligne</span>}
           </div>
 
-          {/* Tags infos */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {[
               member.joined && { icon: '📅', label: member.joined },
               member.age    && { icon: '🎂', label: `${member.age} ans` },
@@ -372,143 +377,160 @@ export default function MemberProfile() {
               <span key={i} style={{ fontSize: 12, color: 'var(--textMid)', background: 'var(--surfaceB)', padding: '4px 12px', borderRadius: 99, border: '1px solid var(--border)', fontWeight: 500 }}>{t.icon} {t.label}</span>
             ))}
           </div>
-
-          {/* Stats + votes */}
-          <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14, marginBottom: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', gap: 12, flexShrink: 0 }}>
-                {[
-                  { icon: '👥', label: 'Amis',  value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
-                  { icon: '⭐', label: 'Votes', value: totalVotes,                                  color: '#c8a200' },
-                ].map(s => (
-                  <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ fontSize: 13 }}>{s.icon}</span>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 13, color: s.color, lineHeight: 1 }}>{s.value}</div>
-                      <div style={{ fontSize: 8, color: C.textDim, textTransform: 'uppercase', letterSpacing: .4 }}>{s.label}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginLeft: 'auto' }}>
-                {VOTES_DEF.map(v => {
-                  const voted = myVotes[v.key]; const count = votes[v.key] || 0
-                  return (
-                    <button key={v.key} onClick={() => user && user.id !== id && !isBlocked && vote(v.key)}
-                      disabled={!!voting || !user || user.id === id || isBlocked} title={v.label}
-                      style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '3px 6px', borderRadius: 20, border: `1px solid ${voted ? C.accentDk : C.border}`, background: voted ? C.accentBg : C.surfaceB, color: voted ? C.accentTxt : C.textMid, fontWeight: voted ? 700 : 500, fontSize: 12, cursor: (!user || user.id === id || isBlocked || !!voting) ? 'default' : 'pointer', fontFamily: 'inherit' }}>
-                      <span style={{ fontSize: 13 }}>{v.emoji}</span>
-                      <span style={{ fontWeight: 700, fontSize: 11 }}>{count}</span>
-                      {user && user.id !== id && !isBlocked && <span style={{ fontSize: 10, opacity: .6 }}>{voting === v.key ? '…' : voted ? '✓' : '+'}</span>}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Bio */}
-          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, marginTop: 14 }}>
-            <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>✍️ Bio</div>
-            <div style={{ fontSize: 13, color: member.bio ? C.textMid : C.textDim, lineHeight: 1.7, fontStyle: member.bio ? 'normal' : 'italic', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-              {member.bio || 'Aucune bio renseignée.'}
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Sections secondaires */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* Grille 2 colonnes */}
+      <div style={{ padding: '0 16px' }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isDesktop ? '1fr 340px' : '1fr',
+          gap: 16,
+          alignItems: 'start',
+        }}>
 
-        {/* Photos */}
-        {photos.length > 0 && (
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid var(--accentDk)', borderRadius: 16, padding: 20 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 14 }}>📸 Photos ({photos.length})</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
-              {photos.map((url, i) => {
-                const likers = photoLikes[String(i)] || []
-                const liked = user ? likers.includes(user.id) : false
-                return (
-                  <div key={i} onClick={() => openLightbox(url, i)}
-                    style={{ position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', cursor: 'zoom-in', background: '#111' }}
-                    onMouseEnter={e => { e.currentTarget.querySelector('img').style.transform = 'scale(1.05)'; e.currentTarget.querySelector('.ovl').style.opacity = '1' }}
-                    onMouseLeave={e => { e.currentTarget.querySelector('img').style.transform = 'scale(1)'; e.currentTarget.querySelector('.ovl').style.opacity = '0' }}>
-                    <img loading="lazy" src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform .3s' }} />
-                    <div className="ovl" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.3)', opacity: 0, transition: 'opacity .2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ fontSize: 24, color: '#fff' }}>🔍</span>
-                    </div>
-                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,.7), transparent)', padding: '16px 8px 6px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
-                      {likers.length > 0 && <span style={{ fontSize: 11, color: '#fff', fontWeight: 700 }}>❤️ {likers.length}</span>}
-                      <button onClick={e => { e.stopPropagation(); user && user.id !== id && !isBlocked && togglePhotoLike(url, i) }}
-                        disabled={likingPhoto !== null || !user || user.id === id || isBlocked}
-                        style={{ background: liked ? 'rgba(231,76,60,.85)' : 'rgba(255,255,255,.18)', border: `1px solid ${liked ? '#e74c3c' : 'rgba(255,255,255,.35)'}`, borderRadius: 20, padding: '3px 8px', cursor: 'pointer', fontSize: 13, backdropFilter: 'blur(4px)' }}>
-                        {likingPhoto === i ? '…' : liked ? '❤️' : '🤍'}
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
+          {/* Colonne principale */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-        {/* Amis */}
-        {friendsList.length > 0 && (
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid #3498db', borderRadius: 16, padding: 20 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 14 }}>👥 Amis ({friendsList.length})</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: 10 }}>
-              {friendsList.map(f => {
-                const fColor = colors[(f.pseudo?.charCodeAt(0) || 0) % colors.length]
-                const ring = ROLE_RING[f.role] || null
-                return (
-                  <div key={f.id} onClick={() => navigate(`/members/${f.id}`)}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 8px', background: 'var(--surfaceB)', borderRadius: 12, border: '1px solid var(--border)', cursor: 'pointer', transition: 'all .15s' }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = '#3498db'}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
-                    <div style={{ position: 'relative' }}>
-                      <div style={{ width: 48, height: 48, borderRadius: '50%', background: f.avatar_url ? '#444' : fColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, color: '#fff', overflow: 'hidden', border: ring ? `2.5px solid ${ring}` : '2px solid rgba(255,255,255,.15)', boxShadow: ring ? `0 0 10px ${ring}66` : 'none' }}>
-                        {f.avatar_url ? <img loading="lazy" src={f.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : f.initials || f.pseudo?.slice(0,2).toUpperCase()}
+            {/* Stats + votes + bio */}
+            <div style={PANEL}>
+              <div style={{ borderBottom: `1px solid ${C.border}`, paddingBottom: 14, marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 12, flexShrink: 0 }}>
+                    {[
+                      { icon: '👥', label: 'Amis',  value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
+                      { icon: '⭐', label: 'Votes', value: totalVotes, color: '#c8a200' },
+                    ].map(s => (
+                      <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ fontSize: 13 }}>{s.icon}</span>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: s.color, lineHeight: 1 }}>{s.value}</div>
+                          <div style={{ fontSize: 8, color: C.textDim, textTransform: 'uppercase', letterSpacing: .4 }}>{s.label}</div>
+                        </div>
                       </div>
-                      {f.online && <div style={{ position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: '50%', background: '#2ecc71', border: '2px solid var(--white)' }} />}
-                    </div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>@{f.pseudo}</div>
-                    {f.online && <span style={{ fontSize: 9, color: '#2ecc71', fontWeight: 700 }}>● En ligne</span>}
+                    ))}
                   </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Intérêts */}
-        {(member.interests || []).length > 0 && (
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid var(--accentDk)', borderRadius: 16, padding: 20 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>🎯 Intérêts</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {member.interests.map(i => (
-                <span key={i} style={{ padding: '5px 14px', borderRadius: 99, fontSize: 12, background: 'var(--accentBg)', color: 'var(--accentTxt)', border: '1px solid rgba(200,162,0,.2)', fontWeight: 600 }}>{i}</span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Badges */}
-        {(member.badges || []).length > 0 && (
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid #c8a200', borderRadius: 16, padding: 20 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 16 }}>🎖️ Badges obtenus</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-              {BADGES_DEF.filter(b => member.badges.includes(b.key)).map(b => (
-                <div key={b.key} title={b.desc} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'help' }}>
-                  <div style={{ width: 58, height: 58, borderRadius: '50%', background: `radial-gradient(circle at 35% 35%, ${b.color || '#c8a200'}bb, ${b.color || '#c8a200'})`, border: `3px solid ${b.color || '#c8a200'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, boxShadow: `0 4px 16px ${b.color || '#c8a200'}55` }}>
-                    {b.emoji}
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginLeft: 'auto' }}>
+                    {VOTES_DEF.map(v => {
+                      const voted = myVotes[v.key]; const count = votes[v.key] || 0
+                      return (
+                        <button key={v.key} onClick={() => user && user.id !== id && !isBlocked && vote(v.key)}
+                          disabled={!!voting || !user || user.id === id || isBlocked} title={v.label}
+                          style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '3px 6px', borderRadius: 20, border: `1px solid ${voted ? C.accentDk : C.border}`, background: voted ? C.accentBg : C.surfaceB, color: voted ? C.accentTxt : C.textMid, fontWeight: voted ? 700 : 500, fontSize: 12, cursor: (!user || user.id === id || isBlocked || !!voting) ? 'default' : 'pointer', fontFamily: 'inherit' }}>
+                          <span style={{ fontSize: 13 }}>{v.emoji}</span>
+                          <span style={{ fontWeight: 700, fontSize: 11 }}>{count}</span>
+                          {user && user.id !== id && !isBlocked && <span style={{ fontSize: 10, opacity: .6 }}>{voting === v.key ? '…' : voted ? '✓' : '+'}</span>}
+                        </button>
+                      )
+                    })}
                   </div>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: b.color || '#7a6200', textAlign: 'center', maxWidth: 64, lineHeight: 1.2 }}>{b.label}</span>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              </div>
 
+              <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>✍️ Bio</div>
+              <div style={{ fontSize: 13, color: member.bio ? C.textMid : C.textDim, lineHeight: 1.7, fontStyle: member.bio ? 'normal' : 'italic', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                {member.bio || 'Aucune bio renseignée.'}
+              </div>
+            </div>
+
+            {/* Photos */}
+            {photos.length > 0 && (
+              <div style={{ ...PANEL, borderTop: '2px solid var(--accentDk)' }}>
+                <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 14 }}>📸 Photos ({photos.length})</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
+                  {photos.map((url, i) => {
+                    const likers = photoLikes[String(i)] || []
+                    const liked = user ? likers.includes(user.id) : false
+                    return (
+                      <div key={i} onClick={() => openLightbox(url, i)}
+                        style={{ position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', cursor: 'zoom-in', background: '#111' }}
+                        onMouseEnter={e => { e.currentTarget.querySelector('img').style.transform = 'scale(1.05)'; e.currentTarget.querySelector('.ovl').style.opacity = '1' }}
+                        onMouseLeave={e => { e.currentTarget.querySelector('img').style.transform = 'scale(1)'; e.currentTarget.querySelector('.ovl').style.opacity = '0' }}>
+                        <img loading="lazy" src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform .3s' }} />
+                        <div className="ovl" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.3)', opacity: 0, transition: 'opacity .2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: 24, color: '#fff' }}>🔍</span>
+                        </div>
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,.7), transparent)', padding: '16px 8px 6px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                          {likers.length > 0 && <span style={{ fontSize: 11, color: '#fff', fontWeight: 700 }}>❤️ {likers.length}</span>}
+                          <button onClick={e => { e.stopPropagation(); user && user.id !== id && !isBlocked && togglePhotoLike(url, i) }}
+                            disabled={likingPhoto !== null || !user || user.id === id || isBlocked}
+                            style={{ background: liked ? 'rgba(231,76,60,.85)' : 'rgba(255,255,255,.18)', border: `1px solid ${liked ? '#e74c3c' : 'rgba(255,255,255,.35)'}`, borderRadius: 20, padding: '3px 8px', cursor: 'pointer', fontSize: 13, backdropFilter: 'blur(4px)' }}>
+                            {likingPhoto === i ? '…' : liked ? '❤️' : '🤍'}
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Badges */}
+            {(member.badges || []).length > 0 && (
+              <div style={{ ...PANEL, borderTop: '2px solid #c8a200' }}>
+                <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 16 }}>🎖️ Badges obtenus</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+                  {BADGES_DEF.filter(b => member.badges.includes(b.key)).map(b => (
+                    <div key={b.key} title={b.desc} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'help' }}>
+                      <div style={{ width: 58, height: 58, borderRadius: '50%', background: `radial-gradient(circle at 35% 35%, ${b.color || '#c8a200'}bb, ${b.color || '#c8a200'})`, border: `3px solid ${b.color || '#c8a200'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, boxShadow: `0 4px 16px ${b.color || '#c8a200'}55` }}>
+                        {b.emoji}
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: b.color || '#7a6200', textAlign: 'center', maxWidth: 64, lineHeight: 1.2 }}>{b.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Sidebar */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+            {/* Amis */}
+            <div style={{ ...PANEL, borderTop: '2px solid #3498db' }}>
+              <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>👥 Amis ({friendsLoading ? '…' : friendsList.length})</div>
+              {friendsLoading
+                ? <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', padding: 12 }}>Chargement…</div>
+                : friendsList.length === 0
+                  ? <div style={{ fontSize: 13, color: C.textDim, fontStyle: 'italic', textAlign: 'center', padding: 12 }}>Aucun ami pour l'instant.</div>
+                  : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: 10 }}>
+                      {friendsList.map(f => {
+                        const fColor = colors[(f.pseudo?.charCodeAt(0) || 0) % colors.length]
+                        const ring = ROLE_RING[f.role] || null
+                        return (
+                          <div key={f.id} onClick={() => navigate(`/members/${f.id}`)}
+                            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 8px', background: 'var(--surfaceB)', borderRadius: 12, border: '1px solid var(--border)', cursor: 'pointer', transition: 'all .15s' }}
+                            onMouseEnter={e => e.currentTarget.style.borderColor = '#3498db'}
+                            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
+                            <div style={{ position: 'relative' }}>
+                              <div style={{ width: 44, height: 44, borderRadius: '50%', background: f.avatar_url ? '#444' : fColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', overflow: 'hidden', border: ring ? `2.5px solid ${ring}` : '2px solid rgba(255,255,255,.15)', boxShadow: ring ? `0 0 10px ${ring}66` : 'none' }}>
+                                {f.avatar_url ? <img loading="lazy" src={f.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : f.initials || f.pseudo?.slice(0,2).toUpperCase()}
+                              </div>
+                              {f.online && <div style={{ position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: '50%', background: '#2ecc71', border: '2px solid var(--white)' }} />}
+                            </div>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>@{f.pseudo}</div>
+                            {f.online && <span style={{ fontSize: 9, color: '#2ecc71', fontWeight: 700 }}>● En ligne</span>}
+                          </div>
+                        )
+                      })}
+                    </div>
+              }
+            </div>
+
+            {/* Intérêts */}
+            {(member.interests || []).length > 0 && (
+              <div style={PANEL}>
+                <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 12 }}>🎯 Intérêts</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {member.interests.map(i => (
+                    <span key={i} style={{ padding: '5px 14px', borderRadius: 99, fontSize: 12, background: 'var(--accentBg)', color: 'var(--accentTxt)', border: '1px solid rgba(200,162,0,.2)', fontWeight: 600 }}>{i}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
       </div>
     </div>
   )
