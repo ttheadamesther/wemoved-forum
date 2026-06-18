@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import logoImg from './assets/logo.png'
 import { AuthProvider } from './hooks/AuthContext'
 import { useAuth } from './hooks/useAuth'
 import Navbar        from './components/Navbar'
@@ -46,22 +47,12 @@ function Loader() {
     <div style={{
       minHeight: '100vh', display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      background: '#0b0b18', gap: 24,
+      background: '#0b0b18', gap: 28,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{
-          width: 40, height: 40, borderRadius: 10,
-          background: 'linear-gradient(135deg, #f0c800, #c8a200)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 18, fontWeight: 800, color: '#0b0b18',
-          fontFamily: 'Inter, sans-serif',
-          animation: 'wm-pulse 2s ease-in-out infinite',
-        }}>W</div>
-        <span style={{
-          fontSize: 22, fontWeight: 800, color: '#fff',
-          fontFamily: 'Inter, sans-serif', letterSpacing: -0.5,
-        }}>wemoved</span>
-      </div>
+      <img src={logoImg} alt="wemoved" style={{
+        height: 70,
+        animation: 'wm-pulse 2s ease-in-out infinite',
+      }} />
       <div style={{ width: 160, height: 3, background: 'rgba(255,255,255,.08)', borderRadius: 99, overflow: 'hidden' }}>
         <div style={{
           height: '100%', borderRadius: 99,
@@ -71,8 +62,8 @@ function Loader() {
       </div>
       <style>{`
         @keyframes wm-pulse {
-          0%,100% { box-shadow: 0 0 20px rgba(200,162,0,.4); }
-          50% { box-shadow: 0 0 32px rgba(200,162,0,.8); }
+          0%,100% { filter: drop-shadow(0 0 8px rgba(200,162,0,.3)); }
+          50% { filter: drop-shadow(0 0 20px rgba(200,162,0,.7)); }
         }
         @keyframes wm-bar {
           0% { width: 0%; margin-left: 0; }
