@@ -77,12 +77,7 @@ function Loader() {
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
-  const [ready, setReady] = React.useState(false)
-  React.useEffect(() => {
-    const t = setTimeout(() => setReady(true), 2000)
-    return () => clearTimeout(t)
-  }, [])
-  if (loading || user === undefined || !ready) return <Loader />
+  if (loading || user === undefined) return <Loader />
   if (!user) return <Navigate to="/login" replace />
   return children
 }
@@ -129,7 +124,11 @@ function PageTransition({ children }) {
 }
 
 function AnimatedRoutes() {
+  const { loading } = useAuth()
   const location = useLocation()
+
+  if (loading) return <Loader />
+
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
