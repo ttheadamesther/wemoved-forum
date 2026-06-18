@@ -47,7 +47,7 @@ function Loader() {
     <div style={{
       minHeight: '100vh', display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      background: '#0b0b18', gap: 28,
+      background: '#0b0b18', gap: 16,
     }}>
       <img src={logoImg} alt="wemoved" style={{
         height: 200,
