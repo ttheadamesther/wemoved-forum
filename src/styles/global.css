@@ -31,10 +31,10 @@
 
 /* ── CSS VARIABLES DARK — gris neutre / quasi-noir ── */
 body.dark {
-  --bg:         #000000;
-  --white:      #161616;
-  --surface:    #161616;
-  --surfaceB:   #1e1e1e;
+  --bg:         #0a0a0a;
+  --white:      #131313;
+  --surface:    #131313;
+  --surfaceB:   #1a1a1a;
   --border:     #2a2a2a;
   --borderMid:  #383838;
   --text:       #f0f0f0;
