@@ -241,7 +241,7 @@ export default function Navbar() {
       { to: '/chat',     icon: '#️⃣', label: 'Salon' },
     ]
     return (
-      <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 999, height: 64, background: 'rgba(6,6,14,.97)', borderTop: '1px solid rgba(200,162,0,.2)', display: 'flex', alignItems: 'stretch', paddingBottom: 'env(safe-area-inset-bottom)', boxShadow: '0 -4px 24px rgba(0,0,0,.5)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
+      <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 999, height: 64, background: 'rgba(4,4,4,.97)', borderTop: '1px solid rgba(200,162,0,.2)', display: 'flex', alignItems: 'stretch', paddingBottom: 'env(safe-area-inset-bottom)', boxShadow: '0 -4px 24px rgba(0,0,0,.5)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
         {tabs.map((tab) => {
           const active = path === tab.to
           return (
@@ -263,7 +263,7 @@ export default function Navbar() {
   if (isMobile) {
     return (
       <>
-        <nav ref={navRef} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999, height: 56, display: 'flex', alignItems: 'center', padding: '0 14px', background: 'rgba(6,6,14,.97)', borderBottom: '1px solid rgba(200,162,0,.2)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: '0 2px 16px rgba(0,0,0,.35)' }}>
+        <nav ref={navRef} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999, height: 56, display: 'flex', alignItems: 'center', padding: '0 14px', background: 'rgba(4,4,4,.97)', borderBottom: '1px solid rgba(200,162,0,.2)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: '0 2px 16px rgba(0,0,0,.35)' }}>
           <button onClick={() => setShowMobileMenu(m => !m)} style={{ width: 36, height: 36, borderRadius: 8, border: 'none', background: '#222', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5, flexShrink: 0 }}>
             <span style={{ width: 18, height: 2, background: showMobileMenu ? C.accent : '#ccc', display: 'block', transition: 'all .2s', transform: showMobileMenu ? 'rotate(45deg) translateY(7px)' : 'none' }} />
             <span style={{ width: 18, height: 2, background: showMobileMenu ? 'transparent' : '#ccc', display: 'block', transition: 'all .2s' }} />
@@ -349,7 +349,7 @@ export default function Navbar() {
           {showMobileMenu && (
             <motion.div
               variants={dropdownVariants} initial="initial" animate="animate" exit="exit"
-              style={{ position: 'fixed', top: 56, left: 0, right: 0, background: 'rgba(6,6,14,.98)', zIndex: 998, borderBottom: '1px solid rgba(200,162,0,.15)', boxShadow: '0 8px 32px rgba(0,0,0,.6)', backdropFilter: 'blur(20px)' }}>
+              style={{ position: 'fixed', top: 56, left: 0, right: 0, background: 'rgba(4,4,4,.98)', zIndex: 998, borderBottom: '1px solid rgba(200,162,0,.15)', boxShadow: '0 8px 32px rgba(0,0,0,.6)', backdropFilter: 'blur(20px)' }}>
               {user && (
                 <div style={{ padding: '14px 20px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 40, height: 40, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', overflow: 'hidden', border: `2px solid ${C.accentDk}` }}>
@@ -404,7 +404,7 @@ export default function Navbar() {
   // ── DESKTOP ──
   return (
     <>
-      <nav ref={navRef} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999, height: 64, display: 'flex', alignItems: 'center', padding: '0 16px', background: 'rgba(6,6,14,.97)', borderBottom: '1px solid rgba(200,162,0,.25)', gap: 4, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: '0 2px 20px rgba(0,0,0,.4)' }}>
+      <nav ref={navRef} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999, height: 64, display: 'flex', alignItems: 'center', padding: '0 16px', background: 'rgba(4,4,4,.97)', borderBottom: '1px solid rgba(200,162,0,.25)', gap: 4, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: '0 2px 20px rgba(0,0,0,.4)' }}>
         <Link to="/" style={{ flexShrink: 0, marginRight: 20 }}><Logo height={45} /></Link>
         <NavLink to="/"           label="Accueil"    icon="🏠" />
         <NavLink to="/forum"      label="Forum"      icon="💬" />
@@ -435,7 +435,7 @@ export default function Navbar() {
               {showSearch && (
                 <motion.div
                   variants={dropdownVariants} initial="initial" animate="animate" exit="exit"
-                  style={{ position: 'absolute', top: '110%', right: 0, background: 'rgba(12,12,22,.97)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 14, padding: 12, width: 260, zIndex: 1000, backdropFilter: 'blur(20px)', boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
+                  style={{ position: 'absolute', top: '110%', right: 0, background: 'rgba(10,10,10,.97)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 14, padding: 12, width: 260, zIndex: 1000, backdropFilter: 'blur(20px)', boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
                   <input value={search} onChange={e => { setSearch(e.target.value); setShowRes(true) }} autoFocus placeholder="Rechercher un membre…" style={{ width: '100%', background: '#222', border: '1px solid #444', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
                   {showRes && results.length > 0 && (
                     <div style={{ marginTop: 8, background: '#1a1a1a', border: '1px solid #333', borderRadius: 8, overflow: 'hidden' }}>
@@ -532,7 +532,7 @@ export default function Navbar() {
                 {showUserMenu && (
                   <motion.div
                     variants={dropdownVariants} initial="initial" animate="animate" exit="exit"
-                    style={{ position: 'absolute', top: '110%', right: 0, width: 210, background: 'rgba(12,12,22,.97)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 14, boxShadow: '0 8px 32px rgba(0,0,0,.45)', zIndex: 1000, backdropFilter: 'blur(20px)', overflow: 'hidden' }}>
+                    style={{ position: 'absolute', top: '110%', right: 0, width: 210, background: 'rgba(10,10,10,.97)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 14, boxShadow: '0 8px 32px rgba(0,0,0,.45)', zIndex: 1000, backdropFilter: 'blur(20px)', overflow: 'hidden' }}>
                     <div style={{ padding: '12px 16px', borderBottom: '1px solid #2a2a2a' }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>@{profile?.pseudo}</div>
                       <div style={{ fontSize: 10, color: '#888', marginTop: 2 }}>{user.email}</div>
