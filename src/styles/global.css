@@ -301,6 +301,30 @@ body.dark .glass {
 .lift { transition: transform .22s ease, box-shadow .22s ease; }
 .lift:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,.15); }
 
+/* ── TEXT LINK HOVER (underline + slide) ── */
+.text-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  transition: transform .2s cubic-bezier(.25,.46,.45,.94), color .2s;
+}
+.text-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 0%;
+  height: 1.5px;
+  background: currentColor;
+  transition: width .25s cubic-bezier(.25,.46,.45,.94);
+}
+.text-link:hover {
+  transform: translateX(3px);
+}
+.text-link:hover::after {
+  width: 100%;
+}
+
 /* ── DIVIDER ── */
 .divider { height: 1px; background: var(--border); margin: 8px 0; }
 
