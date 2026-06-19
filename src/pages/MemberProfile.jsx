@@ -418,6 +418,7 @@ export default function MemberProfile() {
                       return (
                         <button key={v.key} onClick={() => user && user.id !== id && !isBlocked && vote(v.key)}
                           disabled={!!voting || !user || user.id === id || isBlocked} title={v.label}
+                          className={`vb${voted ? ' on' : ''}`}
                           style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '3px 6px', borderRadius: 20, border: `1px solid ${voted ? C.accentDk : C.border}`, background: voted ? C.accentBg : C.surfaceB, color: voted ? C.accentTxt : C.textMid, fontWeight: voted ? 700 : 500, fontSize: 12, cursor: (!user || user.id === id || isBlocked || !!voting) ? 'default' : 'pointer', fontFamily: 'inherit' }}>
                           <span style={{ fontSize: 13 }}>{v.emoji}</span>
                           <span style={{ fontWeight: 700, fontSize: 11 }}>{count}</span>
