@@ -29,29 +29,29 @@
   --radius-xl:  22px;
 }
 
-/* ── CSS VARIABLES DARK ── */
+/* ── CSS VARIABLES DARK — gris neutre / quasi-noir ── */
 body.dark {
-  --bg:         #0b0b18;
-  --white:      #131324;
-  --surface:    #131324;
-  --surfaceB:   #1a1a2e;
-  --border:     #252540;
-  --borderMid:  #32324e;
-  --text:       #eaeaf8;
-  --textMid:    #8888aa;
-  --textDim:    #44445e;
+  --bg:         #0a0a0a;
+  --white:      #161616;
+  --surface:    #161616;
+  --surfaceB:   #1e1e1e;
+  --border:     #2a2a2a;
+  --borderMid:  #383838;
+  --text:       #f0f0f0;
+  --textMid:    #9a9a9a;
+  --textDim:    #555555;
   --accent:     #e6b800;
   --accentDk:   #c8a200;
   --accentTxt:  #f0c800;
   --accentBg:   #1e1a00;
   --accentGlow: rgba(200,162,0,.18);
-  --navBg:      rgba(4,4,12,.97);
+  --navBg:      rgba(5,5,5,.97);
   --navBorder:  rgba(200,162,0,.45);
   --red:        #f05050;
   --online:     #22c55e;
-  --card-shadow: 0 2px 16px rgba(0,0,0,.4), 0 1px 4px rgba(0,0,0,.3);
-  --card-shadow-hover: 0 8px 40px rgba(0,0,0,.5), 0 2px 12px rgba(0,0,0,.4);
-  --hover-bg:   #1a1a2e;
+  --card-shadow: 0 2px 16px rgba(0,0,0,.5), 0 1px 4px rgba(0,0,0,.35);
+  --card-shadow-hover: 0 8px 40px rgba(0,0,0,.6), 0 2px 12px rgba(0,0,0,.45);
+  --hover-bg:   #1e1e1e;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -68,11 +68,11 @@ body {
   transition: background .3s ease, color .3s ease;
 }
 
-/* Subtle background texture dark mode */
+/* Texture de fond dark mode — légère lueur dorée, pas de bleu/violet */
 body.dark {
   background-image: 
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(200,162,0,.04) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(100,80,200,.04) 0%, transparent 60%);
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(200,162,0,.05) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(255,255,255,.02) 0%, transparent 60%);
   background-attachment: fixed;
 }
 
@@ -118,9 +118,9 @@ img { max-width: 100%; }
   border-color: var(--borderMid);
 }
 
-/* Glass cards in dark mode */
+/* Glass cards in dark mode — gris neutre */
 body.dark .card {
-  background: linear-gradient(135deg, rgba(25,25,45,.95) 0%, rgba(19,19,36,.98) 100%);
+  background: linear-gradient(135deg, rgba(22,22,22,.95) 0%, rgba(14,14,14,.98) 100%);
   border-color: rgba(255,255,255,.06);
 }
 body.dark .card:hover {
@@ -198,11 +198,11 @@ select.wmi { cursor: pointer; }
   border-radius: var(--radius-sm);
 }
 body.dark .skeleton {
-  background: linear-gradient(90deg, #1a1a2e 25%, #22223a 50%, #1a1a2e 75%);
+  background: linear-gradient(90deg, #1a1a1a 25%, #242424 50%, #1a1a1a 75%);
   background-size: 200% 100%;
 }
 .skeleton-dark {
-  background: linear-gradient(90deg, #1a1a2e 25%, #22223a 50%, #1a1a2e 75%);
+  background: linear-gradient(90deg, #1a1a1a 25%, #242424 50%, #1a1a1a 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: var(--radius-sm);
@@ -286,7 +286,7 @@ body.dark .skeleton {
   border-radius: var(--radius-lg);
 }
 body.dark .glass {
-  background: rgba(19,19,36,.85);
+  background: rgba(20,20,20,.85);
   border: 1px solid rgba(255,255,255,.07);
 }
 
