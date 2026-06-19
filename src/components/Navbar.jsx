@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { C, ROLE_RING } from '../lib/constants'
 import { RoleBadge } from './UI'
 import { Logo } from './Logo'
@@ -9,6 +10,13 @@ import { supabase } from '../lib/supabase'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+// Variants partagés pour tous les dropdowns : slide vers le bas + fade
+const dropdownVariants = {
+  initial: { opacity: 0, y: -8 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.18, ease: [0.25, 0.46, 0.45, 0.94] } },
+  exit:    { opacity: 0, y: -8, transition: { duration: 0.12, ease: 'easeIn' } },
+}
 
 export default function Navbar() {
   const { user, profile, signOut } = useAuth()
@@ -267,23 +275,27 @@ export default function Navbar() {
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
             <div ref={searchRef} style={{ position: 'relative' }}>
               <button onClick={() => setShowSearch(s => !s)} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: showSearch ? '#333' : '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>🔍</button>
-              {showSearch && (
-                <div style={{ position: 'fixed', top: 56, left: 12, right: 12, background: '#1a1a1a', border: '1px solid #333', borderRadius: 12, padding: 10, zIndex: 1000 }}>
-                  <input value={search} onChange={e => { setSearch(e.target.value); setShowRes(true) }} autoFocus placeholder="Rechercher un membre…" style={{ width: '100%', background: '#222', border: '1px solid #444', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
-                  {showRes && results.length > 0 && (
-                    <div style={{ marginTop: 8, background: '#1a1a1a', border: '1px solid #333', borderRadius: 8, overflow: 'hidden' }}>
-                      {results.map(u => (
-                        <div key={u.id} onClick={() => { navigate(`/members/${u.id}`); setSearch(''); setShowRes(false); setShowSearch(false) }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #2a2a2a' }}>
-                          <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
-                            {u.avatar_url ? <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : u.initials}
+              <AnimatePresence>
+                {showSearch && (
+                  <motion.div
+                    variants={dropdownVariants} initial="initial" animate="animate" exit="exit"
+                    style={{ position: 'fixed', top: 56, left: 12, right: 12, background: '#1a1a1a', border: '1px solid #333', borderRadius: 12, padding: 10, zIndex: 1000 }}>
+                    <input value={search} onChange={e => { setSearch(e.target.value); setShowRes(true) }} autoFocus placeholder="Rechercher un membre…" style={{ width: '100%', background: '#222', border: '1px solid #444', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+                    {showRes && results.length > 0 && (
+                      <div style={{ marginTop: 8, background: '#1a1a1a', border: '1px solid #333', borderRadius: 8, overflow: 'hidden' }}>
+                        {results.map(u => (
+                          <div key={u.id} onClick={() => { navigate(`/members/${u.id}`); setSearch(''); setShowRes(false); setShowSearch(false) }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #2a2a2a' }}>
+                            <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
+                              {u.avatar_url ? <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : u.initials}
+                            </div>
+                            <div style={{ fontWeight: 700, fontSize: 12, color: '#eee' }}>@{u.pseudo}</div>
                           </div>
-                          <div style={{ fontWeight: 700, fontSize: 12, color: '#eee' }}>@{u.pseudo}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
             {user && (
               <div ref={notifRef} style={{ position: 'relative' }}>
@@ -304,78 +316,86 @@ export default function Navbar() {
                   🔔
                   {notifs.length > 0 && <span style={{ position: 'absolute', top: 2, right: 2, width: 14, height: 14, borderRadius: '50%', background: C.red, color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{notifs.length > 9 ? '9+' : notifs.length}</span>}
                 </button>
-                {showNotifs && (
-                  <div style={{ position: 'fixed', top: 56, left: 12, right: 12, background: dropBg, border: `1px solid ${dropBorder}`, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,.3)', zIndex: 1000, overflow: 'hidden' }}>
-                    <div style={{ padding: '10px 14px', borderBottom: `1px solid ${dropBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 700, fontSize: 12, color: dropTextDim }}>Notifications</span>
-                      {notifs.length > 0 && <button onClick={markAllRead} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.accentTxt, fontWeight: 600 }}>Tout lire</button>}
-                    </div>
-                    <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-                      {notifs.length === 0
-                        ? <div style={{ padding: 16, textAlign: 'center', color: dropTextDim, fontSize: 12 }}>Aucune notification</div>
-                        : notifs.map(n => (
-                          <div key={n.id} onClick={() => { markRead(n.id); if (n.link) navigate(n.link); setShowNotifs(false) }} style={{ padding: '12px 14px', borderBottom: `1px solid ${dropBorder}`, cursor: 'pointer', background: dropSurface, fontSize: 13, color: dropText, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                            <span style={{ flex: 1, lineHeight: 1.5 }}>{n.content}</span>
-                            <button onClick={e => { e.stopPropagation(); markRead(n.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: dropTextDim, fontSize: 16, flexShrink: 0, padding: '0 4px' }}>✕</button>
-                          </div>
-                        ))
-                      }
-                    </div>
-                  </div>
-                )}
+                <AnimatePresence>
+                  {showNotifs && (
+                    <motion.div
+                      variants={dropdownVariants} initial="initial" animate="animate" exit="exit"
+                      style={{ position: 'fixed', top: 56, left: 12, right: 12, background: dropBg, border: `1px solid ${dropBorder}`, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,.3)', zIndex: 1000, overflow: 'hidden' }}>
+                      <div style={{ padding: '10px 14px', borderBottom: `1px solid ${dropBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 700, fontSize: 12, color: dropTextDim }}>Notifications</span>
+                        {notifs.length > 0 && <button onClick={markAllRead} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.accentTxt, fontWeight: 600 }}>Tout lire</button>}
+                      </div>
+                      <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                        {notifs.length === 0
+                          ? <div style={{ padding: 16, textAlign: 'center', color: dropTextDim, fontSize: 12 }}>Aucune notification</div>
+                          : notifs.map(n => (
+                            <div key={n.id} onClick={() => { markRead(n.id); if (n.link) navigate(n.link); setShowNotifs(false) }} style={{ padding: '12px 14px', borderBottom: `1px solid ${dropBorder}`, cursor: 'pointer', background: dropSurface, fontSize: 13, color: dropText, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                              <span style={{ flex: 1, lineHeight: 1.5 }}>{n.content}</span>
+                              <button onClick={e => { e.stopPropagation(); markRead(n.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: dropTextDim, fontSize: 16, flexShrink: 0, padding: '0 4px' }}>✕</button>
+                            </div>
+                          ))
+                        }
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
             <button onClick={toggle} className="theme-toggle" style={{ width: 32, height: 32, fontSize: 14 }}>{dark ? '☀️' : '🌙'}</button>
           </div>
         </nav>
 
-        {showMobileMenu && (
-          <div style={{ position: 'fixed', top: 56, left: 0, right: 0, background: 'rgba(6,6,14,.98)', zIndex: 998, borderBottom: '1px solid rgba(200,162,0,.15)', boxShadow: '0 8px 32px rgba(0,0,0,.6)', backdropFilter: 'blur(20px)' }}>
-            {user && (
-              <div style={{ padding: '14px 20px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', overflow: 'hidden', border: `2px solid ${C.accentDk}` }}>
-                  {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>@{profile?.pseudo}</div>
-                  <div style={{ fontSize: 10, color: '#888', marginBottom: 4 }}>Niveau {level} · {xp % 1000}/1000 XP</div>
-                  <div style={{ height: 3, background: '#333', borderRadius: 4, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${xpPercent}%`, background: 'linear-gradient(to right,#f0c800,#c8a200)', borderRadius: 4 }} />
+        <AnimatePresence>
+          {showMobileMenu && (
+            <motion.div
+              variants={dropdownVariants} initial="initial" animate="animate" exit="exit"
+              style={{ position: 'fixed', top: 56, left: 0, right: 0, background: 'rgba(6,6,14,.98)', zIndex: 998, borderBottom: '1px solid rgba(200,162,0,.15)', boxShadow: '0 8px 32px rgba(0,0,0,.6)', backdropFilter: 'blur(20px)' }}>
+              {user && (
+                <div style={{ padding: '14px 20px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', overflow: 'hidden', border: `2px solid ${C.accentDk}` }}>
+                    {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>@{profile?.pseudo}</div>
+                    <div style={{ fontSize: 10, color: '#888', marginBottom: 4 }}>Niveau {level} · {xp % 1000}/1000 XP</div>
+                    <div style={{ height: 3, background: '#333', borderRadius: 4, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${xpPercent}%`, background: 'linear-gradient(to right,#f0c800,#c8a200)', borderRadius: 4 }} />
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-            {[
-              { icon: '⚙️', label: 'Paramètres',      to: '/settings',      show: !!user },
-              { icon: '🐛', label: 'Signaler un bug',  to: '/bug-report',    show: !!user },
-              { icon: '🏆', label: 'Récompenses',      to: '/rewards',       show: true },
-              { icon: '📊', label: 'Classements',      to: '/rankings',      show: true },
-              { icon: '🛡️', label: 'Modération',       to: '/moderation',    show: !!user && canMod },
-              { icon: '📜', label: 'Mentions légales', to: '/legal',         show: true },
-            ].filter(i => i.show).map(item => (
-              <Link key={item.to} to={item.to} onClick={() => setShowMobileMenu(false)}
-                style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: '1px solid #1a1a1a', cursor: 'pointer', fontSize: 13, color: '#ccc' }}>
-                <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{item.icon}</span>
-                {item.label}
-              </Link>
-            ))}
-            {user ? (
-              <div onClick={async () => { await handleSignOut(); setShowMobileMenu(false) }} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', cursor: 'pointer', fontSize: 13, color: '#e74c3c' }}>
-                <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>⏻</span>
-                Déconnexion
-              </div>
-            ) : (
-              <div style={{ display: 'flex', gap: 10, padding: '14px 20px' }}>
-                <Link to="/login" onClick={() => setShowMobileMenu(false)} style={{ flex: 1 }}>
-                  <button style={{ width: '100%', padding: '10px', border: '1px solid #333', borderRadius: 8, cursor: 'pointer', background: 'transparent', color: '#ccc', fontSize: 13 }}>Connexion</button>
+              )}
+              {[
+                { icon: '⚙️', label: 'Paramètres',      to: '/settings',      show: !!user },
+                { icon: '🐛', label: 'Signaler un bug',  to: '/bug-report',    show: !!user },
+                { icon: '🏆', label: 'Récompenses',      to: '/rewards',       show: true },
+                { icon: '📊', label: 'Classements',      to: '/rankings',      show: true },
+                { icon: '🛡️', label: 'Modération',       to: '/moderation',    show: !!user && canMod },
+                { icon: '📜', label: 'Mentions légales', to: '/legal',         show: true },
+              ].filter(i => i.show).map(item => (
+                <Link key={item.to} to={item.to} onClick={() => setShowMobileMenu(false)}
+                  style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: '1px solid #1a1a1a', cursor: 'pointer', fontSize: 13, color: '#ccc' }}>
+                  <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{item.icon}</span>
+                  {item.label}
                 </Link>
-                <Link to="/register" onClick={() => setShowMobileMenu(false)} style={{ flex: 1 }}>
-                  <button style={{ width: '100%', padding: '10px', border: 'none', borderRadius: 8, cursor: 'pointer', background: 'linear-gradient(to bottom,#f0c800,#c8a200)', color: '#3a2e00', fontWeight: 700, fontSize: 13 }}>S'inscrire</button>
-                </Link>
-              </div>
-            )}
-          </div>
-        )}
+              ))}
+              {user ? (
+                <div onClick={async () => { await handleSignOut(); setShowMobileMenu(false) }} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', cursor: 'pointer', fontSize: 13, color: '#e74c3c' }}>
+                  <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>⏻</span>
+                  Déconnexion
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 10, padding: '14px 20px' }}>
+                  <Link to="/login" onClick={() => setShowMobileMenu(false)} style={{ flex: 1 }}>
+                    <button style={{ width: '100%', padding: '10px', border: '1px solid #333', borderRadius: 8, cursor: 'pointer', background: 'transparent', color: '#ccc', fontSize: 13 }}>Connexion</button>
+                  </Link>
+                  <Link to="/register" onClick={() => setShowMobileMenu(false)} style={{ flex: 1 }}>
+                    <button style={{ width: '100%', padding: '10px', border: 'none', borderRadius: 8, cursor: 'pointer', background: 'linear-gradient(to bottom,#f0c800,#c8a200)', color: '#3a2e00', fontWeight: 700, fontSize: 13 }}>S'inscrire</button>
+                  </Link>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
         <BottomBar />
       </>
     )
@@ -411,29 +431,33 @@ export default function Navbar() {
 
           <div ref={searchRef} style={{ position: 'relative' }}>
             <button onClick={() => setShowSearch(s => !s)} style={{ width: 36, height: 36, borderRadius: '50%', border: '1px solid rgba(255,255,255,.1)', background: showSearch ? 'rgba(200,162,0,.15)' : 'rgba(255,255,255,.06)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, transition: 'all .18s' }}>🔍</button>
-            {showSearch && (
-              <div style={{ position: 'absolute', top: '110%', right: 0, background: 'rgba(12,12,22,.97)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 14, padding: 12, width: 260, zIndex: 1000, backdropFilter: 'blur(20px)', boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
-                <input value={search} onChange={e => { setSearch(e.target.value); setShowRes(true) }} autoFocus placeholder="Rechercher un membre…" style={{ width: '100%', background: '#222', border: '1px solid #444', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
-                {showRes && results.length > 0 && (
-                  <div style={{ marginTop: 8, background: '#1a1a1a', border: '1px solid #333', borderRadius: 8, overflow: 'hidden' }}>
-                    {results.map(u => (
-                      <div key={u.id} onClick={() => { navigate(`/members/${u.id}`); setSearch(''); setShowRes(false); setShowSearch(false) }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #2a2a2a', transition: 'background .15s' }}
-                        onMouseEnter={e => e.currentTarget.style.background = '#2a2a2a'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                        <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
-                          {u.avatar_url ? <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : u.initials}
+            <AnimatePresence>
+              {showSearch && (
+                <motion.div
+                  variants={dropdownVariants} initial="initial" animate="animate" exit="exit"
+                  style={{ position: 'absolute', top: '110%', right: 0, background: 'rgba(12,12,22,.97)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 14, padding: 12, width: 260, zIndex: 1000, backdropFilter: 'blur(20px)', boxShadow: '0 8px 32px rgba(0,0,0,.4)' }}>
+                  <input value={search} onChange={e => { setSearch(e.target.value); setShowRes(true) }} autoFocus placeholder="Rechercher un membre…" style={{ width: '100%', background: '#222', border: '1px solid #444', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+                  {showRes && results.length > 0 && (
+                    <div style={{ marginTop: 8, background: '#1a1a1a', border: '1px solid #333', borderRadius: 8, overflow: 'hidden' }}>
+                      {results.map(u => (
+                        <div key={u.id} onClick={() => { navigate(`/members/${u.id}`); setSearch(''); setShowRes(false); setShowSearch(false) }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #2a2a2a', transition: 'background .15s' }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#2a2a2a'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                          <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
+                            {u.avatar_url ? <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : u.initials}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: 13, color: '#eee' }}>@{u.pseudo}</div>
+                            <div style={{ fontSize: 11, color: '#888' }}>{u.city || ''}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: 13, color: '#eee' }}>@{u.pseudo}</div>
-                          <div style={{ fontSize: 11, color: '#888' }}>{u.city || ''}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {user && (
@@ -455,28 +479,32 @@ export default function Navbar() {
                 🔔
                 {notifs.length > 0 && <span style={{ position: 'absolute', top: 2, right: 2, width: 16, height: 16, borderRadius: '50%', background: C.red, color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{notifs.length > 9 ? '9+' : notifs.length}</span>}
               </button>
-              {showNotifs && (
-                <div style={{ position: 'absolute', top: '110%', right: 0, width: 310, background: dropBg, border: `1px solid ${dropBorder}`, borderRadius: 14, boxShadow: '0 8px 32px rgba(0,0,0,.35)', zIndex: 1000, backdropFilter: 'blur(20px)', overflow: 'hidden' }}>
-                  <div style={{ padding: '10px 14px', borderBottom: `1px solid ${dropBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 700, fontSize: 12, color: dropTextDim }}>Notifications</span>
-                    {notifs.length > 0 && <button onClick={markAllRead} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.accentTxt, fontWeight: 600 }}>Tout marquer lu</button>}
-                  </div>
-                  <div style={{ maxHeight: 360, overflowY: 'auto' }}>
-                    {notifs.length === 0
-                      ? <div style={{ padding: 20, textAlign: 'center', color: dropTextDim, fontSize: 12 }}>Aucune notification</div>
-                      : notifs.map(n => (
-                        <div key={n.id} onClick={() => { markRead(n.id); if (n.link) navigate(n.link); setShowNotifs(false) }}
-                          style={{ padding: '10px 14px', borderBottom: `1px solid ${dropBorder}`, cursor: 'pointer', background: dropSurface, fontSize: 12, color: dropText, display: 'flex', alignItems: 'flex-start', gap: 8, transition: 'background .15s' }}
-                          onMouseEnter={e => e.currentTarget.style.background = dropHover}
-                          onMouseLeave={e => e.currentTarget.style.background = dropSurface}>
-                          <span style={{ flex: 1 }}>{n.content}</span>
-                          <button onClick={e => { e.stopPropagation(); markRead(n.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: dropTextDim, fontSize: 14, flexShrink: 0, lineHeight: 1 }}>✕</button>
-                        </div>
-                      ))
-                    }
-                  </div>
-                </div>
-              )}
+              <AnimatePresence>
+                {showNotifs && (
+                  <motion.div
+                    variants={dropdownVariants} initial="initial" animate="animate" exit="exit"
+                    style={{ position: 'absolute', top: '110%', right: 0, width: 310, background: dropBg, border: `1px solid ${dropBorder}`, borderRadius: 14, boxShadow: '0 8px 32px rgba(0,0,0,.35)', zIndex: 1000, backdropFilter: 'blur(20px)', overflow: 'hidden' }}>
+                    <div style={{ padding: '10px 14px', borderBottom: `1px solid ${dropBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 700, fontSize: 12, color: dropTextDim }}>Notifications</span>
+                      {notifs.length > 0 && <button onClick={markAllRead} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.accentTxt, fontWeight: 600 }}>Tout marquer lu</button>}
+                    </div>
+                    <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+                      {notifs.length === 0
+                        ? <div style={{ padding: 20, textAlign: 'center', color: dropTextDim, fontSize: 12 }}>Aucune notification</div>
+                        : notifs.map(n => (
+                          <div key={n.id} onClick={() => { markRead(n.id); if (n.link) navigate(n.link); setShowNotifs(false) }}
+                            style={{ padding: '10px 14px', borderBottom: `1px solid ${dropBorder}`, cursor: 'pointer', background: dropSurface, fontSize: 12, color: dropText, display: 'flex', alignItems: 'flex-start', gap: 8, transition: 'background .15s' }}
+                            onMouseEnter={e => e.currentTarget.style.background = dropHover}
+                            onMouseLeave={e => e.currentTarget.style.background = dropSurface}>
+                            <span style={{ flex: 1 }}>{n.content}</span>
+                            <button onClick={e => { e.stopPropagation(); markRead(n.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: dropTextDim, fontSize: 14, flexShrink: 0, lineHeight: 1 }}>✕</button>
+                          </div>
+                        ))
+                      }
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
 
@@ -500,36 +528,40 @@ export default function Navbar() {
                 </div>
                 <span style={{ fontSize: 10, color: '#666', marginLeft: 2 }}>{showUserMenu ? '▲' : '▼'}</span>
               </div>
-              {showUserMenu && (
-                <div style={{ position: 'absolute', top: '110%', right: 0, width: 210, background: 'rgba(12,12,22,.97)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 14, boxShadow: '0 8px 32px rgba(0,0,0,.45)', zIndex: 1000, backdropFilter: 'blur(20px)', overflow: 'hidden' }}>
-                  <div style={{ padding: '12px 16px', borderBottom: '1px solid #2a2a2a' }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>@{profile?.pseudo}</div>
-                    <div style={{ fontSize: 10, color: '#888', marginTop: 2 }}>{user.email}</div>
-                  </div>
-                  {[
-                    { icon: '👤', label: 'Mon profil',      to: '/profile' },
-                    { icon: '🏆', label: 'Récompenses',     to: '/rewards' },
-                    { icon: '📊', label: 'Classements',     to: '/rankings' },
-                    { icon: '⚙️', label: 'Paramètres',      to: '/settings' },
-                    { icon: '🐛', label: 'Signaler un bug', to: '/bug-report' },
-                  ].map(item => (
-                    <div key={item.to} onClick={() => { navigate(item.to); setShowUserMenu(false) }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', cursor: 'pointer', fontSize: 12, color: '#ccc', transition: 'all .15s' }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#222'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                      <span>{item.icon}</span>{item.label}
+              <AnimatePresence>
+                {showUserMenu && (
+                  <motion.div
+                    variants={dropdownVariants} initial="initial" animate="animate" exit="exit"
+                    style={{ position: 'absolute', top: '110%', right: 0, width: 210, background: 'rgba(12,12,22,.97)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 14, boxShadow: '0 8px 32px rgba(0,0,0,.45)', zIndex: 1000, backdropFilter: 'blur(20px)', overflow: 'hidden' }}>
+                    <div style={{ padding: '12px 16px', borderBottom: '1px solid #2a2a2a' }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>@{profile?.pseudo}</div>
+                      <div style={{ fontSize: 10, color: '#888', marginTop: 2 }}>{user.email}</div>
                     </div>
-                  ))}
-                  <div style={{ borderTop: '1px solid #2a2a2a' }}>
-                    <div onClick={handleSignOut}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', cursor: 'pointer', fontSize: 12, color: '#e74c3c', transition: 'all .15s' }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#2a1a1a'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                      <span>⏻</span> Déconnexion
+                    {[
+                      { icon: '👤', label: 'Mon profil',      to: '/profile' },
+                      { icon: '🏆', label: 'Récompenses',     to: '/rewards' },
+                      { icon: '📊', label: 'Classements',     to: '/rankings' },
+                      { icon: '⚙️', label: 'Paramètres',      to: '/settings' },
+                      { icon: '🐛', label: 'Signaler un bug', to: '/bug-report' },
+                    ].map(item => (
+                      <div key={item.to} onClick={() => { navigate(item.to); setShowUserMenu(false) }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', cursor: 'pointer', fontSize: 12, color: '#ccc', transition: 'all .15s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = '#222'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                        <span>{item.icon}</span>{item.label}
+                      </div>
+                    ))}
+                    <div style={{ borderTop: '1px solid #2a2a2a' }}>
+                      <div onClick={handleSignOut}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', cursor: 'pointer', fontSize: 12, color: '#e74c3c', transition: 'all .15s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = '#2a1a1a'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                        <span>⏻</span> Déconnexion
+                      </div>
                     </div>
-                  </div>
-                </div>
-              )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
 
