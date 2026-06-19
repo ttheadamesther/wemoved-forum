@@ -48,11 +48,11 @@ function formatTimeAgo(ts) {
   return new Date(ts).toLocaleDateString('fr-FR')
 }
 
-function MemberAvatar({ member, size = 34, colors }) {
+function MemberAvatar({ member, size = 34, colors, clickable = false }) {
   const ac = colors[(member?.pseudo?.charCodeAt(0) || 0) % colors.length]
   const ring = ROLE_RING[member?.role] || null
   return (
-    <div style={{
+    <div className={clickable ? 'avatar-hover' : ''} style={{
       width: size, height: size, borderRadius: '50%',
       background: member?.avatar_url ? '#444' : ac,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -277,7 +277,7 @@ export default function Home() {
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <span style={{ fontWeight: 800, fontSize: 15, width: 22, textAlign: 'center', opacity: i < 3 ? 1 : .5 }}>{medals[i] || i + 1}</span>
-                  <MemberAvatar member={m} size={34} colors={colors} />
+                  <MemberAvatar member={m} size={34} colors={colors} clickable />
                   <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.pseudo}</span>
                   <span style={{ fontWeight: 800, fontSize: 13, color: 'var(--accentTxt)', marginRight: 2 }}>{tot}</span>
                   {tv && <span title={tv.label} style={{ fontSize: 15 }}>{tv.emoji}</span>}
@@ -309,7 +309,7 @@ export default function Home() {
                     onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                     <div style={{ position: 'relative', flexShrink: 0 }}>
-                      <MemberAvatar member={m} size={34} colors={colors} />
+                      <MemberAvatar member={m} size={34} colors={colors} clickable />
                       <div style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: '50%', background: 'var(--online)', border: '2px solid var(--white)', boxShadow: '0 0 6px var(--online)' }} />
                     </div>
                     <div>
@@ -390,7 +390,10 @@ export default function Home() {
                           </div>
                         )}
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ marginBottom: 5 }}><CatBadge cat={t.cat} /></div>
+                          <div style={{ marginBottom: 5, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <CatBadge cat={t.cat} />
+                            {(Date.now() - new Date(t.created_at)) < 86400000 && <span className="new-badge">NEW</span>}
+                          </div>
                           <div style={{ fontWeight: 700, fontSize: isMobile ? 13 : 14, color: 'var(--text)', marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>{t.title}</div>
                           <div style={{ fontSize: 11, color: 'var(--textMid)', display: 'flex', alignItems: 'center', gap: 4 }}>
                             <span style={{ fontWeight: 600 }}>{author ? `@${author.pseudo}` : 'Inconnu'}</span>
@@ -471,7 +474,7 @@ export default function Home() {
                         style={{ display: 'flex', gap: 11, padding: '11px 16px', borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background .13s', animation: `fadein .${2 + i}s ease` }}
                         onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                        <MemberAvatar member={author} size={34} colors={colors} />
+                        <MemberAvatar member={author} size={34} colors={colors} clickable />
                         <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5, flex: 1, minWidth: 0 }}>
                           <span style={{ fontWeight: 700, color: 'var(--accentTxt)' }}>@{author?.pseudo || 'Inconnu'}</span>
                           {author?.is_bot && <span style={{ marginLeft: 4, padding: '1px 5px', borderRadius: 4, fontSize: 8, fontWeight: 700, background: '#5865f2', color: '#fff' }}>BOT</span>}
