@@ -265,7 +265,7 @@ export default function Home() {
               <span style={{ fontWeight: 700, fontSize: 11, color: 'var(--textDim)', textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 7 }}>
                 🏆 Top du mois
               </span>
-              <Link to="/members" style={{ fontSize: 11, color: 'var(--accentTxt)', fontWeight: 700, opacity: .85 }}>Voir tout →</Link>
+              <Link to="/members" className="text-link" style={{ fontSize: 11, color: 'var(--accentTxt)', fontWeight: 700, opacity: .85 }}>Voir tout →</Link>
             </SectionHeader>
             {topMembers.map((m, i) => {
               const tv  = getTopVoteType(m.votes)
@@ -288,7 +288,7 @@ export default function Home() {
               style={{ padding: '11px 18px', textAlign: 'center', cursor: 'pointer', background: 'var(--surfaceB)', borderRadius: '0 0 16px 16px', transition: 'background .13s' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
               onMouseLeave={e => e.currentTarget.style.background = 'var(--surfaceB)'}>
-              <span style={{ fontSize: 12, color: 'var(--accentTxt)', fontWeight: 700 }}>Voir le classement complet</span>
+              <span className="text-link" style={{ fontSize: 12, color: 'var(--accentTxt)', fontWeight: 700 }}>Voir le classement complet</span>
             </div>
           </SectionCard>
 
@@ -323,7 +323,7 @@ export default function Home() {
               style={{ padding: '10px 18px', textAlign: 'center', cursor: 'pointer', background: 'var(--surfaceB)', borderRadius: '0 0 16px 16px', transition: 'background .13s' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
               onMouseLeave={e => e.currentTarget.style.background = 'var(--surfaceB)'}>
-              <span style={{ fontSize: 11, color: 'var(--accentTxt)', fontWeight: 700 }}>Voir tous les membres →</span>
+              <span className="text-link" style={{ fontSize: 11, color: 'var(--accentTxt)', fontWeight: 700 }}>Voir tous les membres →</span>
             </div>
           </SectionCard>
 
@@ -413,7 +413,7 @@ export default function Home() {
               style={{ padding: '13px 20px', textAlign: 'center', cursor: 'pointer', background: 'var(--surfaceB)', borderTop: '1px solid var(--border)', borderRadius: '0 0 16px 16px', transition: 'background .13s' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
               onMouseLeave={e => e.currentTarget.style.background = 'var(--surfaceB)'}>
-              <span style={{ fontSize: 12, color: 'var(--accentTxt)', fontWeight: 700 }}>Voir toutes les discussions →</span>
+              <span className="text-link" style={{ fontSize: 12, color: 'var(--accentTxt)', fontWeight: 700 }}>Voir toutes les discussions →</span>
             </div>
           </SectionCard>
 
