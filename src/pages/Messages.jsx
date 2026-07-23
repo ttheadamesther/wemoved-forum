@@ -5,6 +5,7 @@ import { RoleBadge } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
 import EmojiPicker from 'emoji-picker-react'
 import { useMention } from '../hooks/useMention.jsx'
+import { supabase } from '../lib/supabase'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -69,6 +70,20 @@ function MessageBody({ body, isMe }) {
   return <div style={{ fontSize: 13, color: isMe ? '#3a2e00' : C.text, lineHeight: 1.5 }}>{body}</div>
 }
 
+// Petite bulle "… est en train d'écrire" avec 3 points animés
+function TypingBubble() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '8px 14px', background: C.white, border: `1px solid ${C.border}`, borderRadius: '18px 18px 18px 4px', width: 'fit-content' }}>
+      {[0, 1, 2].map(i => (
+        <span key={i} style={{
+          width: 6, height: 6, borderRadius: '50%', background: C.textDim,
+          animation: `typingDot 1.2s ease-in-out ${i * 0.15}s infinite`
+        }} />
+      ))}
+    </div>
+  )
+}
+
 export default function MessagesPage() {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
@@ -95,10 +110,13 @@ export default function MessagesPage() {
   const [reporting, setReporting] = useState(null)
   const [showEmoji, setShowEmoji] = useState(false)
   const [reactionPicker, setReactionPicker] = useState(null) // message id
+  const [otherTyping, setOtherTyping] = useState(false)
   const bottomRef = useRef(null)
   const longPressTimer = useRef(null)
+  const channelRef = useRef(null)
+  const typingStopTimer = useRef(null)
 
-  // Keyframes pour l'animation du picker de réactions
+  // Keyframes pour les animations (réactions + indicateur "en train d'écrire")
   useEffect(() => {
     const style = document.createElement('style')
     style.id = 'reaction-animations'
@@ -110,6 +128,10 @@ export default function MessagesPage() {
       @keyframes reactionEmojiIn {
         from { opacity: 0; transform: scale(0) translateY(6px); }
         to   { opacity: 1; transform: scale(1) translateY(0);   }
+      }
+      @keyframes typingDot {
+        0%, 60%, 100% { transform: translateY(0);   opacity: .4; }
+        30%           { transform: translateY(-4px); opacity: 1;  }
       }
     `
     if (!document.getElementById('reaction-animations')) {
@@ -215,9 +237,64 @@ export default function MessagesPage() {
         window.dispatchEvent(new CustomEvent('messages-read'))
       })
     })
-  }, [activeId, user, sending])
+  }, [activeId, user])
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
+  // ── REALTIME : messages instants + "en train d'écrire" ──
+  useEffect(() => {
+    if (!activeId || !user || !supabase) return
+
+    setOtherTyping(false)
+    const roomName = `dm:${[user.id, activeId].sort().join('_')}`
+    const channel = supabase.channel(roomName)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'messages',
+        filter: `to_id=eq.${user.id}`
+      }, (payload) => {
+        const m = payload.new
+        if (m.from_id !== activeId) return
+        setMessages(prev => prev.some(x => x.id === m.id) ? prev : [...prev, m])
+        setOtherTyping(false)
+        api(`/rest/v1/messages?id=eq.${m.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ read: true }),
+          headers: { 'Prefer': 'return=minimal' }
+        })
+        window.dispatchEvent(new CustomEvent('messages-read'))
+        loadConvos()
+      })
+      .on('broadcast', { event: 'typing' }, ({ payload }) => {
+        if (payload?.userId !== activeId) return
+        setOtherTyping(payload.isTyping)
+        if (payload.isTyping) {
+          clearTimeout(typingStopTimer.current)
+          typingStopTimer.current = setTimeout(() => setOtherTyping(false), 3000)
+        }
+      })
+      .subscribe()
+
+    channelRef.current = channel
+
+    return () => {
+      supabase.removeChannel(channel)
+      channelRef.current = null
+      clearTimeout(typingStopTimer.current)
+    }
+  }, [activeId, user])
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, otherTyping])
+
+  const broadcastTyping = (isTyping) => {
+    channelRef.current?.send({ type: 'broadcast', event: 'typing', payload: { userId: user.id, isTyping } })
+  }
+
+  const onTextChange = (val, selectionStart) => {
+    setText(val)
+    handleMentionInput(val, selectionStart)
+    if (!activeId) return
+    broadcastTyping(true)
+    clearTimeout(typingStopTimer.current)
+    typingStopTimer.current = setTimeout(() => broadcastTyping(false), 2000)
+  }
 
   const insertEmoji = (emojiData) => {
     const el = inputRef.current
@@ -227,6 +304,9 @@ export default function MessagesPage() {
     const newVal = text.slice(0, start) + emojiData.emoji + text.slice(end)
     setText(newVal)
     setShowEmoji(false)
+    broadcastTyping(true)
+    clearTimeout(typingStopTimer.current)
+    typingStopTimer.current = setTimeout(() => broadcastTyping(false), 2000)
     setTimeout(() => {
       el.focus()
       el.setSelectionRange(start + emojiData.emoji.length, start + emojiData.emoji.length)
@@ -239,10 +319,23 @@ export default function MessagesPage() {
     if (!body || !activeId || !user) return
     if (blockedIds.includes(activeId) || blockedByIds.includes(activeId)) return
     setSending(true)
-    await api(`/rest/v1/messages`, {
+    clearTimeout(typingStopTimer.current)
+    broadcastTyping(false)
+    const res = await api(`/rest/v1/messages`, {
       method: 'POST',
+      headers: { 'Prefer': 'return=representation' },
       body: JSON.stringify({ from_id: user.id, to_id: activeId, body, read: false })
     })
+    const inserted = await res.json().catch(() => null)
+    const newMsg = Array.isArray(inserted) ? inserted[0] : null
+    if (newMsg) {
+      setMessages(prev => prev.some(x => x.id === newMsg.id) ? prev : [...prev, newMsg])
+    } else {
+      // fallback si return=representation indisponible
+      const msgs = await api(`/rest/v1/messages?or=(and(from_id.eq.${user.id},to_id.eq.${activeId}),and(from_id.eq.${activeId},to_id.eq.${user.id}))&order=created_at.asc`)
+        .then(r => r.json())
+      if (Array.isArray(msgs)) setMessages(msgs)
+    }
     await api(`/rest/v1/notifications`, {
       method: 'POST',
       body: JSON.stringify({
@@ -251,9 +344,6 @@ export default function MessagesPage() {
         link: '/messages', read: false
       })
     })
-    const msgs = await api(`/rest/v1/messages?or=(and(from_id.eq.${user.id},to_id.eq.${activeId}),and(from_id.eq.${activeId},to_id.eq.${user.id}))&order=created_at.asc`)
-      .then(r => r.json())
-    if (Array.isArray(msgs)) setMessages(msgs)
     setSending(false)
     loadConvos()
   }
@@ -452,8 +542,8 @@ export default function MessagesPage() {
                 <Avatar member={activeMember} size={40} showOnline />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 14, color: C.text }}>@{activeMember.pseudo}</div>
-                  <div style={{ fontSize: 11, color: activeMember.online ? C.online : C.textDim }}>
-                    {activeMember.online ? '● En ligne' : '○ Hors ligne'}
+                  <div style={{ fontSize: 11, color: otherTyping ? '#c8a200' : activeMember.online ? C.online : C.textDim, fontStyle: otherTyping ? 'italic' : 'normal' }}>
+                    {otherTyping ? 'est en train d\u2019écrire…' : activeMember.online ? '● En ligne' : '○ Hors ligne'}
                   </div>
                 </div>
                 <RoleBadge role={activeMember.role} />
@@ -476,7 +566,7 @@ export default function MessagesPage() {
                   const pickerOpen = reactionPicker === m.id
                   const hovered = hoveredMsg === m.id
                   return (
-                    <div key={i}
+                    <div key={m.id ?? i}
                       onMouseEnter={() => setHoveredMsg(m.id)}
                       onMouseLeave={() => setHoveredMsg(null)}
                       style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', gap: 2 }}>
@@ -566,6 +656,15 @@ export default function MessagesPage() {
                     </div>
                   )
                 })}
+
+                {/* Indicateur "en train d'écrire" en bas de la conversation */}
+                {otherTyping && (
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
+                    <Avatar member={activeMember} size={28} />
+                    <TypingBubble />
+                  </div>
+                )}
+
                 <div ref={bottomRef} />
               </div>
 
@@ -603,7 +702,7 @@ export default function MessagesPage() {
 
                   <div style={{ position: 'relative', flex: 1 }}>
                     <MentionDropdown />
-                  <input ref={inputRef} value={text} onChange={e => { setText(e.target.value); handleMentionInput(e.target.value, e.target.selectionStart) }} onKeyDown={e => { handleMentionKey(e); if (e.key === 'Enter' && !e.defaultPrevented) send() }}
+                  <input ref={inputRef} value={text} onChange={e => onTextChange(e.target.value, e.target.selectionStart)} onKeyDown={e => { handleMentionKey(e); if (e.key === 'Enter' && !e.defaultPrevented) send() }}
                     placeholder={`Message à @${activeMember.pseudo}…`}
                     style={{ width: '100%', border: `1px solid ${C.borderMid}`, borderRadius: 24, padding: '10px 18px', fontSize: 13, color: C.text, fontFamily: 'inherit', outline: 'none', background: C.surfaceB }}
                     onFocus={e => e.target.style.borderColor = '#c8a200'}
