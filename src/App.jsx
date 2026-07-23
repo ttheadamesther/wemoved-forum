@@ -10,6 +10,7 @@ import Members       from './pages/Members'
 import Messages      from './pages/Messages'
 import Login         from './pages/Login'
 import Register      from './pages/Register'
+import ResetPassword from './pages/ResetPassword'
 import Profile       from './pages/Profile'
 import Settings      from './pages/Settings'
 import React         from 'react'
@@ -132,8 +133,9 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path="/login"    element={<PublicOnlyRoute><PageTransition><Login /></PageTransition></PublicOnlyRoute>} />
-        <Route path="/register" element={<PublicOnlyRoute><PageTransition><Register /></PageTransition></PublicOnlyRoute>} />
+        <Route path="/login"          element={<PublicOnlyRoute><PageTransition><Login /></PageTransition></PublicOnlyRoute>} />
+        <Route path="/register"       element={<PublicOnlyRoute><PageTransition><Register /></PageTransition></PublicOnlyRoute>} />
+        <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} />
         <Route path="/"         element={<Layout><PageTransition><Home /></PageTransition></Layout>} />
         <Route path="/forum"           element={<Layout><PageTransition><Forum /></PageTransition></Layout>} />
         <Route path="/forum/:threadId" element={<Layout><PageTransition><Forum /></PageTransition></Layout>} />
