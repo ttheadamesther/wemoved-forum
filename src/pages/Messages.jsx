@@ -177,12 +177,32 @@ export default function MessagesPage() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
+  // ── DÉTECTION MOBILE (avec debounce + hystérésis anti-tremblement) ──
+  // En mode paysage sur mobile, la barre d'adresse qui apparaît/disparaît
+  // pendant le scroll déclenche des resize en rafale : sans amortissement,
+  // le state isMobile peut osciller très vite (effet "vibration").
   useEffect(() => {
+    let timeout = null
     const observer = new ResizeObserver(entries => {
-      for (const entry of entries) setIsMobile(entry.contentRect.width < 768)
+      if (timeout) clearTimeout(timeout)
+      timeout = setTimeout(() => {
+        for (const entry of entries) {
+          const w = entry.contentRect.width
+          setIsMobile(prev => {
+            // Hystérésis : on ne change d'état que si on dépasse clairement
+            // le seuil, pour éviter les allers-retours à la limite exacte.
+            if (prev && w >= 780) return false
+            if (!prev && w < 760) return true
+            return prev
+          })
+        }
+      }, 150)
     })
     if (containerRef.current) observer.observe(containerRef.current)
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      if (timeout) clearTimeout(timeout)
+    }
   }, [])
 
   useEffect(() => { if (user === null) navigate('/login') }, [user])
@@ -462,7 +482,21 @@ export default function MessagesPage() {
         </div>
       )}
 
-      <div style={{ display: 'flex', background: C.white, border: isMobile ? 'none' : `1px solid ${C.border}`, borderRadius: isMobile ? 0 : 16, overflow: 'hidden', height: isMobile ? 'calc(100vh - 64px)' : 600, boxShadow: isMobile ? 'none' : '0 2px 12px rgba(0,0,0,.06)' }}>
+      <div style={{
+        display: 'flex',
+        background: C.white,
+        border: isMobile ? 'none' : `1px solid ${C.border}`,
+        borderRadius: isMobile ? 0 : 16,
+        overflow: 'hidden',
+        // 100dvh = "dynamic viewport height" : suit la vraie hauteur visible du
+        // navigateur mobile, même quand la barre d'adresse apparaît/disparaît
+        // pendant le scroll (c'est ce qui causait l'effet "vibration" en 100vh).
+        height: isMobile ? 'calc(100dvh - 64px)' : 600,
+        boxShadow: isMobile ? 'none' : '0 2px 12px rgba(0,0,0,.06)',
+        // Empêche l'effet de rebond (rubber-band) qui accentue la sensation
+        // de tremblement quand on atteint le haut/bas de la liste en scrollant vite.
+        overscrollBehavior: 'contain',
+      }}>
 
         {/* ── SIDEBAR ── */}
         {(!isMobile || showSidebar) && (
@@ -476,7 +510,7 @@ export default function MessagesPage() {
               </div>
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto' }}>
+            <div style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'contain' }}>
               {(() => {
                 const displayList = search
                   ? members.filter(m => m.pseudo?.toLowerCase().includes(search.toLowerCase()))
@@ -536,8 +570,8 @@ export default function MessagesPage() {
         {/* ── ZONE CHAT ── */}
         {(!isMobile || !showSidebar) && (
           activeMember ? (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, background: C.surfaceB, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
+              <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, background: C.surfaceB, display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
                 {isMobile && <button onClick={() => setShowSidebar(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: C.textMid, padding: 0, marginRight: 4 }}>←</button>}
                 <Avatar member={activeMember} size={40} showOnline />
                 <div style={{ flex: 1 }}>
@@ -549,7 +583,7 @@ export default function MessagesPage() {
                 <RoleBadge role={activeMember.role} />
               </div>
 
-              <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 8, background: C.surfaceB }}>
+              <div style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'contain', padding: '16px', display: 'flex', flexDirection: 'column', gap: 8, background: C.surfaceB, minHeight: 0 }}>
                 {messages.length === 0 && (
                   <div style={{ textAlign: 'center', color: C.textDim, fontSize: 13, marginTop: 60 }}>
                     <div style={{ fontSize: 32, marginBottom: 8 }}>👋</div>
@@ -669,11 +703,11 @@ export default function MessagesPage() {
               </div>
 
               {isActiveBlocked ? (
-                <div style={{ padding: '16px', borderTop: `1px solid ${C.border}`, background: C.white, textAlign: 'center', fontSize: 12, color: C.red }}>
+                <div style={{ padding: '16px', borderTop: `1px solid ${C.border}`, background: C.white, textAlign: 'center', fontSize: 12, color: C.red, flexShrink: 0 }}>
                   🚫 {blockedIds.includes(activeId) ? 'Vous avez bloqué ce membre.' : 'Ce membre vous a bloqué.'} Impossible d'envoyer un message.
                 </div>
               ) : (
-                <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}`, background: C.white, display: 'flex', gap: 8, alignItems: 'center' }}>
+                <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}`, background: C.white, display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
                   <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
                     onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.target.value = '' }} />
 
