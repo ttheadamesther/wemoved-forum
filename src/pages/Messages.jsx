@@ -62,8 +62,12 @@ function MessageBody({ body, isMe }) {
   if (isImage) {
     const url = body.replace('__IMG__', '')
     return (
-      <a href={url} target="_blank" rel="noopener noreferrer">
-        <img loading="lazy" decoding="async" src={url} alt="photo" style={{ maxWidth: '100%', maxHeight: 220, borderRadius: 12, display: 'block', cursor: 'pointer', objectFit: 'cover' }} />
+      <a href={url} target="_blank" rel="noopener noreferrer"
+        onContextMenu={e => e.preventDefault()}
+        style={{ WebkitTouchCallout: 'none' }}>
+        <img loading="lazy" decoding="async" src={url} alt="photo" draggable={false}
+          onContextMenu={e => e.preventDefault()}
+          style={{ maxWidth: '100%', maxHeight: 220, borderRadius: 12, display: 'block', cursor: 'pointer', objectFit: 'cover', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }} />
       </a>
     )
   }
@@ -634,8 +638,26 @@ export default function MessagesPage() {
                               {emoji}
                             </button>
                           ))}
+                          {/* Sur mobile il n'y a pas de "survol" : on rattache supprimer/signaler
+                              au même long-press que le picker de réactions. */}
+                          {isMobile && isMe && (
+                            <button onClick={() => { setReactionPicker(null); setConfirmDelete({ type: 'msg', id: m.id }) }}
+                              style={{ fontSize: 20, background: 'none', border: 'none', cursor: 'pointer', color: C.red, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s cubic-bezier(.34,1.56,.64,1) ${QUICK_EMOJIS.length * 30}ms both` }}>
+                              🗑️
+                            </button>
+                          )}
+                          {isMobile && !isMe && (
+                            <button onClick={async () => {
+                              setReactionPicker(null)
+                              await api('/rest/v1/reports', { method: 'POST', body: JSON.stringify({ type: 'message', target_id: m.id, reporter_id: user.id, reason: 'Message privé signalé', status: 'pending' }) })
+                              alert('Message signalé aux modérateurs.')
+                            }}
+                              style={{ fontSize: 18, background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s cubic-bezier(.34,1.56,.64,1) ${QUICK_EMOJIS.length * 30}ms both` }}>
+                              🚩
+                            </button>
+                          )}
                           <button onClick={() => setReactionPicker(null)}
-                            style={{ fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s ease ${QUICK_EMOJIS.length * 30}ms both` }}>✕</button>
+                            style={{ fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s ease ${(QUICK_EMOJIS.length + 1) * 30}ms both` }}>✕</button>
                         </div>
                       )}
 
@@ -650,6 +672,7 @@ export default function MessagesPage() {
                           onTouchStart={() => isMobile && handleLongPressStart(m.id)}
                           onTouchEnd={handleLongPressEnd}
                           onTouchMove={handleLongPressEnd}
+                          onContextMenu={e => e.preventDefault()}
                           style={{
                             maxWidth: isMobile ? '78%' : '60%',
                             minWidth: 0,
@@ -658,6 +681,9 @@ export default function MessagesPage() {
                             borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
                             padding: isImg ? 0 : '10px 14px',
                             boxShadow: isImg ? 'none' : '0 1px 3px rgba(0,0,0,.08)',
+                            WebkitTouchCallout: 'none',
+                            WebkitUserSelect: isMobile ? 'none' : 'auto',
+                            userSelect: isMobile ? 'none' : 'auto',
                           }}>
                           <MessageBody body={m.body} isMe={isMe} />
                         </div>
