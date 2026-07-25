@@ -67,16 +67,31 @@ function MessageBody({ body, isMe }) {
       </a>
     )
   }
-  return <div style={{ fontSize: 13, color: isMe ? '#3a2e00' : C.text, lineHeight: 1.5 }}>{body}</div>
+  return (
+    <div style={{
+      fontSize: 13, color: isMe ? '#3a2e00' : C.text, lineHeight: 1.5,
+      wordBreak: 'break-word', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap',
+    }}>
+      {body}
+    </div>
+  )
 }
 
 // Petite bulle "… est en train d'écrire" avec 3 points animés
-function TypingBubble() {
+function TypingBubble({ isMobile }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '8px 14px', background: C.white, border: `1px solid ${C.border}`, borderRadius: '18px 18px 18px 4px', width: 'fit-content' }}>
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      padding: isMobile ? '9px 12px' : '8px 14px',
+      background: C.white, border: `1px solid ${C.border}`,
+      borderRadius: '18px 18px 18px 4px',
+      width: 'fit-content', maxWidth: 'fit-content',
+      flexShrink: 0, whiteSpace: 'nowrap',
+    }}>
       {[0, 1, 2].map(i => (
         <span key={i} style={{
-          width: 6, height: 6, borderRadius: '50%', background: C.textDim,
+          width: isMobile ? 5 : 6, height: isMobile ? 5 : 6, borderRadius: '50%',
+          background: C.textDim, flexShrink: 0,
           animation: `typingDot 1.2s ease-in-out ${i * 0.15}s infinite`
         }} />
       ))}
@@ -116,7 +131,7 @@ export default function MessagesPage() {
   const channelRef = useRef(null)
   const typingStopTimer = useRef(null)
 
-  // Keyframes pour les animations (réactions + indicateur "en train d'écrire")
+  // Keyframes pour les animations (réactions + "en train d'écrire" + envoi de message)
   useEffect(() => {
     const style = document.createElement('style')
     style.id = 'reaction-animations'
@@ -132,6 +147,14 @@ export default function MessagesPage() {
       @keyframes typingDot {
         0%, 60%, 100% { transform: translateY(0);   opacity: .4; }
         30%           { transform: translateY(-4px); opacity: 1;  }
+      }
+      @keyframes msgInMe {
+        from { opacity: 0; transform: translateY(10px) scale(.9); }
+        to   { opacity: 1; transform: translateY(0)    scale(1);  }
+      }
+      @keyframes msgInOther {
+        from { opacity: 0; transform: translateY(10px) scale(.9); }
+        to   { opacity: 1; transform: translateY(0)    scale(1);  }
       }
     `
     if (!document.getElementById('reaction-animations')) {
@@ -178,9 +201,6 @@ export default function MessagesPage() {
   }, [])
 
   // ── DÉTECTION MOBILE (avec debounce + hystérésis anti-tremblement) ──
-  // En mode paysage sur mobile, la barre d'adresse qui apparaît/disparaît
-  // pendant le scroll déclenche des resize en rafale : sans amortissement,
-  // le state isMobile peut osciller très vite (effet "vibration").
   useEffect(() => {
     let timeout = null
     const observer = new ResizeObserver(entries => {
@@ -189,8 +209,6 @@ export default function MessagesPage() {
         for (const entry of entries) {
           const w = entry.contentRect.width
           setIsMobile(prev => {
-            // Hystérésis : on ne change d'état que si on dépasse clairement
-            // le seuil, pour éviter les allers-retours à la limite exacte.
             if (prev && w >= 780) return false
             if (!prev && w < 760) return true
             return prev
@@ -488,13 +506,8 @@ export default function MessagesPage() {
         border: isMobile ? 'none' : `1px solid ${C.border}`,
         borderRadius: isMobile ? 0 : 16,
         overflow: 'hidden',
-        // 100dvh = "dynamic viewport height" : suit la vraie hauteur visible du
-        // navigateur mobile, même quand la barre d'adresse apparaît/disparaît
-        // pendant le scroll (c'est ce qui causait l'effet "vibration" en 100vh).
         height: isMobile ? 'calc(100dvh - 64px)' : 600,
         boxShadow: isMobile ? 'none' : '0 2px 12px rgba(0,0,0,.06)',
-        // Empêche l'effet de rebond (rubber-band) qui accentue la sensation
-        // de tremblement quand on atteint le haut/bas de la liste en scrollant vite.
         overscrollBehavior: 'contain',
       }}>
 
@@ -583,7 +596,7 @@ export default function MessagesPage() {
                 <RoleBadge role={activeMember.role} />
               </div>
 
-              <div style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'contain', padding: '16px', display: 'flex', flexDirection: 'column', gap: 8, background: C.surfaceB, minHeight: 0 }}>
+              <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain', padding: '16px', display: 'flex', flexDirection: 'column', gap: 8, background: C.surfaceB, minHeight: 0 }}>
                 {messages.length === 0 && (
                   <div style={{ textAlign: 'center', color: C.textDim, fontSize: 13, marginTop: 60 }}>
                     <div style={{ fontSize: 32, marginBottom: 8 }}>👋</div>
@@ -603,7 +616,12 @@ export default function MessagesPage() {
                     <div key={m.id ?? i}
                       onMouseEnter={() => setHoveredMsg(m.id)}
                       onMouseLeave={() => setHoveredMsg(null)}
-                      style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', gap: 2 }}>
+                      style={{
+                        display: 'flex', flexDirection: 'column',
+                        alignItems: isMe ? 'flex-end' : 'flex-start', gap: 2,
+                        maxWidth: '100%',
+                        animation: `${isMe ? 'msgInMe' : 'msgInOther'} .28s cubic-bezier(.34,1.56,.64,1) both`,
+                      }}>
 
                       {/* Picker réactions — au-dessus de la bulle */}
                       {pickerOpen && (
@@ -622,16 +640,25 @@ export default function MessagesPage() {
                       )}
 
                       {/* Ligne avatar + bulle */}
-                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, flexDirection: isMe ? 'row-reverse' : 'row' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, flexDirection: isMe ? 'row-reverse' : 'row', maxWidth: '100%', minWidth: 0 }}>
                         {!isMe && <div style={{ width: 28, flexShrink: 0 }}>{showAvatar && <Avatar member={activeMember} size={28} />}</div>}
 
-                        {/* Bulle message */}
+                        {/* Bulle message — maxWidth en % de la ligne (qui elle-même est bornée par le conteneur),
+                            pas en vw : ça évite tout débordement de l'écran quand on ajoute le padding + l'avatar. */}
                         <div
                           onDoubleClick={() => !isMobile && setReactionPicker(pickerOpen ? null : m.id)}
                           onTouchStart={() => isMobile && handleLongPressStart(m.id)}
                           onTouchEnd={handleLongPressEnd}
                           onTouchMove={handleLongPressEnd}
-                          style={{ maxWidth: isMobile ? '75vw' : '60%', background: isImg ? 'transparent' : isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.white, border: isImg ? 'none' : isMe ? 'none' : `1px solid ${C.border}`, borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px', padding: isImg ? 0 : '10px 14px', boxShadow: isImg ? 'none' : '0 1px 3px rgba(0,0,0,.08)' }}>
+                          style={{
+                            maxWidth: isMobile ? '78%' : '60%',
+                            minWidth: 0,
+                            background: isImg ? 'transparent' : isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.white,
+                            border: isImg ? 'none' : isMe ? 'none' : `1px solid ${C.border}`,
+                            borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                            padding: isImg ? 0 : '10px 14px',
+                            boxShadow: isImg ? 'none' : '0 1px 3px rgba(0,0,0,.08)',
+                          }}>
                           <MessageBody body={m.body} isMe={isMe} />
                         </div>
 
@@ -693,9 +720,9 @@ export default function MessagesPage() {
 
                 {/* Indicateur "en train d'écrire" en bas de la conversation */}
                 {otherTyping && (
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, maxWidth: '100%' }}>
                     <Avatar member={activeMember} size={28} />
-                    <TypingBubble />
+                    <TypingBubble isMobile={isMobile} />
                   </div>
                 )}
 
@@ -734,17 +761,19 @@ export default function MessagesPage() {
                     )}
                   </div>
 
-                  <div style={{ position: 'relative', flex: 1 }}>
+                  <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
                     <MentionDropdown />
                   <input ref={inputRef} value={text} onChange={e => onTextChange(e.target.value, e.target.selectionStart)} onKeyDown={e => { handleMentionKey(e); if (e.key === 'Enter' && !e.defaultPrevented) send() }}
                     placeholder={`Message à @${activeMember.pseudo}…`}
-                    style={{ width: '100%', border: `1px solid ${C.borderMid}`, borderRadius: 24, padding: '10px 18px', fontSize: 13, color: C.text, fontFamily: 'inherit', outline: 'none', background: C.surfaceB }}
+                    style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.borderMid}`, borderRadius: 24, padding: '10px 18px', fontSize: 13, color: C.text, fontFamily: 'inherit', outline: 'none', background: C.surfaceB }}
                     onFocus={e => e.target.style.borderColor = '#c8a200'}
                     onBlur={e => e.target.style.borderColor = C.borderMid} />
                   </div>
 
                   <button onClick={send} disabled={sending || !text.trim()}
-                    style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: text.trim() ? 'linear-gradient(135deg,#f0c800,#c8a200)' : '#e0e0e0', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+                    style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: text.trim() ? 'linear-gradient(135deg,#f0c800,#c8a200)' : '#e0e0e0', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0, transition: 'transform .12s ease' }}
+                    onMouseDown={e => e.currentTarget.style.transform = 'scale(.9)'}
+                    onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}>
                     {sending ? '…' : '➤'}
                   </button>
                 </div>
