@@ -6,6 +6,9 @@ import { useAuth } from '../hooks/useAuth'
 import EmojiPicker from 'emoji-picker-react'
 import { useMention } from '../hooks/useMention.jsx'
 import { supabase } from '../lib/supabase'
+import VoiceRecorder from '../components/VoiceRecorder'
+import VoiceMessagePlayer from '../components/VoiceMessagePlayer'
+import { uploadVoiceMessage } from '../lib/uploadVoiceMessage'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -119,6 +122,7 @@ export default function MessagesPage() {
   const [text,     setText]     = useState('')
   const [sending,  setSending]  = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [voiceRecording, setVoiceRecording] = useState(false)
   const [search,   setSearch]   = useState('')
   const [showSidebar, setShowSidebar] = useState(true)
   const [blockedIds, setBlockedIds]   = useState([])
@@ -357,7 +361,7 @@ export default function MessagesPage() {
 
   const { handleMentionInput, handleKeyDown: handleMentionKey, MentionDropdown } = useMention(members, inputRef, text, setText)
 
-  const sendMessage = async (body) => {
+  const sendMessage = async (body, extra = {}) => {
     if (!body || !activeId || !user) return
     if (blockedIds.includes(activeId) || blockedByIds.includes(activeId)) return
     setSending(true)
@@ -366,7 +370,7 @@ export default function MessagesPage() {
     const res = await api(`/rest/v1/messages`, {
       method: 'POST',
       headers: { 'Prefer': 'return=representation' },
-      body: JSON.stringify({ from_id: user.id, to_id: activeId, body, read: false })
+      body: JSON.stringify({ from_id: user.id, to_id: activeId, body, read: false, ...extra })
     })
     const inserted = await res.json().catch(() => null)
     const newMsg = Array.isArray(inserted) ? inserted[0] : null
@@ -412,6 +416,18 @@ export default function MessagesPage() {
     })
     if (!res.ok) { const err = await res.json().catch(() => ({})); alert(`Erreur : ${err.message || res.status}`); setUploading(false); return }
     await sendMessage(`__IMG__${SUPABASE_URL}/storage/v1/object/public/message-photos/${path}`)
+    setUploading(false)
+  }
+
+  const handleVoiceSend = async (blob, duration, waveform) => {
+    if (!blob || !user || !activeId) return
+    setUploading(true)
+    try {
+      const url = await uploadVoiceMessage(blob, activeId, user.id)
+      await sendMessage(url, { type: 'voice', voice_duration: duration, voice_waveform: waveform })
+    } catch (err) {
+      alert("Erreur lors de l'envoi du message vocal")
+    }
     setUploading(false)
   }
 
@@ -540,7 +556,7 @@ export default function MessagesPage() {
                       const last = convo?.messages?.[0]
                       const unread = convo?.unread || 0
                       const blocked = blockedIds.includes(m.id)
-                      const lastPreview = last?.body?.startsWith('__IMG__') ? '📷 Photo' : last?.body
+                      const lastPreview = last?.body?.startsWith('__IMG__') ? '📷 Photo' : last?.type === 'voice' ? '🎤 Message vocal' : last?.body
                       const isActive = activeId === m.id
                       return (
                         <div key={m.id} style={{ display: 'flex', alignItems: 'stretch', borderLeft: isActive ? `3px solid ${C.accentDk}` : '3px solid transparent', borderBottom: `1px solid ${C.border}`, opacity: blocked ? 0.5 : 1, background: isActive ? 'rgba(200,162,0,0.15)' : 'transparent', transition: 'background .15s' }}>
@@ -610,6 +626,7 @@ export default function MessagesPage() {
                 {messages.map((m, i) => {
                   const isMe = m.from_id === user.id
                   const isImg = m.body?.startsWith('__IMG__')
+                  const isVoice = m.type === 'voice'
                   const showAvatar = !isMe && (i === 0 || messages[i - 1]?.from_id !== m.from_id)
                   const isDeleting = deletingMsg === m.id
                   const reactions = m.reactions || {}
@@ -685,7 +702,11 @@ export default function MessagesPage() {
                             WebkitUserSelect: isMobile ? 'none' : 'auto',
                             userSelect: isMobile ? 'none' : 'auto',
                           }}>
-                          <MessageBody body={m.body} isMe={isMe} />
+                          {isVoice ? (
+                            <VoiceMessagePlayer url={m.body} duration={m.voice_duration} waveform={m.voice_waveform} isMe={isMe} />
+                          ) : (
+                            <MessageBody body={m.body} isMe={isMe} />
+                          )}
                         </div>
 
                         {/* Actions au hover — ne prennent pas de place si cachées */}
@@ -765,43 +786,54 @@ export default function MessagesPage() {
                     onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.target.value = '' }} />
 
                   {/* Bouton photo */}
-                  <button onClick={() => fileInputRef.current?.click()} disabled={uploading} title="Envoyer une photo"
-                    style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${C.borderMid}`, background: C.surfaceB, cursor: uploading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = '#c8a200'}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = C.borderMid}>
-                    {uploading ? '⏳' : '📎'}
-                  </button>
+                  {!voiceRecording && (
+                    <button onClick={() => fileInputRef.current?.click()} disabled={uploading} title="Envoyer une photo"
+                      style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${C.borderMid}`, background: C.surfaceB, cursor: uploading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = '#c8a200'}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = C.borderMid}>
+                      {uploading ? '⏳' : '📎'}
+                    </button>
+                  )}
 
                   {/* Bouton emoji */}
-                  <div ref={emojiRef} style={{ position: 'relative', flexShrink: 0 }}>
-                    <button onClick={() => setShowEmoji(s => !s)} title="Emojis"
-                      style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${showEmoji ? '#c8a200' : C.borderMid}`, background: showEmoji ? '#fffae6' : C.surfaceB, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0, transition: 'all .15s' }}
-                      onMouseEnter={e => e.currentTarget.style.borderColor = '#c8a200'}
-                      onMouseLeave={e => { if (!showEmoji) e.currentTarget.style.borderColor = C.borderMid }}>
-                      😊
+                  {!voiceRecording && (
+                    <div ref={emojiRef} style={{ position: 'relative', flexShrink: 0 }}>
+                      <button onClick={() => setShowEmoji(s => !s)} title="Emojis"
+                        style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${showEmoji ? '#c8a200' : C.borderMid}`, background: showEmoji ? '#fffae6' : C.surfaceB, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0, transition: 'all .15s' }}
+                        onMouseEnter={e => e.currentTarget.style.borderColor = '#c8a200'}
+                        onMouseLeave={e => { if (!showEmoji) e.currentTarget.style.borderColor = C.borderMid }}>
+                        😊
+                      </button>
+                      {showEmoji && (
+                        <div style={{ position: 'fixed', bottom: 80, right: 20, zIndex: 1000 }}>
+                          <EmojiPicker onEmojiClick={insertEmoji} width={400} height={550} theme="dark" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {!voiceRecording && (
+                    <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+                      <MentionDropdown />
+                      <input ref={inputRef} value={text} onChange={e => onTextChange(e.target.value, e.target.selectionStart)} onKeyDown={e => { handleMentionKey(e); if (e.key === 'Enter' && !e.defaultPrevented) send() }}
+                        placeholder={`Message à @${activeMember.pseudo}…`}
+                        style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.borderMid}`, borderRadius: 24, padding: '10px 18px', fontSize: 13, color: C.text, fontFamily: 'inherit', outline: 'none', background: C.surfaceB }}
+                        onFocus={e => e.target.style.borderColor = '#c8a200'}
+                        onBlur={e => e.target.style.borderColor = C.borderMid} />
+                    </div>
+                  )}
+
+                  {/* Bouton / barre message vocal */}
+                  <VoiceRecorder onSend={handleVoiceSend} onRecordingChange={setVoiceRecording} />
+
+                  {!voiceRecording && (
+                    <button onClick={send} disabled={sending || !text.trim()}
+                      style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: text.trim() ? 'linear-gradient(135deg,#f0c800,#c8a200)' : '#e0e0e0', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0, transition: 'transform .12s ease' }}
+                      onMouseDown={e => e.currentTarget.style.transform = 'scale(.9)'}
+                      onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}>
+                      {sending ? '…' : '➤'}
                     </button>
-                    {showEmoji && (
-                      <div style={{ position: 'fixed', bottom: 80, right: 20, zIndex: 1000 }}>
-                        <EmojiPicker onEmojiClick={insertEmoji} width={400} height={550} theme="dark" />
-                      </div>
-                    )}
-                  </div>
-
-                  <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
-                    <MentionDropdown />
-                  <input ref={inputRef} value={text} onChange={e => onTextChange(e.target.value, e.target.selectionStart)} onKeyDown={e => { handleMentionKey(e); if (e.key === 'Enter' && !e.defaultPrevented) send() }}
-                    placeholder={`Message à @${activeMember.pseudo}…`}
-                    style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.borderMid}`, borderRadius: 24, padding: '10px 18px', fontSize: 13, color: C.text, fontFamily: 'inherit', outline: 'none', background: C.surfaceB }}
-                    onFocus={e => e.target.style.borderColor = '#c8a200'}
-                    onBlur={e => e.target.style.borderColor = C.borderMid} />
-                  </div>
-
-                  <button onClick={send} disabled={sending || !text.trim()}
-                    style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: text.trim() ? 'linear-gradient(135deg,#f0c800,#c8a200)' : '#e0e0e0', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0, transition: 'transform .12s ease' }}
-                    onMouseDown={e => e.currentTarget.style.transform = 'scale(.9)'}
-                    onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}>
-                    {sending ? '…' : '➤'}
-                  </button>
+                  )}
                 </div>
               )}
             </div>
