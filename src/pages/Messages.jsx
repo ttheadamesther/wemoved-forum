@@ -691,12 +691,12 @@ export default function MessagesPage() {
                           onTouchMove={handleLongPressEnd}
                           onContextMenu={e => e.preventDefault()}
                           style={{
-                            maxWidth: isMobile ? '78%' : '60%',
+                            maxWidth: isVoice ? 260 : (isMobile ? '78%' : '60%'),
                             minWidth: 0,
                             background: isImg ? 'transparent' : isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.white,
                             border: isImg ? 'none' : isMe ? 'none' : `1px solid ${C.border}`,
                             borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                            padding: isImg ? 0 : '10px 14px',
+                            padding: isImg ? 0 : isVoice ? '8px 10px' : '10px 14px',
                             boxShadow: isImg ? 'none' : '0 1px 3px rgba(0,0,0,.08)',
                             WebkitTouchCallout: 'none',
                             WebkitUserSelect: isMobile ? 'none' : 'auto',

@@ -72,7 +72,7 @@ export default function VoiceMessagePlayer({ url, duration = 0, waveform, isMe =
   const displayTime = playing || currentTime > 0 ? currentTime : loadedDuration
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 170, maxWidth: 220 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
       <audio ref={audioRef} src={url} preload="metadata" onEnded={handleEnded} onLoadedMetadata={handleLoadedMetadata} />
 
       <button onClick={togglePlay}
@@ -95,7 +95,7 @@ export default function VoiceMessagePlayer({ url, duration = 0, waveform, isMe =
         ))}
       </div>
 
-      <span style={{ fontSize: 10, color: isMe ? '#3a2e00' : C.textDim, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+      <span style={{ fontSize: 10, color: isMe ? '#3a2e00' : C.textDim, flexShrink: 0, minWidth: 26, textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
         {formatDuration(displayTime)}
       </span>
     </div>
