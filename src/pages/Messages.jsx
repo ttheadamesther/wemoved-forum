@@ -60,6 +60,24 @@ function Avatar({ member, size = 38, showOnline = false }) {
   )
 }
 
+const URL_REGEX = /(https?:\/\/[^\s<]+[^\s<.,;:!?)\]])/g
+
+function linkify(text, isMe) {
+  const parts = text.split(URL_REGEX)
+  return parts.map((part, i) => {
+    if (part.match(URL_REGEX)) {
+      return (
+        <a key={i} href={part} target="_blank" rel="noopener noreferrer"
+          style={{ color: isMe ? '#3a2e00' : '#c8a200', textDecoration: 'underline', wordBreak: 'break-all' }}
+          onClick={e => e.stopPropagation()}>
+          {part}
+        </a>
+      )
+    }
+    return part
+  })
+}
+
 function MessageBody({ body, isMe }) {
   const isImage = body?.startsWith('__IMG__')
   if (isImage) {
@@ -79,7 +97,7 @@ function MessageBody({ body, isMe }) {
       fontSize: 13, color: isMe ? '#3a2e00' : C.text, lineHeight: 1.5,
       wordBreak: 'break-word', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap',
     }}>
-      {body}
+      {linkify(body || '', isMe)}
     </div>
   )
 }
@@ -691,7 +709,8 @@ export default function MessagesPage() {
                           onTouchMove={handleLongPressEnd}
                           onContextMenu={e => e.preventDefault()}
                           style={{
-                            maxWidth: isVoice ? 260 : (isMobile ? '78%' : '60%'),
+                            width: isVoice ? 240 : undefined,
+                            maxWidth: isVoice ? 240 : (isMobile ? '78%' : '60%'),
                             minWidth: 0,
                             background: isImg ? 'transparent' : isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.white,
                             border: isImg ? 'none' : isMe ? 'none' : `1px solid ${C.border}`,
