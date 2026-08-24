@@ -163,9 +163,10 @@ export default function VoiceRecorder({ onSend, onRecordingChange }) {
   if (!recording) {
     return (
       <button onClick={startRecording} title="Message vocal"
-        style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${C.borderMid}`, background: C.surfaceB, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}
-        onMouseEnter={e => e.currentTarget.style.borderColor = '#c8a200'}
-        onMouseLeave={e => e.currentTarget.style.borderColor = C.borderMid}>
+        style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', background: 'linear-gradient(135deg,#f0c800,#c8a200)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0, boxShadow: '0 2px 6px rgba(200,162,0,.35)', transition: 'transform .12s ease' }}
+        onMouseDown={e => e.currentTarget.style.transform = 'scale(.92)'}
+        onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
         🎤
       </button>
     )
