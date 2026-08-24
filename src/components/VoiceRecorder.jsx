@@ -163,11 +163,15 @@ export default function VoiceRecorder({ onSend, onRecordingChange }) {
   if (!recording) {
     return (
       <button onClick={startRecording} title="Message vocal"
-        style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', background: 'linear-gradient(135deg,#f0c800,#c8a200)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0, boxShadow: '0 2px 6px rgba(200,162,0,.35)', transition: 'transform .12s ease' }}
-        onMouseDown={e => e.currentTarget.style.transform = 'scale(.92)'}
-        onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
-        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-        🎤
+        style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${C.borderMid}`, background: C.surfaceB, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+        onMouseEnter={e => e.currentTarget.style.borderColor = '#c8a200'}
+        onMouseLeave={e => e.currentTarget.style.borderColor = C.borderMid}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c8a200" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="9" y="2" width="6" height="12" rx="3" />
+          <path d="M5 10v1a7 7 0 0 0 14 0v-1" />
+          <line x1="12" y1="19" x2="12" y2="22" />
+          <line x1="8" y1="22" x2="16" y2="22" />
+        </svg>
       </button>
     )
   }
