@@ -13,8 +13,6 @@ import { uploadVoiceMessage } from '../lib/uploadVoiceMessage'
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-const INPUT_MAX_HEIGHT = 120
-
 async function getToken() {
   try {
     const { supabase } = await import('../lib/supabase')
@@ -349,15 +347,6 @@ export default function MessagesPage() {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, otherTyping])
 
-  // ── AUTO-RESIZE de la textarea de saisie ──
-  const autoResizeInput = (el) => {
-    if (!el) return
-    el.style.height = 'auto'
-    el.style.height = Math.min(el.scrollHeight, INPUT_MAX_HEIGHT) + 'px'
-  }
-
-  useEffect(() => { autoResizeInput(inputRef.current) }, [text, activeId])
-
   const broadcastTyping = (isTyping) => {
     channelRef.current?.send({ type: 'broadcast', event: 'typing', payload: { userId: user.id, isTyping } })
   }
@@ -555,7 +544,7 @@ export default function MessagesPage() {
         border: isMobile ? 'none' : `1px solid ${C.border}`,
         borderRadius: isMobile ? 0 : 16,
         overflow: 'hidden',
-        height: isMobile ? 'calc(100dvh - 64px)' : 600,
+        height: isMobile ? 'calc(100dvh - 128px)' : 600,
         boxShadow: isMobile ? 'none' : '0 2px 12px rgba(0,0,0,.06)',
         overscrollBehavior: 'contain',
       }}>
@@ -811,7 +800,7 @@ export default function MessagesPage() {
                   🚫 {blockedIds.includes(activeId) ? 'Vous avez bloqué ce membre.' : 'Ce membre vous a bloqué.'} Impossible d'envoyer un message.
                 </div>
               ) : (
-                <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}`, background: C.white, display: 'flex', gap: 8, alignItems: 'flex-end', flexShrink: 0 }}>
+                <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}`, background: C.white, display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
                   <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
                     onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.target.value = '' }} />
 
@@ -845,26 +834,9 @@ export default function MessagesPage() {
                   {!voiceRecording && (
                     <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
                       <MentionDropdown />
-                      <textarea
-                        ref={inputRef}
-                        value={text}
-                        rows={1}
-                        onChange={e => onTextChange(e.target.value, e.target.selectionStart)}
-                        onKeyDown={e => {
-                          handleMentionKey(e)
-                          if (e.key === 'Enter' && !e.shiftKey && !e.defaultPrevented) {
-                            e.preventDefault()
-                            send()
-                          }
-                        }}
+                      <input ref={inputRef} value={text} onChange={e => onTextChange(e.target.value, e.target.selectionStart)} onKeyDown={e => { handleMentionKey(e); if (e.key === 'Enter' && !e.defaultPrevented) send() }}
                         placeholder={`Message à @${activeMember.pseudo}…`}
-                        style={{
-                          width: '100%', boxSizing: 'border-box', border: `1px solid ${C.borderMid}`,
-                          borderRadius: 20, padding: '10px 18px', fontSize: 13, color: C.text,
-                          fontFamily: 'inherit', outline: 'none', background: C.surfaceB,
-                          resize: 'none', overflow: 'hidden', lineHeight: 1.4,
-                          maxHeight: INPUT_MAX_HEIGHT, display: 'block',
-                        }}
+                        style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.borderMid}`, borderRadius: 24, padding: '10px 18px', fontSize: 13, color: C.text, fontFamily: 'inherit', outline: 'none', background: C.surfaceB }}
                         onFocus={e => e.target.style.borderColor = '#c8a200'}
                         onBlur={e => e.target.style.borderColor = C.borderMid} />
                     </div>
