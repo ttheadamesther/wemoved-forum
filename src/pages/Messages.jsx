@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import {
+  Search, Flag, Trash2, Paperclip, Smile, Send, Ban,
+  MessagesSquare, Camera, Mic, X, Loader2, ArrowLeft,
+} from 'lucide-react'
 import { C } from '../lib/constants'
 import { RoleBadge } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
@@ -14,6 +18,7 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 const INPUT_MAX_HEIGHT = 120
+const ICON_STROKE = 1.75
 
 async function getToken() {
   try {
@@ -159,7 +164,7 @@ export default function MessagesPage() {
   const channelRef = useRef(null)
   const typingStopTimer = useRef(null)
 
-  // Keyframes pour les animations (réactions + "en train d'écrire" + envoi de message)
+  // Keyframes pour les animations (réactions + "en train d'écrire" + envoi de message + spinner)
   useEffect(() => {
     const style = document.createElement('style')
     style.id = 'reaction-animations'
@@ -183,6 +188,10 @@ export default function MessagesPage() {
       @keyframes msgInOther {
         from { opacity: 0; transform: translateY(10px) scale(.9); }
         to   { opacity: 1; transform: translateY(0)    scale(1);  }
+      }
+      @keyframes wmSpin {
+        from { transform: rotate(0deg); }
+        to   { transform: rotate(360deg); }
       }
     `
     if (!document.getElementById('reaction-animations')) {
@@ -494,7 +503,7 @@ export default function MessagesPage() {
       {reporting && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, width: '100%', maxWidth: 340, boxShadow: '0 8px 32px rgba(0,0,0,.25)' }}>
-            <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 12 }}>🚩</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, color: '#e67e22' }}><Flag size={30} strokeWidth={ICON_STROKE} /></div>
             <div style={{ fontWeight: 700, fontSize: 15, color: C.text, textAlign: 'center', marginBottom: 6 }}>Signaler ce message ?</div>
             <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', marginBottom: 20 }}>
               Ce message sera transmis aux modérateurs pour examen.
@@ -523,7 +532,7 @@ export default function MessagesPage() {
       {confirmDelete && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, width: '100%', maxWidth: 340, boxShadow: '0 8px 32px rgba(0,0,0,.25)' }}>
-            <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 12 }}>🗑️</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, color: C.red }}><Trash2 size={30} strokeWidth={ICON_STROKE} /></div>
             <div style={{ fontWeight: 700, fontSize: 15, color: C.text, textAlign: 'center', marginBottom: 6 }}>
               {confirmDelete.type === 'convo' ? 'Supprimer la conversation ?' : 'Supprimer ce message ?'}
             </div>
@@ -564,9 +573,11 @@ export default function MessagesPage() {
         {(!isMobile || showSidebar) && (
           <div style={{ width: isMobile ? '100%' : 360, borderRight: isMobile ? 'none' : `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
             <div style={{ padding: '16px', borderBottom: `1px solid ${C.border}`, background: C.surfaceB }}>
-              <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>💬 Conversations</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>
+                <MessagesSquare size={15} strokeWidth={ICON_STROKE} /> Conversations
+              </div>
               <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: C.textDim, fontSize: 14 }}>🔍</span>
+                <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: C.textDim, display: 'flex' }}><Search size={14} strokeWidth={ICON_STROKE} /></span>
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Chercher un membre…"
                   style={{ width: '100%', padding: '8px 12px 8px 32px', borderRadius: 10, border: '1px solid var(--borderMid)', fontSize: 12, fontFamily: 'inherit', outline: 'none', background: 'var(--surfaceB)', color: 'var(--text)', boxSizing: 'border-box' }} />
               </div>
@@ -585,7 +596,8 @@ export default function MessagesPage() {
                       const last = convo?.messages?.[0]
                       const unread = convo?.unread || 0
                       const blocked = blockedIds.includes(m.id)
-                      const lastPreview = last?.body?.startsWith('__IMG__') ? '📷 Photo' : last?.type === 'voice' ? '🎤 Message vocal' : last?.body
+                      const isImgPreview = last?.body?.startsWith('__IMG__')
+                      const isVoicePreview = last?.type === 'voice'
                       const isActive = activeId === m.id
                       return (
                         <div key={m.id} style={{ display: 'flex', alignItems: 'stretch', borderLeft: isActive ? `3px solid ${C.accentDk}` : '3px solid transparent', borderBottom: `1px solid ${C.border}`, opacity: blocked ? 0.5 : 1, background: isActive ? 'rgba(200,162,0,0.15)' : 'transparent', transition: 'background .15s' }}>
@@ -597,8 +609,19 @@ export default function MessagesPage() {
                                 {unread > 0 && !blocked && <span style={{ background: C.red, color: '#fff', borderRadius: 10, fontSize: 10, fontWeight: 700, padding: '1px 6px', flexShrink: 0 }}>{unread}</span>}
                               </div>
                               {blocked
-                                ? <div style={{ fontSize: 11, color: C.red, fontStyle: 'italic' }}>🚫 Bloqué</div>
-                                : last && <div style={{ fontSize: 12, color: unread > 0 ? C.text : C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: unread > 0 ? 600 : 400 }}>{last.from_id === user.id ? 'Vous : ' : ''}{lastPreview}</div>
+                                ? <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: C.red, fontStyle: 'italic' }}><Ban size={12} strokeWidth={ICON_STROKE} /> Bloqué</div>
+                                : last && (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: unread > 0 ? C.text : C.textDim, overflow: 'hidden', whiteSpace: 'nowrap', fontWeight: unread > 0 ? 600 : 400 }}>
+                                    {last.from_id === user.id && <span>Vous : </span>}
+                                    {isImgPreview ? (
+                                      <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><Camera size={12} strokeWidth={ICON_STROKE} /> Photo</span>
+                                    ) : isVoicePreview ? (
+                                      <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><Mic size={12} strokeWidth={ICON_STROKE} /> Message vocal</span>
+                                    ) : (
+                                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{last.body}</span>
+                                    )}
+                                  </div>
+                                )
                               }
                               {last && <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{formatTime(last.created_at)}</div>}
                             </div>
@@ -606,17 +629,17 @@ export default function MessagesPage() {
                           <button
                             onClick={e => { e.stopPropagation(); setReporting({ id: m.id, pseudo: m.pseudo }) }}
                             title="Signaler"
-                            style={{ width: 36, flexShrink: 0, background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 15, color: '#e67e22', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
+                            style={{ width: 36, flexShrink: 0, background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`, cursor: 'pointer', color: '#e67e22', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
                             onMouseEnter={e => e.currentTarget.style.background = 'rgba(230,126,34,.12)'}
                             onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                          >🚩</button>
+                          ><Flag size={15} strokeWidth={ICON_STROKE} /></button>
                           <button
                             onClick={e => { e.stopPropagation(); setConfirmDelete({ type: 'convo', id: m.id }) }}
                             title="Supprimer"
-                            style={{ width: 36, flexShrink: 0, background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 15, color: C.red, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
+                            style={{ width: 36, flexShrink: 0, background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`, cursor: 'pointer', color: C.red, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
                             onMouseEnter={e => e.currentTarget.style.background = 'rgba(231,76,60,.12)'}
                             onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                          >🗑</button>
+                          ><Trash2 size={15} strokeWidth={ICON_STROKE} /></button>
                         </div>
                       )
                     })}
@@ -634,7 +657,7 @@ export default function MessagesPage() {
           activeMember ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
               <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, background: C.surfaceB, display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-                {isMobile && <button onClick={() => setShowSidebar(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: C.textMid, padding: 0, marginRight: 4 }}>←</button>}
+                {isMobile && <button onClick={() => setShowSidebar(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMid, padding: 0, marginRight: 4, display: 'flex' }}><ArrowLeft size={18} strokeWidth={ICON_STROKE} /></button>}
                 <Avatar member={activeMember} size={40} showOnline />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 14, color: C.text }}>@{activeMember.pseudo}</div>
@@ -648,7 +671,7 @@ export default function MessagesPage() {
               <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain', padding: '16px', display: 'flex', flexDirection: 'column', gap: 8, background: C.surfaceB, minHeight: 0 }}>
                 {messages.length === 0 && (
                   <div style={{ textAlign: 'center', color: C.textDim, fontSize: 13, marginTop: 60 }}>
-                    <div style={{ fontSize: 32, marginBottom: 8 }}>👋</div>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8, color: C.textDim }}><MessagesSquare size={32} strokeWidth={ICON_STROKE} /></div>
                     Début de la conversation avec @{activeMember.pseudo}
                   </div>
                 )}
@@ -673,9 +696,10 @@ export default function MessagesPage() {
                         animation: `${isMe ? 'msgInMe' : 'msgInOther'} .28s cubic-bezier(.34,1.56,.64,1) both`,
                       }}>
 
-                      {/* Picker réactions — au-dessus de la bulle */}
+                      {/* Picker réactions — au-dessus de la bulle (les emojis eux-mêmes restent
+                          des emojis : ce sont des réactions envoyées, pas de la chrome UI) */}
                       {pickerOpen && (
-                        <div style={{ display: 'flex', gap: 4, background: C.white, border: `1px solid ${C.border}`, borderRadius: 24, padding: '6px 10px', boxShadow: '0 4px 16px rgba(0,0,0,.15)', alignSelf: isMe ? 'flex-end' : 'flex-start', marginBottom: 2, transformOrigin: isMe ? 'right center' : 'left center', animation: 'reactionPickerIn .22s cubic-bezier(.34,1.56,.64,1) both', overflow: 'hidden' }}>
+                        <div style={{ display: 'flex', gap: 4, background: C.white, border: `1px solid ${C.border}`, borderRadius: 24, padding: '6px 10px', boxShadow: '0 4px 16px rgba(0,0,0,.15)', alignSelf: isMe ? 'flex-end' : 'flex-start', marginBottom: 2, transformOrigin: isMe ? 'right center' : 'left center', animation: 'reactionPickerIn .22s cubic-bezier(.34,1.56,.64,1) both', overflow: 'hidden', alignItems: 'center' }}>
                           {QUICK_EMOJIS.map((emoji, ei) => (
                             <button key={emoji} onClick={() => toggleReaction(m.id, emoji)}
                               style={{ fontSize: 22, background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s cubic-bezier(.34,1.56,.64,1) ${ei * 30}ms both` }}
@@ -688,8 +712,8 @@ export default function MessagesPage() {
                               au même long-press que le picker de réactions. */}
                           {isMobile && isMe && (
                             <button onClick={() => { setReactionPicker(null); setConfirmDelete({ type: 'msg', id: m.id }) }}
-                              style={{ fontSize: 20, background: 'none', border: 'none', cursor: 'pointer', color: C.red, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s cubic-bezier(.34,1.56,.64,1) ${QUICK_EMOJIS.length * 30}ms both` }}>
-                              🗑️
+                              style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.red, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s cubic-bezier(.34,1.56,.64,1) ${QUICK_EMOJIS.length * 30}ms both` }}>
+                              <Trash2 size={18} strokeWidth={ICON_STROKE} />
                             </button>
                           )}
                           {isMobile && !isMe && (
@@ -698,12 +722,12 @@ export default function MessagesPage() {
                               await api('/rest/v1/reports', { method: 'POST', body: JSON.stringify({ type: 'message', target_id: m.id, reporter_id: user.id, reason: 'Message privé signalé', status: 'pending' }) })
                               alert('Message signalé aux modérateurs.')
                             }}
-                              style={{ fontSize: 18, background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s cubic-bezier(.34,1.56,.64,1) ${QUICK_EMOJIS.length * 30}ms both` }}>
-                              🚩
+                              style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s cubic-bezier(.34,1.56,.64,1) ${QUICK_EMOJIS.length * 30}ms both` }}>
+                              <Flag size={16} strokeWidth={ICON_STROKE} />
                             </button>
                           )}
                           <button onClick={() => setReactionPicker(null)}
-                            style={{ fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s ease ${(QUICK_EMOJIS.length + 1) * 30}ms both` }}>✕</button>
+                            style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s ease ${(QUICK_EMOJIS.length + 1) * 30}ms both` }}><X size={14} strokeWidth={ICON_STROKE} /></button>
                         </div>
                       )}
 
@@ -743,17 +767,17 @@ export default function MessagesPage() {
                         {hovered && !isMobile && (
                           <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
                             <button onClick={() => setReactionPicker(pickerOpen ? null : m.id)}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, opacity: 0.5, padding: '2px', lineHeight: 1, transition: 'opacity .15s' }}
+                              style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.textMid, opacity: 0.5, padding: '2px', lineHeight: 1, transition: 'opacity .15s' }}
                               onMouseEnter={e => e.currentTarget.style.opacity = '1'}
                               onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}>
-                              😊
+                              <Smile size={15} strokeWidth={ICON_STROKE} />
                             </button>
                             {isMe && (
                               <button onClick={() => setConfirmDelete({ type: 'msg', id: m.id })} disabled={isDeleting}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: C.red, opacity: 0.5, padding: '2px', lineHeight: 1, transition: 'opacity .15s' }}
+                                style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.red, opacity: 0.5, padding: '2px', lineHeight: 1, transition: 'opacity .15s' }}
                                 onMouseEnter={e => e.currentTarget.style.opacity = '1'}
                                 onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}>
-                                {isDeleting ? '…' : '🗑'}
+                                {isDeleting ? <Loader2 size={13} strokeWidth={ICON_STROKE} style={{ animation: 'wmSpin 0.8s linear infinite' }} /> : <Trash2 size={13} strokeWidth={ICON_STROKE} />}
                               </button>
                             )}
                             {!isMe && (
@@ -761,10 +785,10 @@ export default function MessagesPage() {
                                 await api('/rest/v1/reports', { method: 'POST', body: JSON.stringify({ type: 'message', target_id: m.id, reporter_id: user.id, reason: 'Message privé signalé', status: 'pending' }) })
                                 alert('Message signalé aux modérateurs.')
                               }}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: C.textDim, opacity: 0.5, padding: '2px', lineHeight: 1, transition: 'opacity .15s' }}
+                                style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, opacity: 0.5, padding: '2px', lineHeight: 1, transition: 'opacity .15s' }}
                                 onMouseEnter={e => e.currentTarget.style.opacity = '1'}
                                 onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}>
-                                🚩
+                                <Flag size={13} strokeWidth={ICON_STROKE} />
                               </button>
                             )}
                           </div>
@@ -807,8 +831,9 @@ export default function MessagesPage() {
               </div>
 
               {isActiveBlocked ? (
-                <div style={{ padding: '16px', borderTop: `1px solid ${C.border}`, background: C.white, textAlign: 'center', fontSize: 12, color: C.red, flexShrink: 0 }}>
-                  🚫 {blockedIds.includes(activeId) ? 'Vous avez bloqué ce membre.' : 'Ce membre vous a bloqué.'} Impossible d'envoyer un message.
+                <div style={{ padding: '16px', borderTop: `1px solid ${C.border}`, background: C.white, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12, color: C.red, flexShrink: 0 }}>
+                  <Ban size={14} strokeWidth={ICON_STROKE} />
+                  {blockedIds.includes(activeId) ? 'Vous avez bloqué ce membre.' : 'Ce membre vous a bloqué.'} Impossible d'envoyer un message.
                 </div>
               ) : (
                 <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}`, background: C.white, display: 'flex', gap: 8, alignItems: 'flex-end', flexShrink: 0 }}>
@@ -818,10 +843,10 @@ export default function MessagesPage() {
                   {/* Bouton photo */}
                   {!voiceRecording && (
                     <button onClick={() => fileInputRef.current?.click()} disabled={uploading} title="Envoyer une photo"
-                      style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${C.borderMid}`, background: C.surfaceB, cursor: uploading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}
+                      style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${C.borderMid}`, background: C.surfaceB, cursor: uploading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.textMid, flexShrink: 0 }}
                       onMouseEnter={e => e.currentTarget.style.borderColor = '#c8a200'}
                       onMouseLeave={e => e.currentTarget.style.borderColor = C.borderMid}>
-                      {uploading ? '⏳' : '📎'}
+                      {uploading ? <Loader2 size={17} strokeWidth={ICON_STROKE} style={{ animation: 'wmSpin 0.8s linear infinite' }} /> : <Paperclip size={17} strokeWidth={ICON_STROKE} />}
                     </button>
                   )}
 
@@ -829,10 +854,10 @@ export default function MessagesPage() {
                   {!voiceRecording && (
                     <div ref={emojiRef} style={{ position: 'relative', flexShrink: 0 }}>
                       <button onClick={() => setShowEmoji(s => !s)} title="Emojis"
-                        style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${showEmoji ? '#c8a200' : C.borderMid}`, background: showEmoji ? '#fffae6' : C.surfaceB, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0, transition: 'all .15s' }}
+                        style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${showEmoji ? '#c8a200' : C.borderMid}`, background: showEmoji ? '#fffae6' : C.surfaceB, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: showEmoji ? '#c8a200' : C.textMid, flexShrink: 0, transition: 'all .15s' }}
                         onMouseEnter={e => e.currentTarget.style.borderColor = '#c8a200'}
                         onMouseLeave={e => { if (!showEmoji) e.currentTarget.style.borderColor = C.borderMid }}>
-                        😊
+                        <Smile size={18} strokeWidth={ICON_STROKE} />
                       </button>
                       {showEmoji && (
                         <div style={{ position: 'fixed', bottom: 80, right: 20, zIndex: 1000 }}>
@@ -875,10 +900,10 @@ export default function MessagesPage() {
 
                   {!voiceRecording && (
                     <button onClick={send} disabled={sending || !text.trim()}
-                      style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: text.trim() ? 'linear-gradient(135deg,#f0c800,#c8a200)' : '#e0e0e0', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0, transition: 'transform .12s ease' }}
+                      style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: text.trim() ? 'linear-gradient(135deg,#f0c800,#c8a200)' : '#e0e0e0', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: text.trim() ? '#3a2e00' : '#999', flexShrink: 0, transition: 'transform .12s ease' }}
                       onMouseDown={e => e.currentTarget.style.transform = 'scale(.9)'}
                       onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}>
-                      {sending ? '…' : '➤'}
+                      {sending ? <Loader2 size={18} strokeWidth={ICON_STROKE} style={{ animation: 'wmSpin 0.8s linear infinite' }} /> : <Send size={17} strokeWidth={ICON_STROKE} />}
                     </button>
                   )}
                 </div>
@@ -886,7 +911,7 @@ export default function MessagesPage() {
             </div>
           ) : (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: C.textDim, gap: 12 }}>
-              <div style={{ fontSize: 48 }}>💬</div>
+              <MessagesSquare size={44} strokeWidth={ICON_STROKE} />
               <div style={{ fontSize: 15, fontWeight: 600, color: C.textMid }}>Tes messages</div>
               <div style={{ fontSize: 13, color: C.textDim, textAlign: 'center', maxWidth: 200 }}>Sélectionne une conversation ou cherche un membre à gauche</div>
             </div>
