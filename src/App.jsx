@@ -13,7 +13,7 @@ import Register      from './pages/Register'
 import ResetPassword from './pages/ResetPassword'
 import Profile       from './pages/Profile'
 import Settings      from './pages/Settings'
-import React         from 'react'
+import React, { useRef } from 'react'
 import MemberProfile from './pages/MemberProfile'
 import Notifications from './pages/Notifications'
 import BugReport     from './pages/BugReport'
@@ -110,19 +110,49 @@ function Layout({ children }) {
   )
 }
 
-// Transition fondu + léger scale (style changement d'onglet Facebook mobile).
-// Sur desktop l'effet reste très subtil (pas de swipe/translation, juste fondu+scale).
-const isMobileUA = () => window.innerWidth < 768
+// ── Transition directionnelle (style bottom nav Facebook) ──
+// Ordre des onglets dans la bottom nav mobile : sert à savoir si on va
+// "vers la droite" (direction 1) ou "vers la gauche" (direction -1).
+const TAB_ORDER = ['/', '/forum', '/profile', '/messages', '/members', '/chat']
 
-const pageVariants = {
-  initial: { opacity: 0, scale: isMobileUA() ? 0.97 : 1 },
-  animate: { opacity: 1, scale: 1, transition: { duration: 0.18, ease: [0.25, 0.46, 0.45, 0.94] } },
-  exit:    { opacity: 0, scale: isMobileUA() ? 1.02 : 1, transition: { duration: 0.12, ease: 'easeIn' } },
+function getTabIndex(pathname) {
+  return TAB_ORDER.indexOf(pathname)
 }
 
-function PageTransition({ children }) {
+const isMobileUA = () => window.innerWidth < 768
+const SLIDE_DISTANCE = 44
+
+// Spring léger sur l'axe x = mouvement naturel qui décélère en douceur
+// (au lieu d'un ease linéaire qui donne un effet "mécanique").
+const enterTransition = { type: 'spring', stiffness: 300, damping: 30, mass: 0.9 }
+const exitTransition   = { duration: 0.16, ease: [0.4, 0, 1, 1] }
+
+const pageVariants = {
+  initial: (direction) => ({
+    opacity: 0,
+    x: direction && isMobileUA() ? direction * SLIDE_DISTANCE : 0,
+  }),
+  animate: {
+    opacity: 1, x: 0,
+    transition: enterTransition,
+  },
+  exit: (direction) => ({
+    opacity: 0,
+    x: direction && isMobileUA() ? direction * -SLIDE_DISTANCE : 0,
+    transition: exitTransition,
+  }),
+}
+
+function PageTransition({ children, direction }) {
   return (
-    <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" style={{ willChange: 'opacity, transform' }}>
+    <motion.div
+      custom={direction}
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      style={{ willChange: 'opacity, transform' }}
+    >
       {children}
     </motion.div>
   )
@@ -131,31 +161,42 @@ function PageTransition({ children }) {
 function AnimatedRoutes() {
   const { loading } = useAuth()
   const location = useLocation()
+  const prevIndexRef = useRef(getTabIndex(location.pathname))
 
   if (loading) return <Loader />
 
+  const currentIndex = getTabIndex(location.pathname)
+  const prevIndex = prevIndexRef.current
+  const direction = (currentIndex === -1 || prevIndex === -1 || currentIndex === prevIndex)
+    ? 0
+    : (currentIndex > prevIndex ? 1 : -1)
+  prevIndexRef.current = currentIndex
+
   return (
-    <AnimatePresence mode="wait">
+    // popLayout : la page qui sort est retirée du flux immédiatement, donc la
+    // page qui entre ne "l'attend" pas — les deux animations tournent en même
+    // temps (crossfade fluide) au lieu de s'enchaîner (mode="wait" = saccadé).
+    <AnimatePresence mode="popLayout" custom={direction} initial={false}>
       <Routes location={location} key={location.pathname}>
-        <Route path="/login"          element={<PublicOnlyRoute><PageTransition><Login /></PageTransition></PublicOnlyRoute>} />
-        <Route path="/register"       element={<PublicOnlyRoute><PageTransition><Register /></PageTransition></PublicOnlyRoute>} />
-        <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} />
-        <Route path="/"         element={<Layout><PageTransition><Home /></PageTransition></Layout>} />
-        <Route path="/forum"           element={<Layout><PageTransition><Forum /></PageTransition></Layout>} />
-        <Route path="/forum/:threadId" element={<Layout><PageTransition><Forum /></PageTransition></Layout>} />
-        <Route path="/members"  element={<Layout><PageTransition><Members /></PageTransition></Layout>} />
-        <Route path="/members/:id" element={<Layout><PageTransition><MemberProfile /></PageTransition></Layout>} />
-        <Route path="/legal"    element={<Layout><PageTransition><Legal /></PageTransition></Layout>} />
-        <Route path="/rewards"  element={<Layout><PageTransition><Rewards /></PageTransition></Layout>} />
-        <Route path="/rankings" element={<Layout><PageTransition><Rankings /></PageTransition></Layout>} />
-        <Route path="/chat"     element={<Layout><PageTransition><Chatroom /></PageTransition></Layout>} />
-        <Route path="/messages"      element={<PrivateRoute><Layout><PageTransition><Messages /></PageTransition></Layout></PrivateRoute>} />
-        <Route path="/bug-report"    element={<PrivateRoute><Layout><PageTransition><BugReport /></PageTransition></Layout></PrivateRoute>} />
-        <Route path="/moderation"    element={<PrivateRoute><Layout><PageTransition><Moderation /></PageTransition></Layout></PrivateRoute>} />
-        <Route path="/notifications" element={<PrivateRoute><Layout><PageTransition><Notifications /></PageTransition></Layout></PrivateRoute>} />
-        <Route path="/profile"       element={<PrivateRoute><Layout><PageTransition><ErrorBoundary><Profile /></ErrorBoundary></PageTransition></Layout></PrivateRoute>} />
-        <Route path="/settings"      element={<PrivateRoute><Layout><PageTransition><Settings /></PageTransition></Layout></PrivateRoute>} />
-        <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
+        <Route path="/login"          element={<PublicOnlyRoute><PageTransition direction={direction}><Login /></PageTransition></PublicOnlyRoute>} />
+        <Route path="/register"       element={<PublicOnlyRoute><PageTransition direction={direction}><Register /></PageTransition></PublicOnlyRoute>} />
+        <Route path="/reset-password" element={<PageTransition direction={direction}><ResetPassword /></PageTransition>} />
+        <Route path="/"         element={<Layout><PageTransition direction={direction}><Home /></PageTransition></Layout>} />
+        <Route path="/forum"           element={<Layout><PageTransition direction={direction}><Forum /></PageTransition></Layout>} />
+        <Route path="/forum/:threadId" element={<Layout><PageTransition direction={direction}><Forum /></PageTransition></Layout>} />
+        <Route path="/members"  element={<Layout><PageTransition direction={direction}><Members /></PageTransition></Layout>} />
+        <Route path="/members/:id" element={<Layout><PageTransition direction={direction}><MemberProfile /></PageTransition></Layout>} />
+        <Route path="/legal"    element={<Layout><PageTransition direction={direction}><Legal /></PageTransition></Layout>} />
+        <Route path="/rewards"  element={<Layout><PageTransition direction={direction}><Rewards /></PageTransition></Layout>} />
+        <Route path="/rankings" element={<Layout><PageTransition direction={direction}><Rankings /></PageTransition></Layout>} />
+        <Route path="/chat"     element={<Layout><PageTransition direction={direction}><Chatroom /></PageTransition></Layout>} />
+        <Route path="/messages"      element={<PrivateRoute><Layout><PageTransition direction={direction}><Messages /></PageTransition></Layout></PrivateRoute>} />
+        <Route path="/bug-report"    element={<PrivateRoute><Layout><PageTransition direction={direction}><BugReport /></PageTransition></Layout></PrivateRoute>} />
+        <Route path="/moderation"    element={<PrivateRoute><Layout><PageTransition direction={direction}><Moderation /></PageTransition></Layout></PrivateRoute>} />
+        <Route path="/notifications" element={<PrivateRoute><Layout><PageTransition direction={direction}><Notifications /></PageTransition></Layout></PrivateRoute>} />
+        <Route path="/profile"       element={<PrivateRoute><Layout><PageTransition direction={direction}><ErrorBoundary><Profile /></ErrorBoundary></PageTransition></Layout></PrivateRoute>} />
+        <Route path="/settings"      element={<PrivateRoute><Layout><PageTransition direction={direction}><Settings /></PageTransition></Layout></PrivateRoute>} />
+        <Route path="*" element={<PageTransition direction={direction}><NotFound /></PageTransition>} />
       </Routes>
     </AnimatePresence>
   )
