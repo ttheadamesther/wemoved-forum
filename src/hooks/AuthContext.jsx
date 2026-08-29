@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { setOnlineStatus } from '../lib/security'
 
 const AuthContext = createContext(null)
 
@@ -24,66 +25,31 @@ export function AuthProvider({ children }) {
     return age
   }
 
-  const fetchProfile = async (uid, token) => {
-    if (!uid) return null
+  const fetchProfile = async (uid) => {
+    if (!uid || !supabase) return null
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${uid}&limit=1`, {
-        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token || ANON_KEY}` }
-      })
-      const data = await res.json()
-      if (!data || !data[0]) return null
-      const p = data[0]
-      if (p.birth_date) {
-        const freshAge = calcAge(p.birth_date)
-        if (freshAge !== null && freshAge !== p.age) {
-          fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${uid}`, {
-            method: 'PATCH',
-            headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token || ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-            body: JSON.stringify({ age: freshAge })
-          }).catch(() => {})
-          p.age = freshAge
-        }
-      }
-      return p
+      const { data, error } = await supabase.rpc('get_my_profile')
+      if (error) throw error
+      return data || null
     } catch { return null }
   }
 
   const refreshProfile = async () => {
-    if (!user?.id) return
-    try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${user.id}&limit=1`, {
-        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
-      })
-      const data = await res.json()
-      if (data && data[0]) setProfile(data[0])
-    } catch {}
+    if (!user?.id || !supabase) return
+    try { const { data, error } = await supabase.rpc('get_my_profile'); if (!error && data) setProfile(data) } catch {}
   }
 
-  const setOnlineStatus = async (uid, token, status) => {
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${uid}`, {
-        method: 'PATCH',
-        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token || ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-        body: JSON.stringify({ online: status })
-      })
-    } catch {}
+  const setPresence = async (status) => {
+    try { await setOnlineStatus(status) } catch {}
   }
 
   // Rafraîchir le profil toutes les 30 secondes pour détecter les bans
   const startProfilePolling = (uid) => {
     if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current)
     refreshIntervalRef.current = setInterval(async () => {
-      if (!uid) return
-      try {
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${uid}&select=banned,banned_until,role,xp,level,badges&limit=1`, {
-          headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
-        })
-        const data = await res.json()
-        if (data && data[0]) {
-          setProfile(prev => prev ? { ...prev, ...data[0] } : data[0])
-        }
-      } catch {}
-    }, 30000) // toutes les 30 secondes
+      if (!uid || !supabase) return
+      try { const { data, error } = await supabase.rpc('get_my_profile'); if (!error && data) setProfile(data) } catch {}
+    }, 30000)
   }
 
   const stopProfilePolling = () => {
@@ -101,7 +67,7 @@ export function AuthProvider({ children }) {
       if (u) {
         const p = await fetchProfile(u.id, session.access_token)
         setProfile(p)
-        await setOnlineStatus(u.id, session.access_token, true)
+        await setPresence(true)
         startProfilePolling(u.id)
       }
       setLoading(false)
@@ -113,7 +79,7 @@ export function AuthProvider({ children }) {
       if (u) {
         const p = await fetchProfile(u.id, session.access_token)
         setProfile(p)
-        await setOnlineStatus(u.id, session.access_token, true)
+        await setPresence(true)
         startProfilePolling(u.id)
       } else {
         setProfile(null)
@@ -121,14 +87,20 @@ export function AuthProvider({ children }) {
       }
     })
 
+    const heartbeat = window.setInterval(async () => {
+      const { data: { session: currentSession } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }))
+      if (currentSession?.user) { try { await setOnlineStatus(true) } catch {} }
+    }, 60000)
+
     const handleUnload = async () => {
       const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }))
-      if (session?.user) await setOnlineStatus(session.user.id, session.access_token, false)
+      if (session?.user) await setOnlineStatus(false)
     }
     window.addEventListener('beforeunload', handleUnload)
     return () => {
       subscription.unsubscribe()
       window.removeEventListener('beforeunload', handleUnload)
+      window.clearInterval(heartbeat)
       stopProfilePolling()
     }
   }, [])
@@ -140,26 +112,37 @@ export function AuthProvider({ children }) {
 
   const signUp = async (email, password, pseudo, extra = {}) => {
     if (!supabase) return { error: { message: 'Supabase non configuré.' } }
+    const cleanPseudo = pseudo.trim()
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(cleanPseudo)) {
+      return { error: { message: 'Pseudo invalide : 3 à 20 caractères, lettres, chiffres et _ uniquement.' } }
+    }
 
     const pseudoCheck = await fetch(
-      `${SUPABASE_URL}/rest/v1/profiles?pseudo=eq.${encodeURIComponent(pseudo.trim())}&select=id&limit=1`,
+      `${SUPABASE_URL}/rest/v1/profiles?pseudo=eq.${encodeURIComponent(cleanPseudo)}&select=id&limit=1`,
       { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` } }
     )
-    const pseudoData = await pseudoCheck.json()
+    const pseudoData = await pseudoCheck.json().catch(() => [])
     if (Array.isArray(pseudoData) && pseudoData.length > 0) {
       return { error: { message: 'Ce pseudo est déjà pris. Choisis-en un autre.' } }
     }
 
-    const emailCheck = await fetch(
-      `${SUPABASE_URL}/rest/v1/profiles?email=eq.${encodeURIComponent(email.trim())}&select=id&limit=1`,
-      { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` } }
-    )
-    const emailData = await emailCheck.json()
-    if (Array.isArray(emailData) && emailData.length > 0) {
-      return { error: { message: 'Un compte existe déjà avec cet email.' } }
-    }
-
-    const { data, error } = await supabase.auth.signUp({ email, password })
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password,
+      options: {
+        data: {
+          pseudo: cleanPseudo,
+          bio: '',
+          interests: [],
+          age: extra.age || null,
+          birth_date: extra.birth_date || null,
+          sexe: extra.sexe || null,
+          region: extra.region || '',
+          dept: extra.dept || '',
+          city: extra.city || '',
+        }
+      }
+    })
     if (error) {
       if (error.message?.includes('already registered')) return { error: { message: 'Un compte existe déjà avec cet email.' } }
       if (error.message?.includes('Password should be')) return { error: { message: 'Le mot de passe doit faire au moins 6 caractères.' } }
@@ -167,70 +150,15 @@ export function AuthProvider({ children }) {
       return { error }
     }
 
-    if (data.user) {
-      const token = data.session?.access_token || ANON_KEY
-      const profileRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
-        method: 'POST',
-        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-        body: JSON.stringify({
-          id:        data.user.id,
-          pseudo:    pseudo.trim(),
-          email:     email.trim().toLowerCase(),
-          role:      'membre',
-          bio:       '',
-          interests: [],
-          friends:   0,
-          posts:     0,
-          joined:    new Date().toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }),
-          online:    true,
-          banned:    false,
-          votes:     { mimi: 0, cool: 0, sexy: 0, loose: 0 },
-          photo_likes: {},
-          age:       extra.age        || null,
-          birth_date: extra.birth_date || null,
-          sexe:      extra.sexe   || null,
-          region:    extra.region || '',
-          dept:      extra.dept   || '',
-          city:      extra.city   || '',
-        })
-      })
-
-      if (!profileRes.ok) {
-        await supabase.auth.admin?.deleteUser(data.user.id).catch(() => {})
-        return { error: { message: 'Erreur lors de la création du profil. Réessaie.' } }
-      }
-
-      await fetch(`${SUPABASE_URL}/rest/v1/messages`, {
-        method: 'POST',
-        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          from_id: WAKIKI_ID,
-          to_id:   data.user.id,
-          body:    `👋 Bienvenue sur WeMoved, @${pseudo.trim()} ! Nous sommes ravis de t'accueillir dans la communauté. N'hésite pas à compléter ton profil et à te présenter sur le forum. Bonne aventure ! 🚀`,
-          read:    false
-        })
-      })
-
-      await fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
-        method: 'POST',
-        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: data.user.id,
-          type:    'message',
-          content: `💬 Bienvenue ! Tu as reçu un message de @Wakiki`,
-          link:    `/messages?to=${WAKIKI_ID}`,
-          read:    false
-        })
-      })
-    }
-
+    // Profile/message/notification creation is handled by the database trigger so
+    // registration also works when email confirmation is enabled.
     return { data, error: null }
   }
 
   const signOut = async () => {
     if (supabase && user) {
       const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }))
-      if (session) await setOnlineStatus(user.id, session.access_token, false)
+      if (session) await setPresence(false)
       await supabase.auth.signOut()
     }
     stopProfilePolling()

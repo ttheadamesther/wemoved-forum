@@ -4,6 +4,7 @@ import { C } from '../lib/constants'
 import { Btn, Input } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
 import { GeoSelects } from '../components/GeoSelects'
+import { updateOwnProfile, deleteMyAccount } from '../lib/security'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -110,7 +111,7 @@ export default function Settings() {
     const check = await apiFetch(`/rest/v1/profiles?pseudo=ilike.${newPseudo.trim()}&id=neq.${user.id}&limit=1`)
     const existing = await check.json()
     if (Array.isArray(existing) && existing.length > 0) { setPseudoError('Ce pseudo est déjà pris.'); setSavingPseudo(false); return }
-    await apiFetch(`/rest/v1/profiles?id=eq.${user.id}`, { method: 'PATCH', body: JSON.stringify({ pseudo: newPseudo.trim() }) })
+    try { await updateOwnProfile({ pseudo: newPseudo.trim() }) } catch (e) { setPseudoError(e.message === 'pseudo_already_exists' ? 'Ce pseudo est déjà pris.' : 'Impossible de modifier le pseudo.'); setSavingPseudo(false); return }
     await refreshProfile()
     setSavingPseudo(false); setPseudoOk(true); setEditPseudo(false); setNewPseudo('')
   }
@@ -148,7 +149,7 @@ export default function Settings() {
     const age = calcAge(birthDate)
     if (!age || age < 18) return
     setSavingAge(true)
-    await apiFetch(`/rest/v1/profiles?id=eq.${user.id}`, { method: 'PATCH', body: JSON.stringify({ age, birth_date: birthDate }) })
+    await updateOwnProfile({ age, birth_date: birthDate })
     await refreshProfile()
     setSavingAge(false); setAgeOk(true); setEditAge(false); setBirthDate('')
   }
@@ -163,10 +164,7 @@ export default function Settings() {
 
   const saveInfos = async () => {
     setSavingInfos(true)
-    await apiFetch(`/rest/v1/profiles?id=eq.${user.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ region: infosRegion, dept: infosDept, city: infosCity, statut: infosStatut })
-    })
+    await updateOwnProfile({ region: infosRegion, dept: infosDept, city: infosCity, statut: infosStatut })
     await refreshProfile()
     setSavingInfos(false); setInfosOk(true); setEditInfos(false)
     setTimeout(() => setInfosOk(false), 3000)
@@ -175,7 +173,7 @@ export default function Settings() {
   const deleteAccount = async () => {
     if (deleteConfirm !== profile.pseudo) return
     setDeleting(true)
-    await apiFetch(`/rest/v1/profiles?id=eq.${user.id}`, { method: 'DELETE' })
+    await deleteMyAccount()
     await signOut()
     navigate('/')
   }

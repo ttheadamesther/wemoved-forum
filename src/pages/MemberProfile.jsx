@@ -4,7 +4,7 @@ import { C, VOTES_DEF, ROLE_RING } from '../lib/constants'
 import { BADGES_DEF } from '../lib/xp'
 import { RoleBadge, Btn } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
-import { awardXP, checkAndAwardBadges } from '../lib/xp'
+import { toggleVote, togglePhotoLike as togglePhotoLikeRpc, setMemberRole, acceptFriendship } from '../lib/security'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -170,8 +170,7 @@ export default function MemberProfile() {
 
   const acceptFriendRequest = async () => {
     if (friendLoading) return; setFriendLoading(true)
-    await api(`/rest/v1/friendships?id=eq.${friendship.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'accepted' }) })
-    await awardXP(user.id, 15); await awardXP(id, 15)
+    await acceptFriendship(friendship.id)
     await sendNotif(id, 'friend_accepted', `✅ @${profile?.pseudo || 'Quelqu\'un'} a accepté votre demande d'ami`, `/members/${user.id}`)
     await loadFriendship(); setFriendLoading(false)
   }
@@ -192,16 +191,13 @@ export default function MemberProfile() {
   const vote = async (voteType) => {
     if (!user || voting) return; setVoting(voteType)
     if (myVotes[voteType]) {
-      await api(`/rest/v1/votes?from_id=eq.${user.id}&to_id=eq.${id}&vote_type=eq.${voteType}&month_key=eq.${monthKey()}`, { method: 'DELETE' })
-      const newVotes = { ...member.votes, [voteType]: Math.max(0, (member.votes?.[voteType] || 0) - 1) }
-      await api(`/rest/v1/profiles?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ votes: newVotes }) })
-      setMember(m => ({ ...m, votes: newVotes })); setMyVotes(v => ({ ...v, [voteType]: false }))
+      const result = await toggleVote(id, voteType)
+      const newVotes = result?.votes || member.votes
+      setMember(m => ({ ...m, votes: newVotes, xp: result?.xp ?? m.xp, level: result?.level ?? m.level })); setMyVotes(v => ({ ...v, [voteType]: false }))
     } else {
-      await api('/rest/v1/votes', { method: 'POST', body: JSON.stringify({ from_id: user.id, to_id: id, vote_type: voteType, month_key: monthKey() }) })
-      const newVotes = { ...member.votes, [voteType]: (member.votes?.[voteType] || 0) + 1 }
-      await api(`/rest/v1/profiles?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ votes: newVotes }) })
-      setMember(m => ({ ...m, votes: newVotes })); setMyVotes(v => ({ ...v, [voteType]: true }))
-      await awardXP(id, 2); await checkAndAwardBadges(id)
+      const result = await toggleVote(id, voteType)
+      const newVotes = result?.votes || member.votes
+      setMember(m => ({ ...m, votes: newVotes, xp: result?.xp ?? m.xp, level: result?.level ?? m.level })); setMyVotes(v => ({ ...v, [voteType]: true }))
       const vDef = VOTES_DEF.find(v => v.key === voteType)
       await sendNotif(id, 'vote', `${vDef?.emoji || '🏆'} @${profile?.pseudo || 'Quelqu\'un'} vous a voté "${vDef?.label || voteType}"`, `/members/${user.id}`)
     }
@@ -213,10 +209,8 @@ export default function MemberProfile() {
     const currentLikes = member.photo_likes || {}
     const key = String(photoIndex); const likers = currentLikes[key] || []
     const alreadyLiked = likers.includes(user.id)
-    const newLikers = alreadyLiked ? likers.filter(uid => uid !== user.id) : [...likers, user.id]
-    const newPhotoLikes = { ...currentLikes, [key]: newLikers }
-    const token = await getToken()
-    await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${id}`, { method: 'PATCH', headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }, body: JSON.stringify({ photo_likes: newPhotoLikes }) })
+    const result = await togglePhotoLikeRpc(id, photoIndex)
+    const newPhotoLikes = { ...(member.photo_likes || {}), [key]: result?.likers || [] }
     setMember(m => ({ ...m, photo_likes: newPhotoLikes }))
     if (!alreadyLiked && user.id !== id) await sendNotif(id, 'photo_like', `❤️ @${profile?.pseudo || 'Quelqu\'un'} a aimé une de vos photos`, `/members/${id}`)
     setLikingPhoto(null)
@@ -224,9 +218,7 @@ export default function MemberProfile() {
 
   const assignRole = async (newRole) => {
     setUpdatingRole(true)
-    const token = await getToken()
-    await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${id}`, { method: 'PATCH', headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }, body: JSON.stringify({ role: newRole }) })
-    setMember(m => ({ ...m, role: newRole })); setUpdatingRole(false); setShowRolePanel(false)
+    try { await setMemberRole(id, newRole); setMember(m => ({ ...m, role: newRole })) } catch (e) { console.error(e) } finally { setUpdatingRole(false); setShowRolePanel(false) }
   }
 
   if (loading) return <div style={{ padding: 60, textAlign: 'center', color: 'var(--textMid)' }}>Chargement…</div>

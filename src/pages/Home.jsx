@@ -5,6 +5,7 @@ import { RoleBadge } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
 import { BADGES_DEF } from '../lib/xp'
 import { supabase } from '../lib/supabase'
+import { rpc } from '../lib/security'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -154,7 +155,7 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    apiFetch('/rest/v1/profiles?select=*&order=created_at.desc').then(d => {
+    apiFetch('/rest/v1/profiles?select=id,pseudo,initials,role,bio,interests,region,dept,city,age,friends,posts,joined,online,votes,created_at,avatar_url,banner_url,banner_gradient,banner_position,photos,photo_likes,xp,level,badges,replies,statut,sexe&order=created_at.desc').then(d => {
       if (Array.isArray(d)) {
         setMembers(d)
         setStats(s => ({ ...s, members: d.length, online: d.filter(m => m.online).length }))
@@ -216,11 +217,7 @@ export default function Home() {
   const postThread = async () => {
     if (!title.trim() || !body.trim() || !user) return
     setPosting(true)
-    await fetch(`${SUPABASE_URL}/rest/v1/threads`, {
-      method: 'POST',
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ author_id: user.id, cat, title, body, likes: 0, pinned: false, locked: false, hidden: false })
-    })
+    await rpc('create_thread', { p_cat: cat, p_title: title, p_body: body })
     setTitle(''); setBody(''); setNewThread(false); setPosting(false)
     apiFetch('/rest/v1/threads?select=*&hidden=eq.false&order=created_at.desc&limit=6').then(d => { if (Array.isArray(d)) setThreads(d) })
   }

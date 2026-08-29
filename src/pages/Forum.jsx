@@ -4,8 +4,8 @@ import { C, CATS, ROLE_RING } from '../lib/constants'
 import { RoleBadge, Btn, Input } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
 import EmojiPicker from 'emoji-picker-react'
-import { awardXP } from '../lib/xp'
 import { useMention, renderWithMentions } from '../hooks/useMention.jsx'
+import { rpc, awardAction } from '../lib/security'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -290,7 +290,7 @@ export default function ForumPage() {
   }, [])
 
   useEffect(() => {
-    api('/rest/v1/profiles?select=*').then(r => r.json()).then(d => { if (Array.isArray(d)) setMembers(d) })
+    api('/rest/v1/profiles?select=id,pseudo,initials,role,bio,interests,region,dept,city,age,friends,posts,joined,online,votes,created_at,avatar_url,banner_url,banner_gradient,banner_position,photos,photo_likes,xp,level,badges,replies,statut,sexe').then(r => r.json()).then(d => { if (Array.isArray(d)) setMembers(d) })
     loadThreads()
   }, [])
 
@@ -323,7 +323,7 @@ export default function ForumPage() {
   const openThread = (t) => {
     if (t.cat === '+18' && !isAdult && !canMod) return
     setOpenId(t.id); loadReplies(t.id)
-    apiAuth(`/rest/v1/threads?id=eq.${t.id}`, { method: 'PATCH', body: JSON.stringify({ views: (t.views || 0) + 1 }) })
+    rpc('increment_thread_view', { p_thread_id: t.id }).catch(() => {})
     setThreads(prev => prev.map(th => th.id === t.id ? { ...th, views: (th.views || 0) + 1 } : th))
   }
 
@@ -339,8 +339,7 @@ export default function ForumPage() {
     const now = Date.now()
     if (now - lastPostTime.current < 30000) { setSpamError(`Attends encore ${Math.ceil((30000 - (now - lastPostTime.current)) / 1000)}s avant de poster.`); return }
     setSpamError(''); setPosting(true); lastPostTime.current = now
-    await apiAuth('/rest/v1/threads', { method: 'POST', body: JSON.stringify({ author_id: user.id, cat: nCat, title: nTitle.trim(), body: nBody.trim(), likes: 0, views: 0, pinned: false, locked: false, hidden: false }) })
-    await awardXP(user.id, 10)
+    await rpc('create_thread', { p_cat: nCat, p_title: nTitle.trim(), p_body: nBody.trim() })
     setNTitle(''); setNBody(''); setComposing(false); loadThreads(); setPosting(false)
   }
 
@@ -353,8 +352,7 @@ export default function ForumPage() {
     const body = quoting
       ? `> @${quoting.pseudo} : ${quoting.body.slice(0, 100)}${quoting.body.length > 100 ? '…' : ''}\n\n${replyText.trim()}`
       : replyText.trim()
-    await apiAuth('/rest/v1/replies', { method: 'POST', body: JSON.stringify({ thread_id: openId, author_id: user.id, body, hidden: false }) })
-    await awardXP(user.id, 5)
+    const createdReply = await rpc('create_reply', { p_thread_id: openId, p_body: body })
     const currentThread = threads.find(t => t.id === openId)
     if (currentThread && currentThread.author_id !== user.id) {
       await sendNotif(currentThread.author_id, 'reply', `💬 @${profile?.pseudo || 'Quelqu\'un'} a répondu à votre topic "${currentThread.title.slice(0, 50)}"`, `/forum/${openId}`)
@@ -370,8 +368,14 @@ export default function ForumPage() {
   }
 
   const patchThread = async (id, body) => {
-    await apiAuth(`/rest/v1/threads?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(body) })
-    loadThreads()
+    try {
+      if (body.title !== undefined || body.body !== undefined) {
+        await rpc('edit_thread', { p_id: id, p_title: body.title ?? '', p_body: body.body ?? '' })
+      } else {
+        await rpc('moderate_thread', { p_id: id, p_hidden: body.hidden ?? null, p_locked: body.locked ?? null, p_pinned: body.pinned ?? null })
+      }
+      loadThreads()
+    } catch (e) { console.error(e) }
   }
 
   const toggleLike = async (thread) => {
@@ -380,7 +384,8 @@ export default function ForumPage() {
     const newCount = thread.likes + (liked ? -1 : 1)
     setLikes(l => ({ ...l, [thread.id]: !liked }))
     setThreads(prev => prev.map(t => t.id === thread.id ? { ...t, likes: newCount } : t))
-    await apiAuth(`/rest/v1/threads?id=eq.${thread.id}`, { method: 'PATCH', body: JSON.stringify({ likes: newCount }) })
+    const likeResult = await rpc('toggle_thread_like', { p_thread_id: thread.id })
+    if (likeResult) setThreads(prev => prev.map(t => t.id === thread.id ? { ...t, likes: likeResult.likes } : t))
     if (!liked && thread.author_id !== user?.id) {
       await sendNotif(thread.author_id, 'like', `♥ @${profile?.pseudo || 'Quelqu\'un'} a aimé votre topic "${thread.title.slice(0, 50)}"`, `/forum/${thread.id}`)
     }
@@ -396,23 +401,22 @@ export default function ForumPage() {
   }
 
   const updateThread = async (id, title, body) => {
-    await apiAuth(`/rest/v1/threads?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ title, body, edited_at: new Date().toISOString() }) })
+    await rpc('edit_thread', { p_id: id, p_title: title, p_body: body })
     loadThreads()
   }
 
   const updateReply = async (id, body) => {
-    await apiAuth(`/rest/v1/replies?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ body, edited_at: new Date().toISOString() }) })
+    await rpc('edit_reply', { p_id: id, p_body: body })
     loadReplies(openId)
   }
 
   const doDeleteThread = async (id) => {
-    await apiAuth(`/rest/v1/replies?thread_id=eq.${id}`, { method: 'DELETE' })
-    await apiAuth(`/rest/v1/threads?id=eq.${id}`, { method: 'DELETE' })
+    await rpc('delete_thread', { p_id: id })
     closeThread(); loadThreads(); setConfirmDel(null)
   }
 
   const doDeleteReply = async (id) => {
-    await apiAuth(`/rest/v1/replies?id=eq.${id}`, { method: 'DELETE' })
+    await rpc('delete_reply', { p_id: id })
     loadReplies(openId); setConfirmDel(null)
   }
 
@@ -610,7 +614,7 @@ export default function ForumPage() {
                       )}
                       {canMod && canActOnReply && (
                         <>
-                          <Btn onClick={async () => { await apiAuth(`/rest/v1/replies?id=eq.${r.id}`, { method: 'PATCH', body: JSON.stringify({ hidden: !r.hidden }) }); loadReplies(openId) }} variant={r.hidden ? 'green' : 'red'} style={{ fontSize: 10 }}>{r.hidden ? '👁' : '🙈'}</Btn>
+                          <Btn onClick={async () => { await rpc('moderate_reply', { p_id: r.id, p_hidden: !r.hidden }); loadReplies(openId) }} variant={r.hidden ? 'green' : 'red'} style={{ fontSize: 10 }}>{r.hidden ? '👁' : '🙈'}</Btn>
                           <Btn onClick={() => setConfirmDel({ type: 'reply', id: r.id })} variant="red" style={{ fontSize: 10 }}>🗑</Btn>
                         </>
                       )}

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { C } from '../lib/constants'
 import { RoleBadge, Btn } from '../components/UI'
+import { moderateMember, rpc } from '../lib/security'
+import { supabase } from '../lib/supabase'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -61,6 +63,8 @@ const LOG_LABELS = {
 }
 
 const EMOJI_OPTIONS = ['📢','🎉','⚠️','🔥','💡','📌','🆕','🎊','🚀','💬']
+
+const supabaseRpc = async (name, args = {}) => { const { data, error } = await supabase.rpc(name, args); if (error) throw error; return data }
 
 async function logAction(modId, targetId, action, details = {}) {
   try {
@@ -300,9 +304,9 @@ export default function Moderation() {
     if (!canMod) return
     setLoading(true)
     Promise.all([
-      api('/rest/v1/profiles?select=*&order=created_at.desc').then(r => r.json()),
-      api('/rest/v1/bug_reports?select=*&order=created_at.desc').then(r => r.json()),
-      api('/rest/v1/reports?select=*&order=created_at.desc').then(r => r.json()),
+      supabaseRpc('get_staff_profiles').then(d => d || []),
+      apiAuth('/rest/v1/bug_reports?select=*&order=created_at.desc').then(r => r.json()),
+      apiAuth('/rest/v1/reports?select=*&order=created_at.desc').then(r => r.json()),
       apiAuth('/rest/v1/mod_logs?select=*&order=created_at.desc&limit=100').then(r => r.json()),
     ]).then(([m, b, rp, lg]) => {
       if (Array.isArray(m))  setMembers(m)
@@ -334,10 +338,7 @@ export default function Moderation() {
   const banMember = async (memberId) => {
     const opt = BAN_OPTIONS.find(o => o.value === banDuration)
     const bannedUntil = opt.ms ? new Date(Date.now() + opt.ms).toISOString() : null
-    await apiAuth(`/rest/v1/profiles?id=eq.${memberId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ banned: true, banned_until: bannedUntil, ban_reason: banReason || null })
-    })
+    await moderateMember(memberId, true, bannedUntil, banReason)
     await logAction(user.id, memberId, 'ban', {
       duration: banDuration,
       reason: banReason || null,
@@ -350,10 +351,7 @@ export default function Moderation() {
   }
 
   const unbanMember = async (memberId) => {
-    await apiAuth(`/rest/v1/profiles?id=eq.${memberId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ banned: false, banned_until: null, ban_reason: null })
-    })
+    await moderateMember(memberId, false, null, '')
     await logAction(user.id, memberId, 'unban', { target_pseudo: getMember(memberId)?.pseudo })
     setMembers(prev => prev.map(m => m.id === memberId ? { ...m, banned: false, banned_until: null } : m))
     apiAuth('/rest/v1/mod_logs?select=*&order=created_at.desc&limit=100').then(r => r.json()).then(d => { if (Array.isArray(d)) setLogs(d) })

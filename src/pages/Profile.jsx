@@ -5,6 +5,7 @@ import { C, VOTES_DEF, ROLE_RING } from '../lib/constants'
 import { BADGES_DEF } from '../lib/xp'
 import { RoleBadge, Btn, Input, Textarea } from '../components/UI'
 import { GeoSelects } from '../components/GeoSelects'
+import { updateOwnProfile } from '../lib/security'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -216,7 +217,7 @@ export default function Profile() {
   if (!profile) return <div style={{ padding: 40, textAlign: 'center', color: C.textMid }}>Profil introuvable</div>
 
   const patchProfile = async (body) => {
-    await apiFetch(`/rest/v1/profiles?id=eq.${user.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }, body: JSON.stringify(body) })
+    await updateOwnProfile(body)
     await refreshProfile()
   }
 
