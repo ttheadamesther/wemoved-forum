@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Search, Flag, Trash2, Paperclip, Smile, Send, Ban,
-  MessagesSquare, Camera, Mic, X, Loader2, ArrowLeft,
+  MessagesSquare, Camera, Mic, X, Loader2, ArrowLeft, Video,
 } from 'lucide-react'
 import { C } from '../lib/constants'
 import { RoleBadge } from '../components/UI'
@@ -87,6 +87,7 @@ function linkify(text, isMe) {
 
 function MessageBody({ body, isMe }) {
   const isImage = body?.startsWith('__IMG__')
+  const isVideo = body?.startsWith('__VID__')
   if (isImage) {
     const url = body.replace('__IMG__', '')
     return (
@@ -99,6 +100,14 @@ function MessageBody({ body, isMe }) {
       </a>
     )
   }
+  if (isVideo) {
+    const url = body.replace('__VID__', '')
+    return (
+      <video controls preload="metadata" src={url}
+        onContextMenu={e => e.preventDefault()}
+        style={{ maxWidth: '100%', maxHeight: 260, borderRadius: 12, display: 'block', WebkitTouchCallout: 'none' }} />
+    )
+  }
   return (
     <div style={{
       fontSize: 13, color: isMe ? '#3a2e00' : C.text, lineHeight: 1.5,
@@ -108,6 +117,7 @@ function MessageBody({ body, isMe }) {
     </div>
   )
 }
+
 
 // Petite bulle "… est en train d'écrire" avec 3 points animés
 function TypingBubble({ isMobile }) {
@@ -438,22 +448,26 @@ export default function MessagesPage() {
     setText('')
   }
 
-  const uploadPhoto = async (file) => {
+  const uploadMedia = async (file) => {
     if (!file || !user) return
-    const MAX = 5 * 1024 * 1024
-    if (file.size > MAX) { alert('Image trop lourde (max 5 Mo)'); return }
-    if (!file.type.startsWith('image/')) { alert('Fichier non supporté'); return }
+    const isVideo = file.type.startsWith('video/')
+    const isImage = file.type.startsWith('image/')
+    if (!isVideo && !isImage) { alert('Fichier non supporté (image ou vidéo uniquement)'); return }
+    const MAX = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024
+    if (file.size > MAX) { alert(isVideo ? 'Vidéo trop lourde (max 50 Mo)' : 'Image trop lourde (max 5 Mo)'); return }
     setUploading(true)
     const token = await getToken()
     const ext = file.name.split('.').pop()
     const path = `${user.id}/${Date.now()}.${ext}`
-    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/message-photos/${path}`, {
+    const bucket = isVideo ? 'message-videos' : 'message-photos'
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${path}`, {
       method: 'POST',
       headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': file.type, 'x-upsert': 'true' },
       body: file
     })
     if (!res.ok) { const err = await res.json().catch(() => ({})); alert(`Erreur : ${err.message || res.status}`); setUploading(false); return }
-    await sendMessage(`__IMG__${SUPABASE_URL}/storage/v1/object/public/message-photos/${path}`)
+    const prefix = isVideo ? '__VID__' : '__IMG__'
+    await sendMessage(`${prefix}${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`)
     setUploading(false)
   }
 
@@ -597,6 +611,7 @@ export default function MessagesPage() {
                       const unread = convo?.unread || 0
                       const blocked = blockedIds.includes(m.id)
                       const isImgPreview = last?.body?.startsWith('__IMG__')
+                      const isVideoPreview = last?.body?.startsWith('__VID__')
                       const isVoicePreview = last?.type === 'voice'
                       const isActive = activeId === m.id
                       return (
@@ -615,6 +630,8 @@ export default function MessagesPage() {
                                     {last.from_id === user.id && <span>Vous : </span>}
                                     {isImgPreview ? (
                                       <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><Camera size={12} strokeWidth={ICON_STROKE} /> Photo</span>
+                                    ) : isVideoPreview ? (
+                                      <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><Video size={12} strokeWidth={ICON_STROKE} /> Vidéo</span>
                                     ) : isVoicePreview ? (
                                       <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><Mic size={12} strokeWidth={ICON_STROKE} /> Message vocal</span>
                                     ) : (
@@ -678,6 +695,7 @@ export default function MessagesPage() {
                 {messages.map((m, i) => {
                   const isMe = m.from_id === user.id
                   const isImg = m.body?.startsWith('__IMG__')
+                  const isVid = m.body?.startsWith('__VID__')
                   const isVoice = m.type === 'voice'
                   const showAvatar = !isMe && (i === 0 || messages[i - 1]?.from_id !== m.from_id)
                   const isDeleting = deletingMsg === m.id
@@ -747,11 +765,11 @@ export default function MessagesPage() {
                             width: isVoice ? 240 : undefined,
                             maxWidth: isVoice ? 240 : (isMobile ? '78%' : '60%'),
                             minWidth: 0,
-                            background: isImg ? 'transparent' : isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.white,
-                            border: isImg ? 'none' : isMe ? 'none' : `1px solid ${C.border}`,
+                            background: (isImg || isVid) ? 'transparent' : isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.white,
+                            border: (isImg || isVid) ? 'none' : isMe ? 'none' : `1px solid ${C.border}`,
                             borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                            padding: isImg ? 0 : isVoice ? '8px 10px' : '10px 14px',
-                            boxShadow: isImg ? 'none' : '0 1px 3px rgba(0,0,0,.08)',
+                            padding: (isImg || isVid) ? 0 : isVoice ? '8px 10px' : '10px 14px',
+                            boxShadow: (isImg || isVid) ? 'none' : '0 1px 3px rgba(0,0,0,.08)',
                             WebkitTouchCallout: 'none',
                             WebkitUserSelect: isMobile ? 'none' : 'auto',
                             userSelect: isMobile ? 'none' : 'auto',
@@ -837,12 +855,12 @@ export default function MessagesPage() {
                 </div>
               ) : (
                 <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}`, background: C.white, display: 'flex', gap: 8, alignItems: 'flex-end', flexShrink: 0 }}>
-                  <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
-                    onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.target.value = '' }} />
+                  <input ref={fileInputRef} type="file" accept="image/*,video/*" style={{ display: 'none' }}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) uploadMedia(f); e.target.value = '' }} />
 
                   {/* Bouton photo */}
                   {!voiceRecording && (
-                    <button onClick={() => fileInputRef.current?.click()} disabled={uploading} title="Envoyer une photo"
+                    <button onClick={() => fileInputRef.current?.click()} disabled={uploading} title="Envoyer une photo ou une vidéo"
                       style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${C.borderMid}`, background: C.surfaceB, cursor: uploading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.textMid, flexShrink: 0 }}
                       onMouseEnter={e => e.currentTarget.style.borderColor = '#c8a200'}
                       onMouseLeave={e => e.currentTarget.style.borderColor = C.borderMid}>
