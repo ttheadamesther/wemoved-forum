@@ -48,7 +48,7 @@ function Loader() {
     <div style={{
       minHeight: '100vh', display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      background: '#0b0b18', gap: 4,
+      background: '#000000', gap: 4,
     }}>
       <img src={logoImg} alt="wemoved" style={{
         height: 200,
@@ -110,15 +110,19 @@ function Layout({ children }) {
   )
 }
 
+// Transition fondu + léger scale (style changement d'onglet Facebook mobile).
+// Sur desktop l'effet reste très subtil (pas de swipe/translation, juste fondu+scale).
+const isMobileUA = () => window.innerWidth < 768
+
 const pageVariants = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1, transition: { duration: 0.1, ease: 'easeOut' } },
-  exit:    { opacity: 0, transition: { duration: 0.07, ease: 'easeIn' } },
+  initial: { opacity: 0, scale: isMobileUA() ? 0.97 : 1 },
+  animate: { opacity: 1, scale: 1, transition: { duration: 0.18, ease: [0.25, 0.46, 0.45, 0.94] } },
+  exit:    { opacity: 0, scale: isMobileUA() ? 1.02 : 1, transition: { duration: 0.12, ease: 'easeIn' } },
 }
 
 function PageTransition({ children }) {
   return (
-    <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+    <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" style={{ willChange: 'opacity, transform' }}>
       {children}
     </motion.div>
   )
