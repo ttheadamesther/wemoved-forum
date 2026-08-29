@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Home, MessageSquare, Users, Hash, Mail, User, Shield,
+  Search, Bell, Sun, Moon, X, ChevronUp, ChevronDown,
+  Settings, Bug, Trophy, BarChart3, ScrollText, LogOut, Menu,
+} from 'lucide-react'
 import { C, ROLE_RING } from '../lib/constants'
 import { RoleBadge } from './UI'
 import { Logo } from './Logo'
@@ -10,6 +15,8 @@ import { supabase } from '../lib/supabase'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+const ICON_STROKE = 1.75
 
 // Variants partagés pour tous les dropdowns : slide vers le bas + fade
 const dropdownVariants = {
@@ -213,14 +220,14 @@ export default function Navbar() {
   const dropHover   = dark ? '#2a2a2a' : '#f5f5f5'
   const dropSurface = dark ? '#222'    : C.surfaceB
 
-  const NavLink = ({ to, label, icon }) => {
+  const NavLink = ({ to, label, Icon }) => {
     const active = path === to
     return (
       <Link to={to} style={{ textDecoration: 'none' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '0 10px', height: 64, color: active ? '#f0c800' : 'rgba(255,255,255,.6)', fontWeight: active ? 700 : 500, fontSize: 12, borderBottom: active ? '2px solid #c8a200' : '2px solid transparent', cursor: 'pointer', transition: 'all .18s', whiteSpace: 'nowrap', letterSpacing: .2 }}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', height: 64, color: active ? '#fff' : 'rgba(255,255,255,.65)', fontWeight: active ? 700 : 500, fontSize: 12, borderBottom: active ? '2px solid #c8a200' : '2px solid transparent', cursor: 'pointer', transition: 'all .18s', whiteSpace: 'nowrap', letterSpacing: .2 }}
           onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'rgba(255,255,255,.9)' }}
-          onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'rgba(255,255,255,.6)' }}>
-          <span style={{ fontSize: 14 }}>{icon}</span>
+          onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'rgba(255,255,255,.65)' }}>
+          <Icon size={15} strokeWidth={ICON_STROKE} style={{ color: '#f0c800' }} />
           {label}
         </div>
       </Link>
@@ -229,26 +236,33 @@ export default function Navbar() {
 
   const BottomBar = () => {
     const tabs = [
-      { to: '/',         icon: '🏠', label: 'Accueil' },
-      { to: '/forum',    icon: '💬', label: 'Forum' },
-      { to: user ? '/profile' : '/login', icon: user ? (
-        <div style={{ width: 26, height: 26, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', border: `2px solid ${path === '/profile' ? C.accentDk : '#444'}` }}>
-          {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
-        </div>
-      ) : '👤', label: user ? 'Mon profil' : 'Connexion' },
-      { to: '/messages', icon: '✉️', label: 'Messages', badge: unreadMessages },
-      { to: '/members',  icon: '👥', label: 'Membres' },
-      { to: '/chat',     icon: '#️⃣', label: 'Salon' },
+      { to: '/',         label: 'Accueil',    Icon: Home },
+      { to: '/forum',    label: 'Forum',      Icon: MessageSquare },
+      { to: user ? '/profile' : '/login', label: user ? 'Mon profil' : 'Connexion', isProfile: true },
+      { to: '/messages', label: 'Messages',   Icon: Mail, badge: unreadMessages },
+      { to: '/members',  label: 'Membres',    Icon: Users },
+      { to: '/chat',     label: 'Salon',      Icon: Hash },
     ]
     return (
       <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 999, height: 64, background: 'rgba(4,4,4,.97)', borderTop: '1px solid rgba(200,162,0,.2)', display: 'flex', alignItems: 'stretch', paddingBottom: 'env(safe-area-inset-bottom)', boxShadow: '0 -4px 24px rgba(0,0,0,.5)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
         {tabs.map((tab) => {
           const active = path === tab.to
+          const iconColor = active ? C.accent : '#999'
           return (
             <Link key={tab.to} to={tab.to} onClick={() => { if (tab.to === '/messages') setUnreadMessages(0) }}
               style={{ flex: 1, textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, position: 'relative', transition: 'all .15s' }}>
               <div style={{ position: 'relative' }}>
-                <div style={{ fontSize: typeof tab.icon === 'string' ? 22 : 14, lineHeight: 1, transition: 'all .2s', transform: active ? 'translateY(-2px)' : 'none', opacity: active ? 1 : 0.7 }}>{tab.icon}</div>
+                <div style={{ display: 'flex', lineHeight: 1, transition: 'all .2s', transform: active ? 'translateY(-2px)' : 'none', color: iconColor }}>
+                  {tab.isProfile ? (
+                    user ? (
+                      <div style={{ width: 24, height: 24, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', border: `2px solid ${active ? C.accentDk : '#444'}` }}>
+                        {profile?.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
+                      </div>
+                    ) : <User size={22} strokeWidth={ICON_STROKE} />
+                  ) : (
+                    <tab.Icon size={22} strokeWidth={ICON_STROKE} />
+                  )}
+                </div>
                 {tab.badge > 0 && <span style={{ position: 'absolute', top: -4, right: -6, background: C.red, color: '#fff', borderRadius: 10, fontSize: 9, fontWeight: 700, padding: '1px 4px', lineHeight: 1.4 }}>{tab.badge > 9 ? '9+' : tab.badge}</span>}
               </div>
               <span style={{ fontSize: 10, color: active ? C.accent : '#888', fontWeight: active ? 700 : 400, transition: 'all .15s' }}>{tab.label}</span>
@@ -264,17 +278,17 @@ export default function Navbar() {
     return (
       <>
         <nav ref={navRef} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999, height: 56, display: 'flex', alignItems: 'center', padding: '0 14px', background: 'rgba(4,4,4,.97)', borderBottom: '1px solid rgba(200,162,0,.2)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: '0 2px 16px rgba(0,0,0,.35)' }}>
-          <button onClick={() => setShowMobileMenu(m => !m)} style={{ width: 36, height: 36, borderRadius: 8, border: 'none', background: '#222', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5, flexShrink: 0 }}>
-            <span style={{ width: 18, height: 2, background: showMobileMenu ? C.accent : '#ccc', display: 'block', transition: 'all .2s', transform: showMobileMenu ? 'rotate(45deg) translateY(7px)' : 'none' }} />
-            <span style={{ width: 18, height: 2, background: showMobileMenu ? 'transparent' : '#ccc', display: 'block', transition: 'all .2s' }} />
-            <span style={{ width: 18, height: 2, background: showMobileMenu ? C.accent : '#ccc', display: 'block', transition: 'all .2s', transform: showMobileMenu ? 'rotate(-45deg) translateY(-7px)' : 'none' }} />
+          <button onClick={() => setShowMobileMenu(m => !m)} style={{ width: 36, height: 36, borderRadius: 8, border: 'none', background: '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: showMobileMenu ? C.accent : '#ccc' }}>
+            {showMobileMenu ? <X size={18} strokeWidth={ICON_STROKE} /> : <Menu size={18} strokeWidth={ICON_STROKE} />}
           </button>
           <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
             <Link to="/"><Logo height={28} /></Link>
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
             <div ref={searchRef} style={{ position: 'relative' }}>
-              <button onClick={() => setShowSearch(s => !s)} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: showSearch ? '#333' : '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>🔍</button>
+              <button onClick={() => setShowSearch(s => !s)} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: showSearch ? '#333' : '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc' }}>
+                <Search size={15} strokeWidth={ICON_STROKE} />
+              </button>
               <AnimatePresence>
                 {showSearch && (
                   <motion.div
@@ -312,8 +326,8 @@ export default function Navbar() {
                     }
                     return !s
                   })
-                }} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, position: 'relative' }}>
-                  🔔
+                }} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', color: '#ccc' }}>
+                  <Bell size={15} strokeWidth={ICON_STROKE} />
                   {notifs.length > 0 && <span style={{ position: 'absolute', top: 2, right: 2, width: 14, height: 14, borderRadius: '50%', background: C.red, color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{notifs.length > 9 ? '9+' : notifs.length}</span>}
                 </button>
                 <AnimatePresence>
@@ -331,7 +345,9 @@ export default function Navbar() {
                           : notifs.map(n => (
                             <div key={n.id} onClick={() => { markRead(n.id); if (n.link) navigate(n.link); setShowNotifs(false) }} style={{ padding: '12px 14px', borderBottom: `1px solid ${dropBorder}`, cursor: 'pointer', background: dropSurface, fontSize: 13, color: dropText, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                               <span style={{ flex: 1, lineHeight: 1.5 }}>{n.content}</span>
-                              <button onClick={e => { e.stopPropagation(); markRead(n.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: dropTextDim, fontSize: 16, flexShrink: 0, padding: '0 4px' }}>✕</button>
+                              <button onClick={e => { e.stopPropagation(); markRead(n.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: dropTextDim, flexShrink: 0, padding: '0 4px', display: 'flex' }}>
+                                <X size={14} strokeWidth={ICON_STROKE} />
+                              </button>
                             </div>
                           ))
                         }
@@ -341,7 +357,9 @@ export default function Navbar() {
                 </AnimatePresence>
               </div>
             )}
-            <button onClick={toggle} className="theme-toggle" style={{ width: 32, height: 32, fontSize: 14 }}>{dark ? '☀️' : '🌙'}</button>
+            <button onClick={toggle} className="theme-toggle" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f0c800' }}>
+              {dark ? <Sun size={15} strokeWidth={ICON_STROKE} /> : <Moon size={15} strokeWidth={ICON_STROKE} />}
+            </button>
           </div>
         </nav>
 
@@ -365,22 +383,22 @@ export default function Navbar() {
                 </div>
               )}
               {[
-                { icon: '⚙️', label: 'Paramètres',      to: '/settings',      show: !!user },
-                { icon: '🐛', label: 'Signaler un bug',  to: '/bug-report',    show: !!user },
-                { icon: '🏆', label: 'Récompenses',      to: '/rewards',       show: true },
-                { icon: '📊', label: 'Classements',      to: '/rankings',      show: true },
-                { icon: '🛡️', label: 'Modération',       to: '/moderation',    show: !!user && canMod },
-                { icon: '📜', label: 'Mentions légales', to: '/legal',         show: true },
+                { Icon: Settings,   label: 'Paramètres',      to: '/settings',      show: !!user },
+                { Icon: Bug,        label: 'Signaler un bug',  to: '/bug-report',    show: !!user },
+                { Icon: Trophy,     label: 'Récompenses',      to: '/rewards',       show: true },
+                { Icon: BarChart3,  label: 'Classements',      to: '/rankings',      show: true },
+                { Icon: Shield,     label: 'Modération',       to: '/moderation',    show: !!user && canMod },
+                { Icon: ScrollText, label: 'Mentions légales', to: '/legal',         show: true },
               ].filter(i => i.show).map(item => (
                 <Link key={item.to} to={item.to} onClick={() => setShowMobileMenu(false)}
                   style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: '1px solid #1a1a1a', cursor: 'pointer', fontSize: 13, color: '#ccc' }}>
-                  <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{item.icon}</span>
+                  <span style={{ width: 24, display: 'flex', justifyContent: 'center' }}><item.Icon size={17} strokeWidth={ICON_STROKE} style={{ color: '#f0c800' }} /></span>
                   {item.label}
                 </Link>
               ))}
               {user ? (
                 <div onClick={async () => { await handleSignOut(); setShowMobileMenu(false) }} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', cursor: 'pointer', fontSize: 13, color: '#e74c3c' }}>
-                  <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>⏻</span>
+                  <span style={{ width: 24, display: 'flex', justifyContent: 'center' }}><LogOut size={17} strokeWidth={ICON_STROKE} /></span>
                   Déconnexion
                 </div>
               ) : (
@@ -406,14 +424,14 @@ export default function Navbar() {
     <>
       <nav ref={navRef} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999, height: 64, display: 'flex', alignItems: 'center', padding: '0 16px', background: 'rgba(4,4,4,.97)', borderBottom: '1px solid rgba(200,162,0,.25)', gap: 4, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: '0 2px 20px rgba(0,0,0,.4)' }}>
         <Link to="/" style={{ flexShrink: 0, marginRight: 20 }}><Logo height={45} /></Link>
-        <NavLink to="/"           label="Accueil"    icon="🏠" />
-        <NavLink to="/forum"      label="Forum"      icon="💬" />
-        <NavLink to="/members"    label="Membres"    icon="👥" />
-        <NavLink to="/chat"        label="Salon"      icon="💬" />
+        <NavLink to="/"        label="Accueil" Icon={Home} />
+        <NavLink to="/forum"   label="Forum"   Icon={MessageSquare} />
+        <NavLink to="/members" label="Membres" Icon={Users} />
+        <NavLink to="/chat"    label="Salon"   Icon={Hash} />
         {user && (
           <Link to="/messages" style={{ textDecoration: 'none' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', height: 64, color: path === '/messages' ? C.accent : '#ccc', fontWeight: path === '/messages' ? 700 : 400, fontSize: 14, borderBottom: path === '/messages' ? `2px solid ${C.accent}` : '2px solid transparent', cursor: 'pointer', transition: 'all .15s', whiteSpace: 'nowrap', position: 'relative' }}>
-              <span style={{ fontSize: 14 }}>✉️</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', height: 64, color: path === '/messages' ? '#fff' : 'rgba(255,255,255,.65)', fontWeight: path === '/messages' ? 700 : 400, fontSize: 14, borderBottom: path === '/messages' ? '2px solid #c8a200' : '2px solid transparent', cursor: 'pointer', transition: 'all .15s', whiteSpace: 'nowrap', position: 'relative' }}>
+              <Mail size={15} strokeWidth={ICON_STROKE} style={{ color: '#f0c800' }} />
               Messages
               {unreadMessages > 0 && (
                 <span style={{ position: 'absolute', top: 12, right: 2, background: C.red, color: '#fff', borderRadius: 10, fontSize: 9, fontWeight: 700, padding: '1px 5px', lineHeight: 1.4 }}>
@@ -423,14 +441,18 @@ export default function Navbar() {
             </div>
           </Link>
         )}
-        {user && <NavLink to="/profile"    label="Profil"     icon="👤" />}
-        {user && canMod && <NavLink to="/moderation" label="Modération" icon="🛡️" />}
+        {user && <NavLink to="/profile" label="Profil" Icon={User} />}
+        {user && canMod && <NavLink to="/moderation" label="Modération" Icon={Shield} />}
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button onClick={toggle} className="theme-toggle" title={dark ? 'Mode clair' : 'Mode sombre'}>{dark ? '☀️' : '🌙'}</button>
+          <button onClick={toggle} className="theme-toggle" title={dark ? 'Mode clair' : 'Mode sombre'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f0c800' }}>
+            {dark ? <Sun size={16} strokeWidth={ICON_STROKE} /> : <Moon size={16} strokeWidth={ICON_STROKE} />}
+          </button>
 
           <div ref={searchRef} style={{ position: 'relative' }}>
-            <button onClick={() => setShowSearch(s => !s)} style={{ width: 36, height: 36, borderRadius: '50%', border: '1px solid rgba(255,255,255,.1)', background: showSearch ? 'rgba(200,162,0,.15)' : 'rgba(255,255,255,.06)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, transition: 'all .18s' }}>🔍</button>
+            <button onClick={() => setShowSearch(s => !s)} style={{ width: 36, height: 36, borderRadius: '50%', border: '1px solid rgba(255,255,255,.1)', background: showSearch ? 'rgba(200,162,0,.15)' : 'rgba(255,255,255,.06)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .18s', color: '#ccc' }}>
+              <Search size={16} strokeWidth={ICON_STROKE} />
+            </button>
             <AnimatePresence>
               {showSearch && (
                 <motion.div
@@ -475,8 +497,8 @@ export default function Navbar() {
                   }
                   return !s
                 })
-              }} style={{ width: 36, height: 36, borderRadius: '50%', border: 'none', background: '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, position: 'relative' }}>
-                🔔
+              }} style={{ width: 36, height: 36, borderRadius: '50%', border: 'none', background: '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', color: '#ccc' }}>
+                <Bell size={17} strokeWidth={ICON_STROKE} />
                 {notifs.length > 0 && <span style={{ position: 'absolute', top: 2, right: 2, width: 16, height: 16, borderRadius: '50%', background: C.red, color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{notifs.length > 9 ? '9+' : notifs.length}</span>}
               </button>
               <AnimatePresence>
@@ -497,7 +519,9 @@ export default function Navbar() {
                             onMouseEnter={e => e.currentTarget.style.background = dropHover}
                             onMouseLeave={e => e.currentTarget.style.background = dropSurface}>
                             <span style={{ flex: 1 }}>{n.content}</span>
-                            <button onClick={e => { e.stopPropagation(); markRead(n.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: dropTextDim, fontSize: 14, flexShrink: 0, lineHeight: 1 }}>✕</button>
+                            <button onClick={e => { e.stopPropagation(); markRead(n.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: dropTextDim, flexShrink: 0, display: 'flex' }}>
+                              <X size={14} strokeWidth={ICON_STROKE} />
+                            </button>
                           </div>
                         ))
                       }
@@ -526,7 +550,9 @@ export default function Navbar() {
                     </div>
                   </div>
                 </div>
-                <span style={{ fontSize: 10, color: '#666', marginLeft: 2 }}>{showUserMenu ? '▲' : '▼'}</span>
+                <span style={{ display: 'flex', color: '#666', marginLeft: 2 }}>
+                  {showUserMenu ? <ChevronUp size={13} strokeWidth={ICON_STROKE} /> : <ChevronDown size={13} strokeWidth={ICON_STROKE} />}
+                </span>
               </div>
               <AnimatePresence>
                 {showUserMenu && (
@@ -538,17 +564,17 @@ export default function Navbar() {
                       <div style={{ fontSize: 10, color: '#888', marginTop: 2 }}>{user.email}</div>
                     </div>
                     {[
-                      { icon: '👤', label: 'Mon profil',      to: '/profile' },
-                      { icon: '🏆', label: 'Récompenses',     to: '/rewards' },
-                      { icon: '📊', label: 'Classements',     to: '/rankings' },
-                      { icon: '⚙️', label: 'Paramètres',      to: '/settings' },
-                      { icon: '🐛', label: 'Signaler un bug', to: '/bug-report' },
+                      { Icon: User,      label: 'Mon profil',      to: '/profile' },
+                      { Icon: Trophy,    label: 'Récompenses',     to: '/rewards' },
+                      { Icon: BarChart3, label: 'Classements',     to: '/rankings' },
+                      { Icon: Settings,  label: 'Paramètres',      to: '/settings' },
+                      { Icon: Bug,       label: 'Signaler un bug', to: '/bug-report' },
                     ].map(item => (
                       <div key={item.to} onClick={() => { navigate(item.to); setShowUserMenu(false) }}
                         style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', cursor: 'pointer', fontSize: 12, color: '#ccc', transition: 'all .15s' }}
                         onMouseEnter={e => e.currentTarget.style.background = '#222'}
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                        <span>{item.icon}</span>{item.label}
+                        <item.Icon size={15} strokeWidth={ICON_STROKE} style={{ color: '#f0c800' }} />{item.label}
                       </div>
                     ))}
                     <div style={{ borderTop: '1px solid #2a2a2a' }}>
@@ -556,7 +582,7 @@ export default function Navbar() {
                         style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', cursor: 'pointer', fontSize: 12, color: '#e74c3c', transition: 'all .15s' }}
                         onMouseEnter={e => e.currentTarget.style.background = '#2a1a1a'}
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                        <span>⏻</span> Déconnexion
+                        <LogOut size={15} strokeWidth={ICON_STROKE} /> Déconnexion
                       </div>
                     </div>
                   </motion.div>
