@@ -861,7 +861,7 @@ export default function MessagesPage() {
                   {/* Bouton photo */}
                   {!voiceRecording && (
                     <button onClick={() => fileInputRef.current?.click()} disabled={uploading} title="Envoyer une photo ou une vidéo"
-                      style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${C.borderMid}`, background: C.surfaceB, cursor: uploading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.textMid, flexShrink: 0 }}
+                      style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${C.borderMid}`, background: C.surfaceB, cursor: uploading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#c8a200', flexShrink: 0 }}
                       onMouseEnter={e => e.currentTarget.style.borderColor = '#c8a200'}
                       onMouseLeave={e => e.currentTarget.style.borderColor = C.borderMid}>
                       {uploading ? <Loader2 size={17} strokeWidth={ICON_STROKE} style={{ animation: 'wmSpin 0.8s linear infinite' }} /> : <Paperclip size={17} strokeWidth={ICON_STROKE} />}
@@ -872,7 +872,7 @@ export default function MessagesPage() {
                   {!voiceRecording && (
                     <div ref={emojiRef} style={{ position: 'relative', flexShrink: 0 }}>
                       <button onClick={() => setShowEmoji(s => !s)} title="Emojis"
-                        style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${showEmoji ? '#c8a200' : C.borderMid}`, background: showEmoji ? '#fffae6' : C.surfaceB, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: showEmoji ? '#c8a200' : C.textMid, flexShrink: 0, transition: 'all .15s' }}
+                        style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${showEmoji ? '#c8a200' : C.borderMid}`, background: showEmoji ? '#fffae6' : C.surfaceB, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#c8a200', flexShrink: 0, transition: 'all .15s' }}
                         onMouseEnter={e => e.currentTarget.style.borderColor = '#c8a200'}
                         onMouseLeave={e => { if (!showEmoji) e.currentTarget.style.borderColor = C.borderMid }}>
                         <Smile size={18} strokeWidth={ICON_STROKE} />
