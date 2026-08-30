@@ -13,7 +13,7 @@ import Register      from './pages/Register'
 import ResetPassword from './pages/ResetPassword'
 import Profile       from './pages/Profile'
 import Settings      from './pages/Settings'
-import React, { useRef } from 'react'
+import React, { useRef, useEffect } from 'react'
 import MemberProfile from './pages/MemberProfile'
 import Notifications from './pages/Notifications'
 import BugReport     from './pages/BugReport'
@@ -161,6 +161,13 @@ function AnimatedRoutes() {
   const { loading } = useAuth()
   const location = useLocation()
   const prevIndexRef = useRef(getTabIndex(location.pathname))
+
+  // Comme Facebook : on remonte en haut à chaque changement de page,
+  // sinon le scroll résiduel force le navigateur mobile à réajuster la
+  // vue (barre d'adresse qui se cache/réapparaît) et la navbar fixe "saute".
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [location.pathname])
 
   if (loading) return <Loader />
 
