@@ -51,7 +51,7 @@ function Loader() {
       background: '#000000', gap: 4,
     }}>
       <img src={logoImg} alt="wemoved" style={{
-        height: 130,
+        height: 100,
         animation: 'wm-pulse 2s ease-in-out infinite',
       }} />
       <div style={{ width: 160, height: 3, background: 'rgba(255,255,255,.08)', borderRadius: 99, overflow: 'hidden' }}>
