@@ -30,8 +30,6 @@ export default function Footer() {
           onMouseLeave={e => e.currentTarget.style.color = C.textDim}>
           CGU
         </Link>
-        <span style={{ color: C.border }}>|</span>
-        <span>Hébergé par Vercel · Données sur Supabase</span>
       </div>
     </footer>
   )
