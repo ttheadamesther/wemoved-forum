@@ -203,6 +203,25 @@ export default function Navbar() {
     setNotifs(n => n.map(x => ({ ...x, read: true })))
   }
 
+  const deleteNotif = async (id) => {
+    const token = await getToken()
+    await fetch(`${SUPABASE_URL}/rest/v1/notifications?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
+    })
+    setNotifs(n => n.filter(x => x.id !== id))
+  }
+
+  const timeAgo = (ts) => {
+    if (!ts) return ''
+    const diff = Math.floor((Date.now() - new Date(ts)) / 1000)
+    if (diff < 60) return 'À l’instant'
+    if (diff < 3600) return `${Math.floor(diff / 60)} min`
+    if (diff < 86400) return `${Math.floor(diff / 3600)} h`
+    if (diff < 604800) return `${Math.floor(diff / 86400)} j`
+    return new Date(ts).toLocaleDateString('fr-FR')
+  }
+
 
   const handleSignOut = async () => { await signOut(); navigate('/login') }
 
@@ -344,8 +363,11 @@ export default function Navbar() {
                           ? <div style={{ padding: 16, textAlign: 'center', color: dropTextDim, fontSize: 12 }}>Aucune notification</div>
                           : notifs.map(n => (
                             <div key={n.id} onClick={() => { markRead(n.id); if (n.link) navigate(n.link); setShowNotifs(false) }} style={{ padding: '12px 14px', borderBottom: `1px solid ${dropBorder}`, cursor: 'pointer', background: dropSurface, fontSize: 13, color: n.read ? dropTextDim : dropText, opacity: n.read ? 0.6 : 1, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                              <span style={{ flex: 1, lineHeight: 1.5 }}>{n.content}</span>
-                              <button onClick={e => { e.stopPropagation(); markRead(n.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: dropTextDim, flexShrink: 0, padding: '0 4px', display: 'flex' }}>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ lineHeight: 1.5 }}>{n.content}</div>
+                                <div style={{ fontSize: 10, color: dropTextDim, marginTop: 3 }}>{timeAgo(n.created_at)}</div>
+                              </div>
+                              <button onClick={e => { e.stopPropagation(); deleteNotif(n.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: dropTextDim, flexShrink: 0, padding: '0 4px', display: 'flex' }}>
                                 <X size={14} strokeWidth={ICON_STROKE} />
                               </button>
                             </div>
@@ -521,8 +543,11 @@ export default function Navbar() {
                             style={{ padding: '10px 14px', borderBottom: `1px solid ${dropBorder}`, cursor: 'pointer', background: dropSurface, fontSize: 12, color: n.read ? dropTextDim : dropText, opacity: n.read ? 0.6 : 1, display: 'flex', alignItems: 'flex-start', gap: 8, transition: 'background .15s' }}
                             onMouseEnter={e => e.currentTarget.style.background = dropHover}
                             onMouseLeave={e => e.currentTarget.style.background = dropSurface}>
-                            <span style={{ flex: 1 }}>{n.content}</span>
-                            <button onClick={e => { e.stopPropagation(); markRead(n.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: dropTextDim, flexShrink: 0, display: 'flex' }}>
+                            <div style={{ flex: 1 }}>
+                              <div>{n.content}</div>
+                              <div style={{ fontSize: 10, color: dropTextDim, marginTop: 3 }}>{timeAgo(n.created_at)}</div>
+                            </div>
+                            <button onClick={e => { e.stopPropagation(); deleteNotif(n.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: dropTextDim, flexShrink: 0, display: 'flex' }}>
                               <X size={14} strokeWidth={ICON_STROKE} />
                             </button>
                           </div>
