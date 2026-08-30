@@ -70,6 +70,8 @@ export default function Notifications() {
       api(`/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, {
         method: 'PATCH',
         body: JSON.stringify({ read: true })
+      }).then(() => {
+        window.dispatchEvent(new CustomEvent('notifs-read'))
       }).catch(() => {})
     }
   }, [user])

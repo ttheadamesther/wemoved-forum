@@ -61,7 +61,7 @@ export default function Navbar() {
     if (path === '/notifications') return
     if (user) {
       getToken().then(token => {
-        fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false&order=created_at.desc&limit=20`, {
+        fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&order=created_at.desc&limit=20`, {
           headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
         }).then(r => r.json()).then(d => { if (Array.isArray(d)) setNotifs(d) })
       })
@@ -71,7 +71,7 @@ export default function Navbar() {
   useEffect(() => {
     if (!user) return
     getToken().then(token => {
-      fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false&order=created_at.desc&limit=20`, {
+      fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&order=created_at.desc&limit=20`, {
         headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
       }).then(r => r.json()).then(d => { if (Array.isArray(d)) setNotifs(d) })
     })
@@ -86,7 +86,7 @@ export default function Navbar() {
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (payload) => {
         if (payload.new.read === true) {
-          setNotifs(prev => prev.filter(n => n.id !== payload.new.id))
+          setNotifs(prev => prev.map(n => n.id === payload.new.id ? { ...n, read: true } : n))
         }
       })
       .subscribe()
@@ -119,7 +119,7 @@ export default function Navbar() {
 
   useEffect(() => {
     if (!user) return
-    const handler = () => setNotifs([])
+    const handler = () => setNotifs(n => n.map(x => ({ ...x, read: true })))
     window.addEventListener('notifs-read', handler)
     return () => window.removeEventListener('notifs-read', handler)
   }, [user])
@@ -151,13 +151,13 @@ export default function Navbar() {
     const handler = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) { setShowRes(false); setShowSearch(false) }
       if (notifRef.current && !notifRef.current.contains(e.target)) {
-        if (showNotifs && notifs.length > 0) {
+        if (showNotifs && notifs.some(n => !n.read)) {
           getToken().then(token => {
             fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, {
               method: 'PATCH',
               headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({ read: true })
-            }).then(() => setNotifs([]))
+            }).then(() => setNotifs(n => n.map(x => ({ ...x, read: true }))))
           })
         }
         setShowNotifs(false)
@@ -190,7 +190,7 @@ export default function Navbar() {
       headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ read: true })
     })
-    setNotifs(n => n.filter(x => x.id !== id))
+    setNotifs(n => n.map(x => x.id === id ? { ...x, read: true } : x))
   }
 
   const markAllRead = async () => {
@@ -200,8 +200,9 @@ export default function Navbar() {
       headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ read: true })
     })
-    setNotifs([])
+    setNotifs(n => n.map(x => ({ ...x, read: true })))
   }
+
 
   const handleSignOut = async () => { await signOut(); navigate('/login') }
 
@@ -314,20 +315,20 @@ export default function Navbar() {
               <div ref={notifRef} style={{ position: 'relative' }}>
                 <button onClick={() => {
                   setShowNotifs(s => {
-                    if (s && notifs.length > 0) {
+                    if (s && notifs.some(n => !n.read)) {
                       getToken().then(token => {
                         fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, {
                           method: 'PATCH',
                           headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                           body: JSON.stringify({ read: true })
-                        }).then(() => setNotifs([]))
+                        }).then(() => setNotifs(n => n.map(x => ({ ...x, read: true }))))
                       })
                     }
                     return !s
                   })
                 }} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', color: '#ccc' }}>
                   <Bell size={15} strokeWidth={ICON_STROKE} />
-                  {notifs.length > 0 && <span style={{ position: 'absolute', top: 2, right: 2, width: 14, height: 14, borderRadius: '50%', background: C.red, color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{notifs.length > 9 ? '9+' : notifs.length}</span>}
+                  {notifs.some(n => !n.read) && <span style={{ position: 'absolute', top: 2, right: 2, width: 14, height: 14, borderRadius: '50%', background: C.red, color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{notifs.filter(n => !n.read).length > 9 ? '9+' : notifs.filter(n => !n.read).length}</span>}
                 </button>
                 <AnimatePresence>
                   {showNotifs && (
@@ -336,13 +337,13 @@ export default function Navbar() {
                       style={{ position: 'fixed', top: 56, left: 12, right: 12, background: dropBg, border: `1px solid ${dropBorder}`, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,.3)', zIndex: 1000, overflow: 'hidden' }}>
                       <div style={{ padding: '10px 14px', borderBottom: `1px solid ${dropBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontWeight: 700, fontSize: 12, color: dropTextDim }}>Notifications</span>
-                        {notifs.length > 0 && <button onClick={markAllRead} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.accentTxt, fontWeight: 600 }}>Tout lire</button>}
+                        {notifs.some(n => !n.read) && <button onClick={markAllRead} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.accentTxt, fontWeight: 600 }}>Tout lire</button>}
                       </div>
                       <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
                         {notifs.length === 0
                           ? <div style={{ padding: 16, textAlign: 'center', color: dropTextDim, fontSize: 12 }}>Aucune notification</div>
                           : notifs.map(n => (
-                            <div key={n.id} onClick={() => { markRead(n.id); if (n.link) navigate(n.link); setShowNotifs(false) }} style={{ padding: '12px 14px', borderBottom: `1px solid ${dropBorder}`, cursor: 'pointer', background: dropSurface, fontSize: 13, color: dropText, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                            <div key={n.id} onClick={() => { markRead(n.id); if (n.link) navigate(n.link); setShowNotifs(false) }} style={{ padding: '12px 14px', borderBottom: `1px solid ${dropBorder}`, cursor: 'pointer', background: dropSurface, fontSize: 13, color: n.read ? dropTextDim : dropText, opacity: n.read ? 0.6 : 1, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                               <span style={{ flex: 1, lineHeight: 1.5 }}>{n.content}</span>
                               <button onClick={e => { e.stopPropagation(); markRead(n.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: dropTextDim, flexShrink: 0, padding: '0 4px', display: 'flex' }}>
                                 <X size={14} strokeWidth={ICON_STROKE} />
@@ -488,20 +489,20 @@ export default function Navbar() {
             <div ref={notifRef} style={{ position: 'relative' }}>
               <button onClick={() => {
                 setShowNotifs(s => {
-                  if (s && notifs.length > 0) {
+                  if (s && notifs.some(n => !n.read)) {
                     getToken().then(token => {
                       fetch(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}&read=eq.false`, {
                         method: 'PATCH',
                         headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                         body: JSON.stringify({ read: true })
-                      }).then(() => setNotifs([]))
+                      }).then(() => setNotifs(n => n.map(x => ({ ...x, read: true }))))
                     })
                   }
                   return !s
                 })
               }} style={{ width: 36, height: 36, borderRadius: '50%', border: 'none', background: '#222', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', color: '#ccc' }}>
                 <Bell size={17} strokeWidth={ICON_STROKE} />
-                {notifs.length > 0 && <span style={{ position: 'absolute', top: 2, right: 2, width: 16, height: 16, borderRadius: '50%', background: C.red, color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{notifs.length > 9 ? '9+' : notifs.length}</span>}
+                {notifs.some(n => !n.read) && <span style={{ position: 'absolute', top: 2, right: 2, width: 16, height: 16, borderRadius: '50%', background: C.red, color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{notifs.filter(n => !n.read).length > 9 ? '9+' : notifs.filter(n => !n.read).length}</span>}
               </button>
               <AnimatePresence>
                 {showNotifs && (
@@ -510,14 +511,14 @@ export default function Navbar() {
                     style={{ position: 'absolute', top: '110%', right: 0, width: 310, background: dropBg, border: `1px solid ${dropBorder}`, borderRadius: 14, boxShadow: '0 8px 32px rgba(0,0,0,.35)', zIndex: 1000, backdropFilter: 'blur(20px)', overflow: 'hidden' }}>
                     <div style={{ padding: '10px 14px', borderBottom: `1px solid ${dropBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontWeight: 700, fontSize: 12, color: dropTextDim }}>Notifications</span>
-                      {notifs.length > 0 && <button onClick={markAllRead} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.accentTxt, fontWeight: 600 }}>Tout marquer lu</button>}
+                      {notifs.some(n => !n.read) && <button onClick={markAllRead} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.accentTxt, fontWeight: 600 }}>Tout marquer lu</button>}
                     </div>
                     <div style={{ maxHeight: 360, overflowY: 'auto' }}>
                       {notifs.length === 0
                         ? <div style={{ padding: 20, textAlign: 'center', color: dropTextDim, fontSize: 12 }}>Aucune notification</div>
                         : notifs.map(n => (
                           <div key={n.id} onClick={() => { markRead(n.id); if (n.link) navigate(n.link); setShowNotifs(false) }}
-                            style={{ padding: '10px 14px', borderBottom: `1px solid ${dropBorder}`, cursor: 'pointer', background: dropSurface, fontSize: 12, color: dropText, display: 'flex', alignItems: 'flex-start', gap: 8, transition: 'background .15s' }}
+                            style={{ padding: '10px 14px', borderBottom: `1px solid ${dropBorder}`, cursor: 'pointer', background: dropSurface, fontSize: 12, color: n.read ? dropTextDim : dropText, opacity: n.read ? 0.6 : 1, display: 'flex', alignItems: 'flex-start', gap: 8, transition: 'background .15s' }}
                             onMouseEnter={e => e.currentTarget.style.background = dropHover}
                             onMouseLeave={e => e.currentTarget.style.background = dropSurface}>
                             <span style={{ flex: 1 }}>{n.content}</span>
