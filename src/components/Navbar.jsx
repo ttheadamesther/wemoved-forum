@@ -251,7 +251,7 @@ export default function Navbar() {
             <Link key={tab.to} to={tab.to} onClick={() => { if (tab.to === '/messages') setUnreadMessages(0) }}
               style={{ flex: 1, textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, position: 'relative', transition: 'all .15s' }}>
               <div style={{ position: 'relative' }}>
-                <div style={{ display: 'flex', lineHeight: 1, transition: 'all .2s', transform: active ? 'translateY(-2px)' : 'none', color: iconColor }}>
+                <div style={{ display: 'flex', lineHeight: 1, color: iconColor }}>
                   {tab.isProfile ? (
                     user ? (
                       <div style={{ width: 24, height: 24, borderRadius: '50%', background: profile?.avatar_url ? '#444' : avatarColor, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', border: `2px solid ${active ? C.accentDk : '#444'}` }}>
