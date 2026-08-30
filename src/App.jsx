@@ -120,12 +120,11 @@ function getTabIndex(pathname) {
 }
 
 const isMobileUA = () => window.innerWidth < 768
-const SLIDE_DISTANCE = 44
+const SLIDE_DISTANCE = 24
 
-// Spring léger sur l'axe x = mouvement naturel qui décélère en douceur
-// (au lieu d'un ease linéaire qui donne un effet "mécanique").
-const enterTransition = { type: 'spring', stiffness: 300, damping: 30, mass: 0.9 }
-const exitTransition   = { duration: 0.16, ease: [0.4, 0, 1, 1] }
+// Spring plus amorti (moins de rebond) = transition douce au lieu de "violente".
+const enterTransition = { type: 'spring', stiffness: 220, damping: 32, mass: 0.8 }
+const exitTransition   = { duration: 0.18, ease: [0.4, 0, 0.2, 1] }
 
 const pageVariants = {
   initial: (direction) => ({
