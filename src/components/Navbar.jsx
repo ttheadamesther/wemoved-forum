@@ -8,7 +8,6 @@ import {
 } from 'lucide-react'
 import { C, ROLE_RING } from '../lib/constants'
 import { RoleBadge } from './UI'
-import { Logo } from './Logo'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/ThemeContext'
 import { supabase } from '../lib/supabase'
@@ -282,7 +281,7 @@ export default function Navbar() {
             {showMobileMenu ? <X size={18} strokeWidth={ICON_STROKE} /> : <Menu size={18} strokeWidth={ICON_STROKE} />}
           </button>
           <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
-            <Link to="/"><Logo height={28} /></Link>
+            <Link to="/"><img src="/wemoved-navbar-logo.png" alt="wemoved" style={{ height: 28, width: "auto", display: "block", objectFit: "contain" }} /></Link>
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
             <div ref={searchRef} style={{ position: 'relative' }}>
@@ -423,7 +422,7 @@ export default function Navbar() {
   return (
     <>
       <nav ref={navRef} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999, height: 64, display: 'flex', alignItems: 'center', padding: '0 16px', background: 'rgba(4,4,4,.97)', borderBottom: '1px solid rgba(200,162,0,.25)', gap: 4, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: '0 2px 20px rgba(0,0,0,.4)' }}>
-        <Link to="/" style={{ flexShrink: 0, marginRight: 20 }}><Logo height={45} /></Link>
+        <Link to="/" style={{ flexShrink: 0, marginRight: 20 }}><img src="/wemoved-navbar-logo.png" alt="wemoved" style={{ height: 45, width: "auto", display: "block", objectFit: "contain" }} /></Link>
         <NavLink to="/"        label="Accueil" Icon={Home} />
         <NavLink to="/forum"   label="Forum"   Icon={MessageSquare} />
         <NavLink to="/members" label="Membres" Icon={Users} />
