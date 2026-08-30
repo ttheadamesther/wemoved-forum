@@ -4,52 +4,53 @@ import { setOnlineStatus } from '../lib/security'
 
 const AuthContext = createContext(null)
 
-const ADMIN_ID  = '5b9c6fb1-7a61-4a34-8bb0-ba89a0569e76'
-const WAKIKI_ID = '59349492-13b2-482d-be42-c0d026f37fdd'
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
+const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 export function AuthProvider({ children }) {
-  const [user,    setUser]    = useState(undefined)
+  const [user, setUser] = useState(undefined)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
-  const refreshIntervalRef = useRef(null)
 
-  const calcAge = (birthDate) => {
-    if (!birthDate) return null
-    const today = new Date()
-    const birth = new Date(birthDate)
-    let age = today.getFullYear() - birth.getFullYear()
-    const m = today.getMonth() - birth.getMonth()
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
-    return age
-  }
+  const refreshIntervalRef = useRef(null)
+  const mountedRef = useRef(true)
 
   const fetchProfile = async (uid) => {
     if (!uid || !supabase) return null
+
     try {
       const { data, error } = await supabase.rpc('get_my_profile')
-      if (error) throw error
+
+      if (error) {
+        console.warn('[Auth] Impossible de récupérer le profil:', error.message)
+        return null
+      }
+
       return data || null
-    } catch { return null }
+    } catch (error) {
+      console.warn('[Auth] Erreur profil:', error)
+      return null
+    }
   }
 
   const refreshProfile = async () => {
     if (!user?.id || !supabase) return
-    try { const { data, error } = await supabase.rpc('get_my_profile'); if (!error && data) setProfile(data) } catch {}
+
+    const p = await fetchProfile(user.id)
+
+    if (mountedRef.current && p) {
+      setProfile(p)
+    }
   }
 
   const setPresence = async (status) => {
-    try { await setOnlineStatus(status) } catch {}
-  }
+    if (!supabase) return
 
-  // Rafraîchir le profil toutes les 30 secondes pour détecter les bans
-  const startProfilePolling = (uid) => {
-    if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current)
-    refreshIntervalRef.current = setInterval(async () => {
-      if (!uid || !supabase) return
-      try { const { data, error } = await supabase.rpc('get_my_profile'); if (!error && data) setProfile(data) } catch {}
-    }, 30000)
+    try {
+      await setOnlineStatus(status)
+    } catch (error) {
+      console.warn('[Auth] Erreur présence:', error)
+    }
   }
 
   const stopProfilePolling = () => {
@@ -59,76 +60,250 @@ export function AuthProvider({ children }) {
     }
   }
 
-  useEffect(() => {
-    if (!supabase) { setUser(null); setLoading(false); return }
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const u = session?.user ?? null
-      setUser(u)
-      if (u) {
-        const p = await fetchProfile(u.id, session.access_token)
-        setProfile(p)
-        await setPresence(true)
-        startProfilePolling(u.id)
-      }
-      setLoading(false)
-    }).catch(() => { setUser(null); setLoading(false) })
+  const startProfilePolling = (uid) => {
+    stopProfilePolling()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const u = session?.user ?? null
-      setUser(u)
-      if (u) {
-        const p = await fetchProfile(u.id, session.access_token)
+    if (!uid || !supabase) return
+
+    refreshIntervalRef.current = setInterval(async () => {
+      if (!mountedRef.current) return
+
+      const p = await fetchProfile(uid)
+
+      if (mountedRef.current && p) {
         setProfile(p)
-        await setPresence(true)
-        startProfilePolling(u.id)
-      } else {
+      }
+    }, 30000)
+  }
+
+  useEffect(() => {
+    mountedRef.current = true
+
+    if (!supabase) {
+      setUser(null)
+      setProfile(null)
+      setLoading(false)
+
+      return () => {
+        mountedRef.current = false
+      }
+    }
+
+    let subscription = null
+    let heartbeat = null
+    let authInitTimeout = null
+
+    const initializeAuth = async () => {
+      try {
+        const sessionPromise = supabase.auth.getSession()
+
+        const timeoutPromise = new Promise((resolve) => {
+          authInitTimeout = setTimeout(() => {
+            console.warn('[Auth] getSession a dépassé 10 secondes.')
+            resolve({
+              data: { session: null },
+              error: new Error('Auth initialization timeout')
+            })
+          }, 10000)
+        })
+
+        const result = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ])
+
+        if (authInitTimeout) {
+          clearTimeout(authInitTimeout)
+          authInitTimeout = null
+        }
+
+        const session = result?.data?.session || null
+        const u = session?.user || null
+
+        if (!mountedRef.current) return
+
+        setUser(u)
+
+        // Le site ne doit jamais attendre le profil pour s'afficher.
+        setLoading(false)
+
+        if (!u) {
+          setProfile(null)
+          stopProfilePolling()
+          return
+        }
+
+        // Tout ce qui est secondaire est exécuté après l'initialisation Auth.
+        void (async () => {
+          const p = await fetchProfile(u.id)
+
+          if (mountedRef.current && p) {
+            setProfile(p)
+          }
+
+          if (mountedRef.current) {
+            void setPresence(true)
+            startProfilePolling(u.id)
+          }
+        })()
+      } catch (error) {
+        console.error('[Auth] Erreur initialisation:', error)
+
+        if (!mountedRef.current) return
+
+        setUser(null)
+        setProfile(null)
+        setLoading(false)
+      }
+    }
+
+    void initializeAuth()
+
+    // IMPORTANT : aucun await Supabase directement dans onAuthStateChange.
+    const authListener = supabase.auth.onAuthStateChange((event, session) => {
+      const u = session?.user || null
+
+      if (!mountedRef.current) return
+
+      setUser(u)
+
+      if (!u) {
         setProfile(null)
         stopProfilePolling()
+        return
       }
+
+      // On sort du callback Supabase avant de lancer les appels async.
+      setTimeout(() => {
+        if (!mountedRef.current) return
+
+        void (async () => {
+          const p = await fetchProfile(u.id)
+
+          if (mountedRef.current && p) {
+            setProfile(p)
+          }
+
+          if (mountedRef.current) {
+            void setPresence(true)
+            startProfilePolling(u.id)
+          }
+        })()
+      }, 0)
     })
 
-    const heartbeat = window.setInterval(async () => {
-      const { data: { session: currentSession } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }))
-      if (currentSession?.user) { try { await setOnlineStatus(true) } catch {} }
+    subscription = authListener?.data?.subscription || null
+
+    heartbeat = window.setInterval(async () => {
+      if (!mountedRef.current) return
+
+      try {
+        const {
+          data: { session: currentSession }
+        } = await supabase.auth.getSession()
+
+        if (currentSession?.user) {
+          await setOnlineStatus(true)
+        }
+      } catch (error) {
+        console.warn('[Auth] Heartbeat:', error)
+      }
     }, 60000)
 
-    const handleUnload = async () => {
-      const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }))
-      if (session?.user) await setOnlineStatus(false)
+    const handleUnload = () => {
+      try {
+        void setOnlineStatus(false)
+      } catch {}
     }
+
     window.addEventListener('beforeunload', handleUnload)
+
     return () => {
-      subscription.unsubscribe()
+      mountedRef.current = false
+
+      if (authInitTimeout) {
+        clearTimeout(authInitTimeout)
+      }
+
+      if (subscription) {
+        subscription.unsubscribe()
+      }
+
+      if (heartbeat) {
+        window.clearInterval(heartbeat)
+      }
+
       window.removeEventListener('beforeunload', handleUnload)
-      window.clearInterval(heartbeat)
+
       stopProfilePolling()
     }
   }, [])
 
   const signIn = async (email, password) => {
-    if (!supabase) return { error: { message: 'Supabase non configuré.' } }
-    return await supabase.auth.signInWithPassword({ email, password })
+    if (!supabase) {
+      return {
+        error: {
+          message: 'Supabase non configuré.'
+        }
+      }
+    }
+
+    return await supabase.auth.signInWithPassword({
+      email,
+      password
+    })
   }
 
   const signUp = async (email, password, pseudo, extra = {}) => {
-    if (!supabase) return { error: { message: 'Supabase non configuré.' } }
-    const cleanPseudo = pseudo.trim()
-    if (!/^[a-zA-Z0-9_]{3,20}$/.test(cleanPseudo)) {
-      return { error: { message: 'Pseudo invalide : 3 à 20 caractères, lettres, chiffres et _ uniquement.' } }
+    if (!supabase) {
+      return {
+        error: {
+          message: 'Supabase non configuré.'
+        }
+      }
     }
 
-    const pseudoCheck = await fetch(
-      `${SUPABASE_URL}/rest/v1/profiles?pseudo=eq.${encodeURIComponent(cleanPseudo)}&select=id&limit=1`,
-      { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` } }
-    )
-    const pseudoData = await pseudoCheck.json().catch(() => [])
-    if (Array.isArray(pseudoData) && pseudoData.length > 0) {
-      return { error: { message: 'Ce pseudo est déjà pris. Choisis-en un autre.' } }
+    const cleanPseudo = pseudo.trim()
+
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(cleanPseudo)) {
+      return {
+        error: {
+          message:
+            'Pseudo invalide : 3 à 20 caractères, lettres, chiffres et _ uniquement.'
+        }
+      }
+    }
+
+    try {
+      const pseudoCheck = await fetch(
+        `${SUPABASE_URL}/rest/v1/profiles?pseudo=eq.${encodeURIComponent(
+          cleanPseudo
+        )}&select=id&limit=1`,
+        {
+          headers: {
+            apikey: ANON_KEY,
+            Authorization: `Bearer ${ANON_KEY}`
+          }
+        }
+      )
+
+      const pseudoData = await pseudoCheck.json().catch(() => [])
+
+      if (Array.isArray(pseudoData) && pseudoData.length > 0) {
+        return {
+          error: {
+            message: 'Ce pseudo est déjà pris. Choisis-en un autre.'
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('[Auth] Vérification pseudo:', error)
     }
 
     const { data, error } = await supabase.auth.signUp({
       email: email.trim().toLowerCase(),
       password,
+
       options: {
         data: {
           pseudo: cleanPseudo,
@@ -139,35 +314,87 @@ export function AuthProvider({ children }) {
           sexe: extra.sexe || null,
           region: extra.region || '',
           dept: extra.dept || '',
-          city: extra.city || '',
+          city: extra.city || ''
         }
       }
     })
+
     if (error) {
-      if (error.message?.includes('already registered')) return { error: { message: 'Un compte existe déjà avec cet email.' } }
-      if (error.message?.includes('Password should be')) return { error: { message: 'Le mot de passe doit faire au moins 6 caractères.' } }
-      if (error.message?.includes('invalid email')) return { error: { message: 'Adresse email invalide.' } }
+      if (error.message?.includes('already registered')) {
+        return {
+          error: {
+            message: 'Un compte existe déjà avec cet email.'
+          }
+        }
+      }
+
+      if (error.message?.includes('Password should be')) {
+        return {
+          error: {
+            message: 'Le mot de passe doit faire au moins 6 caractères.'
+          }
+        }
+      }
+
+      if (error.message?.includes('invalid email')) {
+        return {
+          error: {
+            message: 'Adresse email invalide.'
+          }
+        }
+      }
+
       return { error }
     }
 
-    // Profile/message/notification creation is handled by the database trigger so
-    // registration also works when email confirmation is enabled.
-    return { data, error: null }
+    return {
+      data,
+      error: null
+    }
   }
 
   const signOut = async () => {
-    if (supabase && user) {
-      const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }))
-      if (session) await setPresence(false)
-      await supabase.auth.signOut()
+    if (!supabase) {
+      setUser(null)
+      setProfile(null)
+      stopProfilePolling()
+      return
     }
+
+    try {
+      const {
+        data: { session }
+      } = await supabase.auth.getSession()
+
+      if (session?.user) {
+        await setPresence(false)
+      }
+
+      await supabase.auth.signOut()
+    } catch (error) {
+      console.warn('[Auth] Erreur déconnexion:', error)
+    }
+
     stopProfilePolling()
-    setUser(null)
-    setProfile(null)
+
+    if (mountedRef.current) {
+      setUser(null)
+      setProfile(null)
+    }
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        loading,
+        signUp,
+        signIn,
+        signOut,
+        refreshProfile
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
@@ -175,6 +402,12 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth doit être utilisé dans <AuthProvider>')
+
+  if (!ctx) {
+    throw new Error(
+      'useAuth doit être utilisé dans <AuthProvider>'
+    )
+  }
+
   return ctx
 }
