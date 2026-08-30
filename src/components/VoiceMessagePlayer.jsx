@@ -98,7 +98,7 @@ export default function VoiceMessagePlayer({ url, duration = 0, waveform, isMe =
           const r = e.currentTarget.getBoundingClientRect()
           seekTo(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)))
         }}
-        style={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, height: 24, cursor: 'pointer', minWidth: 0 }}>
+        style={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, height: 24, cursor: 'pointer', minWidth: 0, overflow: 'hidden' }}>
         {bars.map((h, i) => (
           <div key={i} style={{
             width: 2, borderRadius: 2, flexShrink: 0,
