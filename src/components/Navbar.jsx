@@ -141,7 +141,7 @@ export default function Navbar() {
   useEffect(() => {
     if (!search.trim()) { setResults([]); return }
     const t = setTimeout(() => {
-      fetch(`${SUPABASE_URL}/rest/v1/profiles?pseudo=ilike.*${search}*&limit=5`, {
+      fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,pseudo,initials,avatar_url,city,role&pseudo=ilike.*${search}*&limit=5`, {
         headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
       }).then(r => r.json()).then(d => { if (Array.isArray(d)) setResults(d) })
     }, 300)
