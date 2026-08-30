@@ -120,11 +120,11 @@ function getTabIndex(pathname) {
 }
 
 const isMobileUA = () => window.innerWidth < 768
-const SLIDE_DISTANCE = 24
+const SLIDE_DISTANCE = 30
 
-// Spring plus amorti (moins de rebond) = transition douce au lieu de "violente".
-const enterTransition = { type: 'spring', stiffness: 220, damping: 32, mass: 0.8 }
-const exitTransition   = { duration: 0.18, ease: [0.4, 0, 0.2, 1] }
+// Slide + fade rapide façon Facebook : pas de spring/rebond, juste un ease-out net.
+const enterTransition = { duration: 0.22, ease: [0.4, 0, 0.2, 1] }
+const exitTransition   = { duration: 0.22, ease: [0.4, 0, 0.2, 1] }
 
 const pageVariants = {
   initial: (direction) => ({
