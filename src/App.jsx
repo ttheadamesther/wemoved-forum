@@ -93,22 +93,22 @@ function PublicOnlyRoute({ children }) {
 function Layout({ children }) {
   const isMobile = window.innerWidth < 768
   return (
-    <>
-      <Navbar />
-      <div style={{
-        paddingTop: isMobile ? 56 : 80,
-        paddingBottom: isMobile ? 72 : 0,
-        minHeight: '100vh',
-        background: 'var(--bg)',
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
-        <div style={{ flex: 1 }}>{children}</div>
-        {!isMobile && <Footer />}
-      </div>
-    </>
+    <div style={{
+      paddingTop: isMobile ? 56 : 80,
+      paddingBottom: isMobile ? 72 : 0,
+      minHeight: '100vh',
+      background: 'var(--bg)',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      <div style={{ flex: 1 }}>{children}</div>
+      {!isMobile && <Footer />}
+    </div>
   )
 }
+
+// Routes qui n'affichent pas la navbar/footer (écrans d'auth).
+const NO_CHROME_PATHS = ['/login', '/register', '/reset-password']
 
 // ── Transition directionnelle (style bottom nav Facebook) ──
 // Ordre des onglets dans la bottom nav mobile : sert à savoir si on va
@@ -171,33 +171,41 @@ function AnimatedRoutes() {
     : (currentIndex > prevIndex ? 1 : -1)
   prevIndexRef.current = currentIndex
 
+  const showChrome = !NO_CHROME_PATHS.includes(location.pathname)
+
+  // Navbar rendue une seule fois ici, en dehors des routes animées :
+  // avant, elle était recréée par <Layout> à chaque changement de page,
+  // ce qui la faisait "sauter" pendant la transition.
   return (
-    // popLayout : la page qui sort est retirée du flux immédiatement, donc la
-    // page qui entre ne "l'attend" pas — les deux animations tournent en même
-    // temps (crossfade fluide) au lieu de s'enchaîner (mode="wait" = saccadé).
-    <AnimatePresence mode="popLayout" custom={direction} initial={false}>
-      <Routes location={location} key={location.pathname}>
-        <Route path="/login"          element={<PublicOnlyRoute><PageTransition direction={direction}><Login /></PageTransition></PublicOnlyRoute>} />
-        <Route path="/register"       element={<PublicOnlyRoute><PageTransition direction={direction}><Register /></PageTransition></PublicOnlyRoute>} />
-        <Route path="/reset-password" element={<PageTransition direction={direction}><ResetPassword /></PageTransition>} />
-        <Route path="/"         element={<Layout><PageTransition direction={direction}><Home /></PageTransition></Layout>} />
-        <Route path="/forum"           element={<Layout><PageTransition direction={direction}><Forum /></PageTransition></Layout>} />
-        <Route path="/forum/:threadId" element={<Layout><PageTransition direction={direction}><Forum /></PageTransition></Layout>} />
-        <Route path="/members"  element={<Layout><PageTransition direction={direction}><Members /></PageTransition></Layout>} />
-        <Route path="/members/:id" element={<Layout><PageTransition direction={direction}><MemberProfile /></PageTransition></Layout>} />
-        <Route path="/legal"    element={<Layout><PageTransition direction={direction}><Legal /></PageTransition></Layout>} />
-        <Route path="/rewards"  element={<Layout><PageTransition direction={direction}><Rewards /></PageTransition></Layout>} />
-        <Route path="/rankings" element={<Layout><PageTransition direction={direction}><Rankings /></PageTransition></Layout>} />
-        <Route path="/chat"     element={<Layout><PageTransition direction={direction}><Chatroom /></PageTransition></Layout>} />
-        <Route path="/messages"      element={<PrivateRoute><Layout><PageTransition direction={direction}><Messages /></PageTransition></Layout></PrivateRoute>} />
-        <Route path="/bug-report"    element={<PrivateRoute><Layout><PageTransition direction={direction}><BugReport /></PageTransition></Layout></PrivateRoute>} />
-        <Route path="/moderation"    element={<PrivateRoute><Layout><PageTransition direction={direction}><Moderation /></PageTransition></Layout></PrivateRoute>} />
-        <Route path="/notifications" element={<PrivateRoute><Layout><PageTransition direction={direction}><Notifications /></PageTransition></Layout></PrivateRoute>} />
-        <Route path="/profile"       element={<PrivateRoute><Layout><PageTransition direction={direction}><ErrorBoundary><Profile /></ErrorBoundary></PageTransition></Layout></PrivateRoute>} />
-        <Route path="/settings"      element={<PrivateRoute><Layout><PageTransition direction={direction}><Settings /></PageTransition></Layout></PrivateRoute>} />
-        <Route path="*" element={<PageTransition direction={direction}><NotFound /></PageTransition>} />
-      </Routes>
-    </AnimatePresence>
+    <>
+      {showChrome && <Navbar />}
+      {/* popLayout : la page qui sort est retirée du flux immédiatement, donc la
+          page qui entre ne "l'attend" pas — les deux animations tournent en même
+          temps (crossfade fluide) au lieu de s'enchaîner (mode="wait" = saccadé). */}
+      <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+        <Routes location={location} key={location.pathname}>
+          <Route path="/login"          element={<PublicOnlyRoute><PageTransition direction={direction}><Login /></PageTransition></PublicOnlyRoute>} />
+          <Route path="/register"       element={<PublicOnlyRoute><PageTransition direction={direction}><Register /></PageTransition></PublicOnlyRoute>} />
+          <Route path="/reset-password" element={<PageTransition direction={direction}><ResetPassword /></PageTransition>} />
+          <Route path="/"         element={<Layout><PageTransition direction={direction}><Home /></PageTransition></Layout>} />
+          <Route path="/forum"           element={<Layout><PageTransition direction={direction}><Forum /></PageTransition></Layout>} />
+          <Route path="/forum/:threadId" element={<Layout><PageTransition direction={direction}><Forum /></PageTransition></Layout>} />
+          <Route path="/members"  element={<Layout><PageTransition direction={direction}><Members /></PageTransition></Layout>} />
+          <Route path="/members/:id" element={<Layout><PageTransition direction={direction}><MemberProfile /></PageTransition></Layout>} />
+          <Route path="/legal"    element={<Layout><PageTransition direction={direction}><Legal /></PageTransition></Layout>} />
+          <Route path="/rewards"  element={<Layout><PageTransition direction={direction}><Rewards /></PageTransition></Layout>} />
+          <Route path="/rankings" element={<Layout><PageTransition direction={direction}><Rankings /></PageTransition></Layout>} />
+          <Route path="/chat"     element={<Layout><PageTransition direction={direction}><Chatroom /></PageTransition></Layout>} />
+          <Route path="/messages"      element={<PrivateRoute><Layout><PageTransition direction={direction}><Messages /></PageTransition></Layout></PrivateRoute>} />
+          <Route path="/bug-report"    element={<PrivateRoute><Layout><PageTransition direction={direction}><BugReport /></PageTransition></Layout></PrivateRoute>} />
+          <Route path="/moderation"    element={<PrivateRoute><Layout><PageTransition direction={direction}><Moderation /></PageTransition></Layout></PrivateRoute>} />
+          <Route path="/notifications" element={<PrivateRoute><Layout><PageTransition direction={direction}><Notifications /></PageTransition></Layout></PrivateRoute>} />
+          <Route path="/profile"       element={<PrivateRoute><Layout><PageTransition direction={direction}><ErrorBoundary><Profile /></ErrorBoundary></PageTransition></Layout></PrivateRoute>} />
+          <Route path="/settings"      element={<PrivateRoute><Layout><PageTransition direction={direction}><Settings /></PageTransition></Layout></PrivateRoute>} />
+          <Route path="*" element={<PageTransition direction={direction}><NotFound /></PageTransition>} />
+        </Routes>
+      </AnimatePresence>
+    </>
   )
 }
 
