@@ -13,7 +13,7 @@ import Register      from './pages/Register'
 import ResetPassword from './pages/ResetPassword'
 import Profile       from './pages/Profile'
 import Settings      from './pages/Settings'
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import MemberProfile from './pages/MemberProfile'
 import Notifications from './pages/Notifications'
 import BugReport     from './pages/BugReport'
@@ -51,7 +51,7 @@ function Loader() {
       background: '#000000', gap: 4,
     }}>
       <img src={logoImg} alt="wemoved" style={{
-        height: 100,
+        height: 42,
         animation: 'wm-pulse 2s ease-in-out infinite',
       }} />
       <div style={{ width: 160, height: 3, background: 'rgba(255,255,255,.08)', borderRadius: 99, overflow: 'hidden' }}>
@@ -162,6 +162,14 @@ function AnimatedRoutes() {
   const location = useLocation()
   const prevIndexRef = useRef(getTabIndex(location.pathname))
 
+  // La session Supabase se résout parfois en quelques ms (session déjà en
+  // cache local) : sans ce minimum, le Loader flashe et devient illisible.
+  const [minDelayDone, setMinDelayDone] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setMinDelayDone(true), 500)
+    return () => clearTimeout(t)
+  }, [])
+
   // Comme Facebook : on remonte en haut à chaque changement de page,
   // sinon le scroll résiduel force le navigateur mobile à réajuster la
   // vue (barre d'adresse qui se cache/réapparaît) et la navbar fixe "saute".
@@ -169,7 +177,7 @@ function AnimatedRoutes() {
     window.scrollTo(0, 0)
   }, [location.pathname])
 
-  if (loading) return <Loader />
+  if (loading || !minDelayDone) return <Loader />
 
   const currentIndex = getTabIndex(location.pathname)
   const prevIndex = prevIndexRef.current
