@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import EmojiPicker from 'emoji-picker-react'
 import { useMention } from '../hooks/useMention.jsx'
+import { isOnline } from '../lib/security'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -80,10 +81,11 @@ export default function Chatroom() {
 
   // Load members once
   useEffect(() => {
-    fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,pseudo,initials,avatar_url,online,role&order=created_at.desc`, {
+    fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,pseudo,initials,avatar_url,online,last_seen,role&order=created_at.desc`, {
       headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
-    }).then(r => r.json()).then(d => {
-      if (Array.isArray(d)) {
+    }).then(r => r.json()).then(dRaw => {
+      if (Array.isArray(dRaw)) {
+        const d = dRaw.map(m => ({ ...m, online: isOnline(m) }))
         const map = {}
         d.forEach(m => { map[m.id] = m })
         setMembers(map)
@@ -133,10 +135,12 @@ export default function Chatroom() {
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
         if (payload.new && 'online' in payload.new) {
-          setMembers(prev => ({ ...prev, [payload.new.id]: { ...prev[payload.new.id], ...payload.new } }))
+          const live = isOnline(payload.new)
+          const updated = { ...payload.new, online: live }
+          setMembers(prev => ({ ...prev, [payload.new.id]: { ...prev[payload.new.id], ...updated } }))
           setOnline(prev => {
             const filtered = prev.filter(m => m.id !== payload.new.id)
-            if (payload.new.online) return [...filtered, payload.new]
+            if (live) return [...filtered, updated]
             return filtered
           })
         }

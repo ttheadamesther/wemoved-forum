@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { C, VOTES_DEF } from '../lib/constants'
+import { isOnline } from '../lib/security'
 import { RoleBadge, Input } from '../components/UI'
 import { GeoSelects } from '../components/GeoSelects'
 import { useAuth } from '../hooks/useAuth'
@@ -76,10 +77,10 @@ export default function MembersPage() {
   }, [])
 
   useEffect(() => {
-    fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,pseudo,initials,role,bio,interests,region,dept,city,age,friends,posts,joined,online,votes,created_at,avatar_url,banner_url,banner_gradient,banner_position,photos,photo_likes,xp,level,badges,replies,statut,sexe&order=created_at.desc`, {
+    fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,pseudo,initials,role,bio,interests,region,dept,city,age,friends,posts,joined,online,last_seen,votes,created_at,avatar_url,banner_url,banner_gradient,banner_position,photos,photo_likes,xp,level,badges,replies,statut,sexe&order=created_at.desc`, {
       headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
     }).then(r => r.json()).then(data => {
-      if (Array.isArray(data)) setMembers(data)
+      if (Array.isArray(data)) setMembers(data.map(m => ({ ...m, online: isOnline(m) })))
       setLoading(false)
     })
   }, [])

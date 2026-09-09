@@ -15,6 +15,15 @@ export async function setOnlineStatus(online) {
   return rpc('set_online_status', { p_online: online })
 }
 
+// Un membre n'est "en ligne" que si online=true ET last_seen frais (<90s).
+// Empêche un statut resté bloqué à true (crash, perte réseau) de mentir indéfiniment.
+const ONLINE_THRESHOLD_MS = 90000
+
+export function isOnline(row) {
+  if (!row || row.online !== true || !row.last_seen) return false
+  return Date.now() - new Date(row.last_seen).getTime() < ONLINE_THRESHOLD_MS
+}
+
 export async function awardAction(action, refId = '') {
   return rpc('award_xp_for_action', { p_action: action, p_ref_id: String(refId || '') })
 }

@@ -5,7 +5,7 @@ import { RoleBadge } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
 import { BADGES_DEF } from '../lib/xp'
 import { supabase } from '../lib/supabase'
-import { rpc } from '../lib/security'
+import { rpc, isOnline } from '../lib/security'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -155,7 +155,8 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    apiFetch('/rest/v1/profiles?select=id,pseudo,initials,role,bio,interests,region,dept,city,age,friends,posts,joined,online,votes,created_at,avatar_url,banner_url,banner_gradient,banner_position,photos,photo_likes,xp,level,badges,replies,statut,sexe&order=created_at.desc').then(d => {
+    apiFetch('/rest/v1/profiles?select=id,pseudo,initials,role,bio,interests,region,dept,city,age,friends,posts,joined,online,last_seen,votes,created_at,avatar_url,banner_url,banner_gradient,banner_position,photos,photo_likes,xp,level,badges,replies,statut,sexe&order=created_at.desc').then(dRaw => {
+      const d = Array.isArray(dRaw) ? dRaw.map(m => ({ ...m, online: isOnline(m) })) : dRaw
       if (Array.isArray(d)) {
         setMembers(d)
         setStats(s => ({ ...s, members: d.length, online: d.filter(m => m.online).length }))
@@ -190,7 +191,7 @@ export default function Home() {
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
         if (payload.new && 'online' in payload.new) {
           setMembers(prev => {
-            const updated = prev.map(m => m.id === payload.new.id ? { ...m, online: payload.new.online } : m)
+            const updated = prev.map(m => m.id === payload.new.id ? { ...m, online: isOnline(payload.new) } : m)
             setStats(s => ({ ...s, online: updated.filter(m => m.online).length }))
             return updated
           })

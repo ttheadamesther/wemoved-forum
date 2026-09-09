@@ -4,7 +4,7 @@ import { C, VOTES_DEF, ROLE_RING } from '../lib/constants'
 import { BADGES_DEF } from '../lib/xp'
 import { RoleBadge, Btn } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
-import { toggleVote, togglePhotoLike as togglePhotoLikeRpc, setMemberRole, acceptFriendship } from '../lib/security'
+import { toggleVote, togglePhotoLike as togglePhotoLikeRpc, setMemberRole, acceptFriendship, isOnline } from '../lib/security'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -109,7 +109,7 @@ export default function MemberProfile() {
   useEffect(() => {
     notifSentRef.current = false; setLoading(true); setFriendship(null)
     fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${id}&limit=1`, { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` } })
-      .then(r => r.json()).then(data => { if (data?.[0]) setMember(data[0]); setLoading(false) })
+      .then(r => r.json()).then(data => { if (data?.[0]) setMember({ ...data[0], online: isOnline(data[0]) }); setLoading(false) })
     loadFriendsList()
   }, [id])
 
@@ -143,9 +143,9 @@ export default function MemberProfile() {
     const [d1, d2] = await Promise.all([r1.json(), r2.json()])
     const ids = [...(Array.isArray(d1) ? d1.map(f => f.user_b) : []), ...(Array.isArray(d2) ? d2.map(f => f.user_a) : [])]
     if (!ids.length) { setFriendsList([]); setFriendsLoading(false); return }
-    const rp = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=in.(${ids.join(',')})&select=id,pseudo,initials,avatar_url,online,role`, { headers: h })
+    const rp = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=in.(${ids.join(',')})&select=id,pseudo,initials,avatar_url,online,last_seen,role`, { headers: h })
     const dp = await rp.json()
-    setFriendsList(Array.isArray(dp) ? dp : [])
+    setFriendsList(Array.isArray(dp) ? dp.map(m => ({ ...m, online: isOnline(m) })) : [])
     setFriendsLoading(false)
   }
 
