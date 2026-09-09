@@ -47,3 +47,12 @@ export async function acceptFriendship(friendshipId) {
 export async function deleteMyAccount() {
   return rpc('delete_my_account')
 }
+
+// Un membre n'est "en ligne" que si online=true ET last_seen frais (<90s).
+// Empeche un statut reste bloque a true (crash, perte reseau) de mentir indefiniment.
+const ONLINE_THRESHOLD_MS = 90000
+
+export function isOnline(row) {
+  if (!row || row.online !== true || !row.last_seen) return false
+  return Date.now() - new Date(row.last_seen).getTime() < ONLINE_THRESHOLD_MS
+}
