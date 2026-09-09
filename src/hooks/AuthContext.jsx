@@ -194,7 +194,7 @@ export function AuthProvider({ children }) {
 
     subscription = authListener?.data?.subscription || null
 
-    heartbeat = window.setInterval(async () => {
+    const pingIfLoggedIn = async () => {
       if (!mountedRef.current) return
 
       try {
@@ -208,15 +208,32 @@ export function AuthProvider({ children }) {
       } catch (error) {
         console.warn('[Auth] Heartbeat:', error)
       }
-    }, 60000)
+    }
 
-    const handleUnload = () => {
+    // 25s : plus court que l'ancien intervalle de 60s pour que last_seen
+    // reste frais, et que la purge côté DB (voir migration) ne déclenche
+    // jamais de faux "hors ligne" pendant qu'un membre est réellement actif.
+    heartbeat = window.setInterval(pingIfLoggedIn, 25000)
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void pingIfLoggedIn()
+      }
+    }
+
+    const handleOffline = () => {
       try {
         void setOnlineStatus(false)
       } catch {}
     }
 
-    window.addEventListener('beforeunload', handleUnload)
+    // beforeunload seul est peu fiable (surtout mobile : swipe, app switch,
+    // crash, perte réseau ne le déclenchent pas). pagehide est mieux
+    // supporté sur iOS/Safari. Les deux restent "best effort" : le vrai
+    // filet de sécurité est la purge last_seen côté DB.
+    window.addEventListener('beforeunload', handleOffline)
+    window.addEventListener('pagehide', handleOffline)
+    document.addEventListener('visibilitychange', handleVisibility)
 
     return () => {
       mountedRef.current = false
@@ -233,7 +250,9 @@ export function AuthProvider({ children }) {
         window.clearInterval(heartbeat)
       }
 
-      window.removeEventListener('beforeunload', handleUnload)
+      window.removeEventListener('beforeunload', handleOffline)
+      window.removeEventListener('pagehide', handleOffline)
+      document.removeEventListener('visibilitychange', handleVisibility)
 
       stopProfilePolling()
     }
