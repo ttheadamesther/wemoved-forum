@@ -50,6 +50,23 @@ function formatTime(ts) {
   return d.toLocaleDateString('fr-FR')
 }
 
+// Étiquette de séparateur de date façon Facebook : "Aujourd'hui", "Hier",
+// ou "lundi 14 septembre" (+ année si différente de l'année en cours)
+function formatDayLabel(ts) {
+  const d = new Date(ts)
+  const today = new Date()
+  const yesterday = new Date()
+  yesterday.setDate(today.getDate() - 1)
+  const sameDay = (a, b) => a.toDateString() === b.toDateString()
+  if (sameDay(d, today)) return "Aujourd'hui"
+  if (sameDay(d, yesterday)) return 'Hier'
+  const sameYear = d.getFullYear() === today.getFullYear()
+  return d.toLocaleDateString('fr-FR', {
+    weekday: 'long', day: 'numeric', month: 'long',
+    year: sameYear ? undefined : 'numeric',
+  })
+}
+
 function Avatar({ member, size = 38, showOnline = false }) {
   const colors = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
   const color = colors[(member?.pseudo?.charCodeAt(0) || 0) % colors.length]
@@ -119,7 +136,6 @@ function MessageBody({ body, isMe, compact }) {
   )
 }
 
-
 // Petite bulle "… est en train d'écrire" avec 3 points animés
 function TypingBubble({ isMobile }) {
   return (
@@ -138,6 +154,21 @@ function TypingBubble({ isMobile }) {
           animation: `typingDot 1.2s ease-in-out ${i * 0.15}s infinite`
         }} />
       ))}
+    </div>
+  )
+}
+
+// Séparateur de date entre messages (façon Facebook)
+function DateDivider({ label }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '10px 0' }}>
+      <span style={{
+        fontSize: 11, fontWeight: 600, color: C.textDim,
+        background: C.border, padding: '4px 12px', borderRadius: 12,
+        textTransform: 'capitalize',
+      }}>
+        {label}
+      </span>
     </div>
   )
 }
@@ -718,131 +749,136 @@ export default function MessagesPage() {
                   const hasReactions = Object.keys(reactions).length > 0
                   const pickerOpen = reactionPicker === m.id
                   const hovered = hoveredMsg === m.id
+                  const showDate = i === 0 ||
+                    new Date(m.created_at).toDateString() !== new Date(messages[i - 1].created_at).toDateString()
                   return (
-                    <div key={m.id ?? i}
-                      onMouseEnter={() => setHoveredMsg(m.id)}
-                      onMouseLeave={() => setHoveredMsg(null)}
-                      style={{
-                        display: 'flex', flexDirection: 'column',
-                        alignItems: isMe ? 'flex-end' : 'flex-start', gap: 2,
-                        maxWidth: '100%',
-                        animation: `${isMe ? 'msgInMe' : 'msgInOther'} .28s cubic-bezier(.34,1.56,.64,1) both`,
-                      }}>
+                    <div key={m.id ?? i} style={{ display: 'contents' }}>
+                      {showDate && <DateDivider label={formatDayLabel(m.created_at)} />}
+                      <div
+                        onMouseEnter={() => setHoveredMsg(m.id)}
+                        onMouseLeave={() => setHoveredMsg(null)}
+                        style={{
+                          display: 'flex', flexDirection: 'column',
+                          alignItems: isMe ? 'flex-end' : 'flex-start', gap: 2,
+                          maxWidth: '100%',
+                          animation: `${isMe ? 'msgInMe' : 'msgInOther'} .28s cubic-bezier(.34,1.56,.64,1) both`,
+                        }}>
 
-                      {/* Picker réactions — au-dessus de la bulle */}
-                      {pickerOpen && (
-                        <div style={{ display: 'flex', gap: 4, background: C.white, border: `1px solid ${C.border}`, borderRadius: 24, padding: '6px 10px', boxShadow: '0 4px 16px rgba(0,0,0,.15)', alignSelf: isMe ? 'flex-end' : 'flex-start', marginBottom: 2, transformOrigin: isMe ? 'right center' : 'left center', animation: 'reactionPickerIn .22s cubic-bezier(.34,1.56,.64,1) both', overflow: 'hidden', alignItems: 'center', maxWidth: '100%' }}>
-                          {QUICK_EMOJIS.map((emoji, ei) => (
-                            <button key={emoji} onClick={() => toggleReaction(m.id, emoji)}
-                              style={{ fontSize: compact ? 18 : 22, background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s cubic-bezier(.34,1.56,.64,1) ${ei * 30}ms both` }}
-                              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.35)'}
-                              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-                              {emoji}
-                            </button>
-                          ))}
-                          {isMobile && isMe && (
-                            <button onClick={() => { setReactionPicker(null); setConfirmDelete({ type: 'msg', id: m.id }) }}
-                              style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.red, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s cubic-bezier(.34,1.56,.64,1) ${QUICK_EMOJIS.length * 30}ms both` }}>
-                              <Trash2 size={18} strokeWidth={ICON_STROKE} />
-                            </button>
-                          )}
-                          {isMobile && !isMe && (
-                            <button onClick={async () => {
-                              setReactionPicker(null)
-                              await api('/rest/v1/reports', { method: 'POST', body: JSON.stringify({ type: 'message', target_id: m.id, reporter_id: user.id, reason: 'Message privé signalé', status: 'pending' }) })
-                              alert('Message signalé aux modérateurs.')
-                            }}
-                              style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s cubic-bezier(.34,1.56,.64,1) ${QUICK_EMOJIS.length * 30}ms both` }}>
-                              <Flag size={16} strokeWidth={ICON_STROKE} />
-                            </button>
-                          )}
-                          <button onClick={() => setReactionPicker(null)}
-                            style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s ease ${(QUICK_EMOJIS.length + 1) * 30}ms both` }}><X size={14} strokeWidth={ICON_STROKE} /></button>
-                        </div>
-                      )}
-
-                      {/* Ligne avatar + bulle */}
-                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, flexDirection: isMe ? 'row-reverse' : 'row', maxWidth: '100%', minWidth: 0 }}>
-                        {!isMe && <div style={{ width: 28, flexShrink: 0 }}>{showAvatar && <Avatar member={activeMember} size={28} />}</div>}
-
-                        {/* Bulle message — maxWidth en % de la ligne, jamais en vw */}
-                        <div
-                          onDoubleClick={() => !isMobile && setReactionPicker(pickerOpen ? null : m.id)}
-                          onTouchStart={() => isMobile && handleLongPressStart(m.id)}
-                          onTouchEnd={handleLongPressEnd}
-                          onTouchMove={handleLongPressEnd}
-                          onContextMenu={e => e.preventDefault()}
-                          style={{
-                            width: isVoice ? 240 : undefined,
-                            maxWidth: isVoice ? 240 : (isMobile ? (compact ? '68%' : '78%') : '60%'),
-                            minWidth: 0,
-                            background: (isImg || isVid) ? 'transparent' : isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.white,
-                            border: (isImg || isVid) ? 'none' : isMe ? 'none' : `1px solid ${C.border}`,
-                            borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                            padding: (isImg || isVid) ? 0 : isVoice ? '8px 10px' : '10px 14px',
-                            boxShadow: (isImg || isVid) ? 'none' : '0 1px 3px rgba(0,0,0,.08)',
-                            WebkitTouchCallout: 'none',
-                            WebkitUserSelect: isMobile ? 'none' : 'auto',
-                            userSelect: isMobile ? 'none' : 'auto',
-                          }}>
-                          {isVoice ? (
-                            <VoiceMessagePlayer url={m.body} duration={m.voice_duration} waveform={m.voice_waveform} isMe={isMe} />
-                          ) : (
-                            <MessageBody body={m.body} isMe={isMe} compact={compact} />
-                          )}
-                        </div>
-
-                        {/* Actions au hover */}
-                        {hovered && !isMobile && (
-                          <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-                            <button onClick={() => setReactionPicker(pickerOpen ? null : m.id)}
-                              style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.textMid, opacity: 0.5, padding: '2px', lineHeight: 1, transition: 'opacity .15s' }}
-                              onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                              onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}>
-                              <Smile size={15} strokeWidth={ICON_STROKE} />
-                            </button>
-                            {isMe && (
-                              <button onClick={() => setConfirmDelete({ type: 'msg', id: m.id })} disabled={isDeleting}
-                                style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.red, opacity: 0.5, padding: '2px', lineHeight: 1, transition: 'opacity .15s' }}
-                                onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                                onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}>
-                                {isDeleting ? <Loader2 size={13} strokeWidth={ICON_STROKE} style={{ animation: 'wmSpin 0.8s linear infinite' }} /> : <Trash2 size={13} strokeWidth={ICON_STROKE} />}
+                        {/* Picker réactions — au-dessus de la bulle */}
+                        {pickerOpen && (
+                          <div style={{ display: 'flex', gap: 4, background: C.white, border: `1px solid ${C.border}`, borderRadius: 24, padding: '6px 10px', boxShadow: '0 4px 16px rgba(0,0,0,.15)', alignSelf: isMe ? 'flex-end' : 'flex-start', marginBottom: 2, transformOrigin: isMe ? 'right center' : 'left center', animation: 'reactionPickerIn .22s cubic-bezier(.34,1.56,.64,1) both', overflow: 'hidden', alignItems: 'center', maxWidth: '100%' }}>
+                            {QUICK_EMOJIS.map((emoji, ei) => (
+                              <button key={emoji} onClick={() => toggleReaction(m.id, emoji)}
+                                style={{ fontSize: compact ? 18 : 22, background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s cubic-bezier(.34,1.56,.64,1) ${ei * 30}ms both` }}
+                                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.35)'}
+                                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+                                {emoji}
+                              </button>
+                            ))}
+                            {isMobile && isMe && (
+                              <button onClick={() => { setReactionPicker(null); setConfirmDelete({ type: 'msg', id: m.id }) }}
+                                style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.red, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s cubic-bezier(.34,1.56,.64,1) ${QUICK_EMOJIS.length * 30}ms both` }}>
+                                <Trash2 size={18} strokeWidth={ICON_STROKE} />
                               </button>
                             )}
-                            {!isMe && (
+                            {isMobile && !isMe && (
                               <button onClick={async () => {
+                                setReactionPicker(null)
                                 await api('/rest/v1/reports', { method: 'POST', body: JSON.stringify({ type: 'message', target_id: m.id, reporter_id: user.id, reason: 'Message privé signalé', status: 'pending' }) })
                                 alert('Message signalé aux modérateurs.')
                               }}
-                                style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, opacity: 0.5, padding: '2px', lineHeight: 1, transition: 'opacity .15s' }}
-                                onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                                onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}>
-                                <Flag size={13} strokeWidth={ICON_STROKE} />
+                                style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s cubic-bezier(.34,1.56,.64,1) ${QUICK_EMOJIS.length * 30}ms both` }}>
+                                <Flag size={16} strokeWidth={ICON_STROKE} />
                               </button>
                             )}
+                            <button onClick={() => setReactionPicker(null)}
+                              style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s ease ${(QUICK_EMOJIS.length + 1) * 30}ms both` }}><X size={14} strokeWidth={ICON_STROKE} /></button>
                           </div>
                         )}
-                      </div>
 
-                      {/* Réactions existantes */}
-                      {hasReactions && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignSelf: isMe ? 'flex-end' : 'flex-start' }}>
-                          {Object.entries(reactions).map(([emoji, likers]) => {
-                            const iLiked = likers.includes(user.id)
-                            return (
-                              <button key={emoji} onClick={() => toggleReaction(m.id, emoji)}
-                                style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 12, border: `1px solid ${iLiked ? 'rgba(200,162,0,.6)' : C.border}`, background: iLiked ? 'rgba(200,162,0,.12)' : C.white, cursor: 'pointer', fontSize: 13, fontWeight: iLiked ? 700 : 400, transition: 'all .15s', fontFamily: 'inherit' }}>
-                                <span>{emoji}</span>
-                                <span style={{ fontSize: 11, color: iLiked ? C.accentTxt : C.textMid }}>{likers.length}</span>
+                        {/* Ligne avatar + bulle */}
+                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, flexDirection: isMe ? 'row-reverse' : 'row', maxWidth: '100%', minWidth: 0 }}>
+                          {!isMe && <div style={{ width: 28, flexShrink: 0 }}>{showAvatar && <Avatar member={activeMember} size={28} />}</div>}
+
+                          {/* Bulle message — maxWidth en % de la ligne, jamais en vw */}
+                          <div
+                            onDoubleClick={() => !isMobile && setReactionPicker(pickerOpen ? null : m.id)}
+                            onTouchStart={() => isMobile && handleLongPressStart(m.id)}
+                            onTouchEnd={handleLongPressEnd}
+                            onTouchMove={handleLongPressEnd}
+                            onContextMenu={e => e.preventDefault()}
+                            style={{
+                              width: isVoice ? 240 : undefined,
+                              maxWidth: isVoice ? 240 : (isMobile ? (compact ? '68%' : '78%') : '60%'),
+                              minWidth: 0,
+                              background: (isImg || isVid) ? 'transparent' : isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.white,
+                              border: (isImg || isVid) ? 'none' : isMe ? 'none' : `1px solid ${C.border}`,
+                              borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                              padding: (isImg || isVid) ? 0 : isVoice ? '8px 10px' : '10px 14px',
+                              boxShadow: (isImg || isVid) ? 'none' : '0 1px 3px rgba(0,0,0,.08)',
+                              WebkitTouchCallout: 'none',
+                              WebkitUserSelect: isMobile ? 'none' : 'auto',
+                              userSelect: isMobile ? 'none' : 'auto',
+                            }}>
+                            {isVoice ? (
+                              <VoiceMessagePlayer url={m.body} duration={m.voice_duration} waveform={m.voice_waveform} isMe={isMe} />
+                            ) : (
+                              <MessageBody body={m.body} isMe={isMe} compact={compact} />
+                            )}
+                          </div>
+
+                          {/* Actions au hover */}
+                          {hovered && !isMobile && (
+                            <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+                              <button onClick={() => setReactionPicker(pickerOpen ? null : m.id)}
+                                style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.textMid, opacity: 0.5, padding: '2px', lineHeight: 1, transition: 'opacity .15s' }}
+                                onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                                onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}>
+                                <Smile size={15} strokeWidth={ICON_STROKE} />
                               </button>
-                            )
-                          })}
+                              {isMe && (
+                                <button onClick={() => setConfirmDelete({ type: 'msg', id: m.id })} disabled={isDeleting}
+                                  style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.red, opacity: 0.5, padding: '2px', lineHeight: 1, transition: 'opacity .15s' }}
+                                  onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                                  onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}>
+                                  {isDeleting ? <Loader2 size={13} strokeWidth={ICON_STROKE} style={{ animation: 'wmSpin 0.8s linear infinite' }} /> : <Trash2 size={13} strokeWidth={ICON_STROKE} />}
+                                </button>
+                              )}
+                              {!isMe && (
+                                <button onClick={async () => {
+                                  await api('/rest/v1/reports', { method: 'POST', body: JSON.stringify({ type: 'message', target_id: m.id, reporter_id: user.id, reason: 'Message privé signalé', status: 'pending' }) })
+                                  alert('Message signalé aux modérateurs.')
+                                }}
+                                  style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, opacity: 0.5, padding: '2px', lineHeight: 1, transition: 'opacity .15s' }}
+                                  onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                                  onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}>
+                                  <Flag size={13} strokeWidth={ICON_STROKE} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      )}
 
-                      {/* Heure */}
-                      <div style={{ fontSize: 10, color: C.textDim, alignSelf: isMe ? 'flex-end' : 'flex-start', paddingLeft: isMe ? 0 : 36 }}>
-                        {new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                        {/* Réactions existantes */}
+                        {hasReactions && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignSelf: isMe ? 'flex-end' : 'flex-start' }}>
+                            {Object.entries(reactions).map(([emoji, likers]) => {
+                              const iLiked = likers.includes(user.id)
+                              return (
+                                <button key={emoji} onClick={() => toggleReaction(m.id, emoji)}
+                                  style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 12, border: `1px solid ${iLiked ? 'rgba(200,162,0,.6)' : C.border}`, background: iLiked ? 'rgba(200,162,0,.12)' : C.white, cursor: 'pointer', fontSize: 13, fontWeight: iLiked ? 700 : 400, transition: 'all .15s', fontFamily: 'inherit' }}>
+                                  <span>{emoji}</span>
+                                  <span style={{ fontSize: 11, color: iLiked ? C.accentTxt : C.textMid }}>{likers.length}</span>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
+
+                        {/* Heure */}
+                        <div style={{ fontSize: 10, color: C.textDim, alignSelf: isMe ? 'flex-end' : 'flex-start', paddingLeft: isMe ? 0 : 36 }}>
+                          {new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
                       </div>
                     </div>
                   )
