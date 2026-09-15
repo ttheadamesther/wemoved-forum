@@ -333,8 +333,6 @@ export default function Home() {
             <div style={{ padding: '4px 0' }}>
               {[
                 { icon: '👥', label: 'Membres',    value: stats.members },
-                { icon: '💬', label: 'Discussions', value: stats.threads },
-                { icon: '✉️', label: 'Messages',    value: stats.messages },
                 { icon: '🟢', label: 'En ligne',    value: stats.online },
               ].map(s => (
                 <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 18px', borderBottom: '1px solid var(--border)' }}>
