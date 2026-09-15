@@ -10,6 +10,7 @@ import { useAuth } from '../hooks/useAuth'
 import EmojiPicker from 'emoji-picker-react'
 import { useMention } from '../hooks/useMention.jsx'
 import { useIsMobile, useIsLandscape } from '../hooks/useIsMobile'
+import { isOnline } from '../lib/security'
 import { supabase } from '../lib/supabase'
 import VoiceRecorder from '../components/VoiceRecorder'
 import VoiceMessagePlayer from '../components/VoiceMessagePlayer'
@@ -20,6 +21,12 @@ const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 const INPUT_MAX_HEIGHT = 120
 const ICON_STROKE = 1.75
+
+// Rafraîchissement périodique de la liste des membres (pour que last_seen
+// avance) et re-render périodique forcé (pour que isOnline() recalcule la
+// fraîcheur même sans nouvelle donnée — le statut expire avec le temps).
+const MEMBERS_POLL_MS = 20000
+const ONLINE_TICK_MS  = 15000
 
 async function getToken() {
   try {
@@ -79,7 +86,7 @@ function Avatar({ member, size = 38, showOnline = false }) {
         }
       </div>
       {showOnline && (
-        <div style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: '50%', background: member?.online ? C.online : '#ccc', border: '2px solid #fff' }} />
+        <div style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: '50%', background: isOnline(member) ? C.online : '#ccc', border: '2px solid #fff' }} />
       )}
     </div>
   )
@@ -301,6 +308,15 @@ export default function MessagesPage() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
+  // ── Tick périodique : force un re-render pour que isOnline() recalcule
+  // la fraîcheur de last_seen même si aucune donnée n'a changé (le statut
+  // "en ligne" expire avec le temps qui passe, pas avec un événement). ──
+  const [, forceOnlineTick] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => forceOnlineTick(n => n + 1), ONLINE_TICK_MS)
+    return () => clearInterval(t)
+  }, [])
+
   useEffect(() => { if (user === null) navigate('/login') }, [user])
 
   useEffect(() => {
@@ -314,12 +330,19 @@ export default function MessagesPage() {
 
   useEffect(() => {
     if (!user) return
-    api(`/rest/v1/profiles?id=neq.${user.id}&select=id,pseudo,initials,avatar_url,online,role`)
-      .then(r => r.json()).then(d => { if (Array.isArray(d)) setMembers(d) })
+    const loadMembers = () => {
+      api(`/rest/v1/profiles?id=neq.${user.id}&select=id,pseudo,initials,avatar_url,online,last_seen,role`)
+        .then(r => r.json()).then(d => { if (Array.isArray(d)) setMembers(d) })
+    }
+    loadMembers()
+    // Rafraîchit la liste régulièrement pour que last_seen avance vraiment
+    // (sinon un membre resté "online=true" en base ne redevient jamais gris).
+    const t = setInterval(loadMembers, MEMBERS_POLL_MS)
     api(`/rest/v1/blocks?blocker_id=eq.${user.id}&select=blocked_id`)
       .then(r => r.json()).then(d => { if (Array.isArray(d)) setBlockedIds(d.map(b => b.blocked_id)) })
     api(`/rest/v1/blocks?blocked_id=eq.${user.id}&select=blocker_id`)
       .then(r => r.json()).then(d => { if (Array.isArray(d)) setBlockedByIds(d.map(b => b.blocker_id)) })
+    return () => clearInterval(t)
   }, [user])
 
   const loadConvos = () => {
@@ -724,8 +747,8 @@ export default function MessagesPage() {
                 <Avatar member={activeMember} size={headAvatar} showOnline />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, fontSize: 14, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{activeMember.pseudo}</div>
-                  <div style={{ fontSize: 11, color: otherTyping ? '#c8a200' : activeMember.online ? C.online : C.textDim, fontStyle: otherTyping ? 'italic' : 'normal' }}>
-                    {otherTyping ? 'est en train d\u2019écrire…' : activeMember.online ? '● En ligne' : '○ Hors ligne'}
+                  <div style={{ fontSize: 11, color: otherTyping ? '#c8a200' : isOnline(activeMember) ? C.online : C.textDim, fontStyle: otherTyping ? 'italic' : 'normal' }}>
+                    {otherTyping ? 'est en train d\u2019écrire…' : isOnline(activeMember) ? '● En ligne' : '○ Hors ligne'}
                   </div>
                 </div>
                 <RoleBadge role={activeMember.role} />
