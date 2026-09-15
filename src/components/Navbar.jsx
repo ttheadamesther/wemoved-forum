@@ -10,6 +10,7 @@ import { C, ROLE_RING } from '../lib/constants'
 import { RoleBadge } from './UI'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/ThemeContext'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { supabase } from '../lib/supabase'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
@@ -37,7 +38,9 @@ export default function Navbar() {
   const [notifs,  setNotifs]              = useState([])
   const [showNotifs, setShowNotifs]       = useState(false)
   const [menuOpen, setMenuOpen]           = useState(false)
-  const [isMobile, setIsMobile]           = useState(window.innerWidth < 768)
+  // Détection par appareil (pointeur), pas par largeur : un téléphone reste
+  // un téléphone en paysage, même s'il fait ~900px de large.
+  const isMobile                          = useIsMobile()
   const [unreadMessages, setUnreadMessages] = useState(0)
   const [showUserMenu, setShowUserMenu]   = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
@@ -47,14 +50,6 @@ export default function Navbar() {
   const navRef    = useRef()
 
   const canMod = ['admin', 'manager', 'moderateur'].includes(profile?.role)
-
-  useEffect(() => {
-    const observer = new ResizeObserver(entries => {
-      for (const entry of entries) setIsMobile(entry.contentRect.width < 768)
-    })
-    if (navRef.current) observer.observe(navRef.current)
-    return () => observer.disconnect()
-  }, [])
 
   useEffect(() => {
     setMenuOpen(false); setShowMobileMenu(false)
