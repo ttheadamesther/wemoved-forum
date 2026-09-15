@@ -9,6 +9,7 @@ import { RoleBadge } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
 import EmojiPicker from 'emoji-picker-react'
 import { useMention } from '../hooks/useMention.jsx'
+import { useIsMobile, useIsLandscape } from '../hooks/useIsMobile'
 import { supabase } from '../lib/supabase'
 import VoiceRecorder from '../components/VoiceRecorder'
 import VoiceMessagePlayer from '../components/VoiceMessagePlayer'
@@ -85,7 +86,7 @@ function linkify(text, isMe) {
   })
 }
 
-function MessageBody({ body, isMe }) {
+function MessageBody({ body, isMe, compact }) {
   const isImage = body?.startsWith('__IMG__')
   const isVideo = body?.startsWith('__VID__')
   if (isImage) {
@@ -96,7 +97,7 @@ function MessageBody({ body, isMe }) {
         style={{ WebkitTouchCallout: 'none' }}>
         <img loading="lazy" decoding="async" src={url} alt="photo" draggable={false}
           onContextMenu={e => e.preventDefault()}
-          style={{ maxWidth: '100%', maxHeight: 220, borderRadius: 12, display: 'block', cursor: 'pointer', objectFit: 'cover', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }} />
+          style={{ maxWidth: '100%', maxHeight: compact ? 130 : 220, borderRadius: 12, display: 'block', cursor: 'pointer', objectFit: 'cover', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }} />
       </a>
     )
   }
@@ -105,7 +106,7 @@ function MessageBody({ body, isMe }) {
     return (
       <video controls preload="metadata" src={url}
         onContextMenu={e => e.preventDefault()}
-        style={{ maxWidth: '100%', maxHeight: 260, borderRadius: 12, display: 'block', WebkitTouchCallout: 'none' }} />
+        style={{ maxWidth: '100%', maxHeight: compact ? 150 : 260, borderRadius: 12, display: 'block', WebkitTouchCallout: 'none' }} />
     )
   }
   return (
@@ -149,7 +150,13 @@ export default function MessagesPage() {
   const fileInputRef = useRef()
   const inputRef = useRef()
   const emojiRef = useRef()
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+  // Détection par appareil (pas par largeur) : un téléphone à l'horizontal
+  // reste en layout mobile. `landscape` = hauteur écrasée → on compacte.
+  const isMobile  = useIsMobile()
+  const landscape = useIsLandscape()
+  const compact   = isMobile && landscape
+
   const [members,  setMembers]  = useState([])
   const [convos,   setConvos]   = useState([])
   const [activeId, setActiveId] = useState(null)
@@ -173,6 +180,22 @@ export default function MessagesPage() {
   const longPressTimer = useRef(null)
   const channelRef = useRef(null)
   const typingStopTimer = useRef(null)
+
+  // Taille du picker d'emojis adaptée à la fenêtre (sinon 400x550 déborde en paysage)
+  const [emojiSize, setEmojiSize] = useState({ w: 400, h: 550 })
+  useEffect(() => {
+    const update = () => setEmojiSize({
+      w: Math.min(400, window.innerWidth - 32),
+      h: Math.min(550, window.innerHeight - 140),
+    })
+    update()
+    window.addEventListener('resize', update)
+    window.addEventListener('orientationchange', update)
+    return () => {
+      window.removeEventListener('resize', update)
+      window.removeEventListener('orientationchange', update)
+    }
+  }, [])
 
   // Keyframes pour les animations (réactions + "en train d'écrire" + envoi de message + spinner)
   useEffect(() => {
@@ -245,29 +268,6 @@ export default function MessagesPage() {
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [])
-
-  // ── DÉTECTION MOBILE (avec debounce + hystérésis anti-tremblement) ──
-  useEffect(() => {
-    let timeout = null
-    const observer = new ResizeObserver(entries => {
-      if (timeout) clearTimeout(timeout)
-      timeout = setTimeout(() => {
-        for (const entry of entries) {
-          const w = entry.contentRect.width
-          setIsMobile(prev => {
-            if (prev && w >= 780) return false
-            if (!prev && w < 760) return true
-            return prev
-          })
-        }
-      }, 150)
-    })
-    if (containerRef.current) observer.observe(containerRef.current)
-    return () => {
-      observer.disconnect()
-      if (timeout) clearTimeout(timeout)
-    }
   }, [])
 
   useEffect(() => { if (user === null) navigate('/login') }, [user])
@@ -372,10 +372,10 @@ export default function MessagesPage() {
   const autoResizeInput = (el) => {
     if (!el) return
     el.style.height = 'auto'
-    el.style.height = Math.min(el.scrollHeight, INPUT_MAX_HEIGHT) + 'px'
+    el.style.height = Math.min(el.scrollHeight, compact ? 64 : INPUT_MAX_HEIGHT) + 'px'
   }
 
-  useEffect(() => { autoResizeInput(inputRef.current) }, [text, activeId])
+  useEffect(() => { autoResizeInput(inputRef.current) }, [text, activeId, compact])
 
   const broadcastTyping = (isTyping) => {
     channelRef.current?.send({ type: 'broadcast', event: 'typing', payload: { userId: user.id, isTyping } })
@@ -507,6 +507,17 @@ export default function MessagesPage() {
 
   const openConvo = (id) => { setActiveId(id); if (isMobile) setShowSidebar(false) }
 
+  // Hauteur du panneau : sur mobile on prend toute la fenêtre visible (dvh),
+  // en paysage la barre de nav est plus courte → on retire moins.
+  const panelHeight = isMobile
+    ? `calc(100dvh - ${compact ? 48 : 64}px)`
+    : 600
+
+  const avatarSize  = compact ? 30 : 38
+  const headAvatar  = compact ? 30 : 40
+  const btnSize     = compact ? 34 : 40
+  const sendSize    = compact ? 36 : 44
+
   if (!user) return null
 
   return (
@@ -515,11 +526,11 @@ export default function MessagesPage() {
 
       {/* ── MODALE SIGNALEMENT ── */}
       {reporting && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, width: '100%', maxWidth: 340, boxShadow: '0 8px 32px rgba(0,0,0,.25)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, overflowY: 'auto' }}>
+          <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: compact ? 16 : 24, width: '100%', maxWidth: 340, boxShadow: '0 8px 32px rgba(0,0,0,.25)', maxHeight: '90dvh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, color: '#e67e22' }}><Flag size={30} strokeWidth={ICON_STROKE} /></div>
             <div style={{ fontWeight: 700, fontSize: 15, color: C.text, textAlign: 'center', marginBottom: 6 }}>Signaler ce message ?</div>
-            <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', marginBottom: 20 }}>
+            <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', marginBottom: compact ? 12 : 20 }}>
               Ce message sera transmis aux modérateurs pour examen.
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
@@ -544,13 +555,13 @@ export default function MessagesPage() {
 
       {/* ── MODALE CONFIRMATION SUPPRESSION ── */}
       {confirmDelete && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, width: '100%', maxWidth: 340, boxShadow: '0 8px 32px rgba(0,0,0,.25)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, overflowY: 'auto' }}>
+          <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: compact ? 16 : 24, width: '100%', maxWidth: 340, boxShadow: '0 8px 32px rgba(0,0,0,.25)', maxHeight: '90dvh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, color: C.red }}><Trash2 size={30} strokeWidth={ICON_STROKE} /></div>
             <div style={{ fontWeight: 700, fontSize: 15, color: C.text, textAlign: 'center', marginBottom: 6 }}>
               {confirmDelete.type === 'convo' ? 'Supprimer la conversation ?' : 'Supprimer ce message ?'}
             </div>
-            <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', marginBottom: 20 }}>
+            <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', marginBottom: compact ? 12 : 20 }}>
               {confirmDelete.type === 'convo'
                 ? 'Tous les messages seront supprimés définitivement.'
                 : 'Ce message sera supprimé définitivement.'}
@@ -578,18 +589,22 @@ export default function MessagesPage() {
         border: isMobile ? 'none' : `1px solid ${C.border}`,
         borderRadius: isMobile ? 0 : 16,
         overflow: 'hidden',
-        height: isMobile ? 'calc(100dvh - 64px)' : 600,
+        height: panelHeight,
+        maxHeight: isMobile ? panelHeight : undefined,
+        minHeight: 0,
         boxShadow: isMobile ? 'none' : '0 2px 12px rgba(0,0,0,.06)',
         overscrollBehavior: 'contain',
       }}>
 
         {/* ── SIDEBAR ── */}
         {(!isMobile || showSidebar) && (
-          <div style={{ width: isMobile ? '100%' : 360, borderRight: isMobile ? 'none' : `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-            <div style={{ padding: '16px', borderBottom: `1px solid ${C.border}`, background: C.surfaceB }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>
-                <MessagesSquare size={15} strokeWidth={ICON_STROKE} /> Conversations
-              </div>
+          <div style={{ width: isMobile ? '100%' : 360, borderRight: isMobile ? 'none' : `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', flexShrink: 0, minHeight: 0 }}>
+            <div style={{ padding: compact ? '8px 12px' : '16px', borderBottom: `1px solid ${C.border}`, background: C.surfaceB, flexShrink: 0 }}>
+              {!compact && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>
+                  <MessagesSquare size={15} strokeWidth={ICON_STROKE} /> Conversations
+                </div>
+              )}
               <div style={{ position: 'relative' }}>
                 <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: C.textDim, display: 'flex' }}><Search size={14} strokeWidth={ICON_STROKE} /></span>
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Chercher un membre…"
@@ -597,7 +612,7 @@ export default function MessagesPage() {
               </div>
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'contain' }}>
+            <div style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'contain', minHeight: 0 }}>
               {(() => {
                 const displayList = search
                   ? members.filter(m => m.pseudo?.toLowerCase().includes(search.toLowerCase()))
@@ -616,8 +631,8 @@ export default function MessagesPage() {
                       const isActive = activeId === m.id
                       return (
                         <div key={m.id} style={{ display: 'flex', alignItems: 'stretch', borderLeft: isActive ? `3px solid ${C.accentDk}` : '3px solid transparent', borderBottom: `1px solid ${C.border}`, opacity: blocked ? 0.5 : 1, background: isActive ? 'rgba(200,162,0,0.15)' : 'transparent', transition: 'background .15s' }}>
-                          <div onClick={() => openConvo(m.id)} style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, padding: '10px 10px', cursor: 'pointer' }}>
-                            <Avatar member={m} size={38} showOnline />
+                          <div onClick={() => openConvo(m.id)} style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, padding: compact ? '6px 10px' : '10px 10px', cursor: 'pointer' }}>
+                            <Avatar member={m} size={avatarSize} showOnline />
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginBottom: 1 }}>
                                 <span style={{ fontWeight: 700, fontSize: 13, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{m.pseudo}</span>
@@ -640,7 +655,7 @@ export default function MessagesPage() {
                                   </div>
                                 )
                               }
-                              {last && <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{formatTime(last.created_at)}</div>}
+                              {last && !compact && <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{formatTime(last.created_at)}</div>}
                             </div>
                           </div>
                           <button
@@ -673,11 +688,11 @@ export default function MessagesPage() {
         {(!isMobile || !showSidebar) && (
           activeMember ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
-              <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, background: C.surfaceB, display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+              <div style={{ padding: compact ? '6px 12px' : '12px 16px', borderBottom: `1px solid ${C.border}`, background: C.surfaceB, display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
                 {isMobile && <button onClick={() => setShowSidebar(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMid, padding: 0, marginRight: 4, display: 'flex' }}><ArrowLeft size={18} strokeWidth={ICON_STROKE} /></button>}
-                <Avatar member={activeMember} size={40} showOnline />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: C.text }}>@{activeMember.pseudo}</div>
+                <Avatar member={activeMember} size={headAvatar} showOnline />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{activeMember.pseudo}</div>
                   <div style={{ fontSize: 11, color: otherTyping ? '#c8a200' : activeMember.online ? C.online : C.textDim, fontStyle: otherTyping ? 'italic' : 'normal' }}>
                     {otherTyping ? 'est en train d\u2019écrire…' : activeMember.online ? '● En ligne' : '○ Hors ligne'}
                   </div>
@@ -685,10 +700,10 @@ export default function MessagesPage() {
                 <RoleBadge role={activeMember.role} />
               </div>
 
-              <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain', padding: '16px', display: 'flex', flexDirection: 'column', gap: 8, background: C.surfaceB, minHeight: 0 }}>
+              <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain', padding: compact ? '8px 12px' : '16px', display: 'flex', flexDirection: 'column', gap: 8, background: C.surfaceB, minHeight: 0 }}>
                 {messages.length === 0 && (
-                  <div style={{ textAlign: 'center', color: C.textDim, fontSize: 13, marginTop: 60 }}>
-                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8, color: C.textDim }}><MessagesSquare size={32} strokeWidth={ICON_STROKE} /></div>
+                  <div style={{ textAlign: 'center', color: C.textDim, fontSize: 13, marginTop: compact ? 16 : 60 }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8, color: C.textDim }}><MessagesSquare size={compact ? 22 : 32} strokeWidth={ICON_STROKE} /></div>
                     Début de la conversation avec @{activeMember.pseudo}
                   </div>
                 )}
@@ -714,20 +729,17 @@ export default function MessagesPage() {
                         animation: `${isMe ? 'msgInMe' : 'msgInOther'} .28s cubic-bezier(.34,1.56,.64,1) both`,
                       }}>
 
-                      {/* Picker réactions — au-dessus de la bulle (les emojis eux-mêmes restent
-                          des emojis : ce sont des réactions envoyées, pas de la chrome UI) */}
+                      {/* Picker réactions — au-dessus de la bulle */}
                       {pickerOpen && (
-                        <div style={{ display: 'flex', gap: 4, background: C.white, border: `1px solid ${C.border}`, borderRadius: 24, padding: '6px 10px', boxShadow: '0 4px 16px rgba(0,0,0,.15)', alignSelf: isMe ? 'flex-end' : 'flex-start', marginBottom: 2, transformOrigin: isMe ? 'right center' : 'left center', animation: 'reactionPickerIn .22s cubic-bezier(.34,1.56,.64,1) both', overflow: 'hidden', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: 4, background: C.white, border: `1px solid ${C.border}`, borderRadius: 24, padding: '6px 10px', boxShadow: '0 4px 16px rgba(0,0,0,.15)', alignSelf: isMe ? 'flex-end' : 'flex-start', marginBottom: 2, transformOrigin: isMe ? 'right center' : 'left center', animation: 'reactionPickerIn .22s cubic-bezier(.34,1.56,.64,1) both', overflow: 'hidden', alignItems: 'center', maxWidth: '100%' }}>
                           {QUICK_EMOJIS.map((emoji, ei) => (
                             <button key={emoji} onClick={() => toggleReaction(m.id, emoji)}
-                              style={{ fontSize: 22, background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s cubic-bezier(.34,1.56,.64,1) ${ei * 30}ms both` }}
+                              style={{ fontSize: compact ? 18 : 22, background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s cubic-bezier(.34,1.56,.64,1) ${ei * 30}ms both` }}
                               onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.35)'}
                               onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
                               {emoji}
                             </button>
                           ))}
-                          {/* Sur mobile il n'y a pas de "survol" : on rattache supprimer/signaler
-                              au même long-press que le picker de réactions. */}
                           {isMobile && isMe && (
                             <button onClick={() => { setReactionPicker(null); setConfirmDelete({ type: 'msg', id: m.id }) }}
                               style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.red, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s cubic-bezier(.34,1.56,.64,1) ${QUICK_EMOJIS.length * 30}ms both` }}>
@@ -753,8 +765,7 @@ export default function MessagesPage() {
                       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, flexDirection: isMe ? 'row-reverse' : 'row', maxWidth: '100%', minWidth: 0 }}>
                         {!isMe && <div style={{ width: 28, flexShrink: 0 }}>{showAvatar && <Avatar member={activeMember} size={28} />}</div>}
 
-                        {/* Bulle message — maxWidth en % de la ligne (qui elle-même est bornée par le conteneur),
-                            pas en vw : ça évite tout débordement de l'écran quand on ajoute le padding + l'avatar. */}
+                        {/* Bulle message — maxWidth en % de la ligne, jamais en vw */}
                         <div
                           onDoubleClick={() => !isMobile && setReactionPicker(pickerOpen ? null : m.id)}
                           onTouchStart={() => isMobile && handleLongPressStart(m.id)}
@@ -763,7 +774,7 @@ export default function MessagesPage() {
                           onContextMenu={e => e.preventDefault()}
                           style={{
                             width: isVoice ? 240 : undefined,
-                            maxWidth: isVoice ? 240 : (isMobile ? '78%' : '60%'),
+                            maxWidth: isVoice ? 240 : (isMobile ? (compact ? '68%' : '78%') : '60%'),
                             minWidth: 0,
                             background: (isImg || isVid) ? 'transparent' : isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.white,
                             border: (isImg || isVid) ? 'none' : isMe ? 'none' : `1px solid ${C.border}`,
@@ -777,11 +788,11 @@ export default function MessagesPage() {
                           {isVoice ? (
                             <VoiceMessagePlayer url={m.body} duration={m.voice_duration} waveform={m.voice_waveform} isMe={isMe} />
                           ) : (
-                            <MessageBody body={m.body} isMe={isMe} />
+                            <MessageBody body={m.body} isMe={isMe} compact={compact} />
                           )}
                         </div>
 
-                        {/* Actions au hover — ne prennent pas de place si cachées */}
+                        {/* Actions au hover */}
                         {hovered && !isMobile && (
                           <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
                             <button onClick={() => setReactionPicker(pickerOpen ? null : m.id)}
@@ -837,7 +848,7 @@ export default function MessagesPage() {
                   )
                 })}
 
-                {/* Indicateur "en train d'écrire" en bas de la conversation */}
+                {/* Indicateur "en train d'écrire" */}
                 {otherTyping && (
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, maxWidth: '100%' }}>
                     <Avatar member={activeMember} size={28} />
@@ -849,19 +860,19 @@ export default function MessagesPage() {
               </div>
 
               {isActiveBlocked ? (
-                <div style={{ padding: '16px', borderTop: `1px solid ${C.border}`, background: C.white, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12, color: C.red, flexShrink: 0 }}>
+                <div style={{ padding: compact ? '8px 12px' : '16px', borderTop: `1px solid ${C.border}`, background: C.white, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12, color: C.red, flexShrink: 0, textAlign: 'center' }}>
                   <Ban size={14} strokeWidth={ICON_STROKE} />
                   {blockedIds.includes(activeId) ? 'Vous avez bloqué ce membre.' : 'Ce membre vous a bloqué.'} Impossible d'envoyer un message.
                 </div>
               ) : (
-                <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}`, background: C.white, display: 'flex', gap: 8, alignItems: 'flex-end', flexShrink: 0 }}>
+                <div style={{ padding: compact ? '6px 12px' : '12px 16px', borderTop: `1px solid ${C.border}`, background: C.white, display: 'flex', gap: 8, alignItems: 'flex-end', flexShrink: 0 }}>
                   <input ref={fileInputRef} type="file" accept="image/*,video/*" style={{ display: 'none' }}
                     onChange={e => { const f = e.target.files?.[0]; if (f) uploadMedia(f); e.target.value = '' }} />
 
                   {/* Bouton photo */}
                   {!voiceRecording && (
                     <button onClick={() => fileInputRef.current?.click()} disabled={uploading} title="Envoyer une photo ou une vidéo"
-                      style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${C.borderMid}`, background: C.surfaceB, cursor: uploading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#c8a200', flexShrink: 0 }}
+                      style={{ width: btnSize, height: btnSize, borderRadius: '50%', border: `1px solid ${C.borderMid}`, background: C.surfaceB, cursor: uploading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#c8a200', flexShrink: 0 }}
                       onMouseEnter={e => e.currentTarget.style.borderColor = '#c8a200'}
                       onMouseLeave={e => e.currentTarget.style.borderColor = C.borderMid}>
                       {uploading ? <Loader2 size={17} strokeWidth={ICON_STROKE} style={{ animation: 'wmSpin 0.8s linear infinite' }} /> : <Paperclip size={17} strokeWidth={ICON_STROKE} />}
@@ -872,14 +883,14 @@ export default function MessagesPage() {
                   {!voiceRecording && (
                     <div ref={emojiRef} style={{ position: 'relative', flexShrink: 0 }}>
                       <button onClick={() => setShowEmoji(s => !s)} title="Emojis"
-                        style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${showEmoji ? '#c8a200' : C.borderMid}`, background: showEmoji ? '#fffae6' : C.surfaceB, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#c8a200', flexShrink: 0, transition: 'all .15s' }}
+                        style={{ width: btnSize, height: btnSize, borderRadius: '50%', border: `1px solid ${showEmoji ? '#c8a200' : C.borderMid}`, background: showEmoji ? '#fffae6' : C.surfaceB, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#c8a200', flexShrink: 0, transition: 'all .15s' }}
                         onMouseEnter={e => e.currentTarget.style.borderColor = '#c8a200'}
                         onMouseLeave={e => { if (!showEmoji) e.currentTarget.style.borderColor = C.borderMid }}>
                         <Smile size={18} strokeWidth={ICON_STROKE} />
                       </button>
                       {showEmoji && (
-                        <div style={{ position: 'fixed', bottom: 80, right: 20, zIndex: 1000 }}>
-                          <EmojiPicker onEmojiClick={insertEmoji} width={400} height={550} theme="dark" />
+                        <div style={{ position: 'fixed', bottom: compact ? 56 : 80, right: 16, zIndex: 1000, maxWidth: 'calc(100vw - 32px)', maxHeight: 'calc(100dvh - 90px)', overflow: 'hidden', borderRadius: 12 }}>
+                          <EmojiPicker onEmojiClick={insertEmoji} width={emojiSize.w} height={emojiSize.h} theme="dark" />
                         </div>
                       )}
                     </div>
@@ -903,10 +914,10 @@ export default function MessagesPage() {
                         placeholder={`Message à @${activeMember.pseudo}…`}
                         style={{
                           width: '100%', boxSizing: 'border-box', border: `1px solid ${C.borderMid}`,
-                          borderRadius: 20, padding: '10px 18px', fontSize: 13, color: C.text,
+                          borderRadius: 20, padding: compact ? '7px 14px' : '10px 18px', fontSize: 13, color: C.text,
                           fontFamily: 'inherit', outline: 'none', background: C.surfaceB,
                           resize: 'none', overflow: 'hidden', lineHeight: 1.4,
-                          maxHeight: INPUT_MAX_HEIGHT, display: 'block',
+                          maxHeight: compact ? 64 : INPUT_MAX_HEIGHT, display: 'block',
                         }}
                         onFocus={e => e.target.style.borderColor = '#c8a200'}
                         onBlur={e => e.target.style.borderColor = C.borderMid} />
@@ -918,7 +929,7 @@ export default function MessagesPage() {
 
                   {!voiceRecording && (
                     <button onClick={send} disabled={sending || !text.trim()}
-                      style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: text.trim() ? 'linear-gradient(135deg,#f0c800,#c8a200)' : '#e0e0e0', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: text.trim() ? '#3a2e00' : '#999', flexShrink: 0, transition: 'transform .12s ease' }}
+                      style={{ width: sendSize, height: sendSize, borderRadius: '50%', border: 'none', background: text.trim() ? 'linear-gradient(135deg,#f0c800,#c8a200)' : '#e0e0e0', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: text.trim() ? '#3a2e00' : '#999', flexShrink: 0, transition: 'transform .12s ease' }}
                       onMouseDown={e => e.currentTarget.style.transform = 'scale(.9)'}
                       onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}>
                       {sending ? <Loader2 size={18} strokeWidth={ICON_STROKE} style={{ animation: 'wmSpin 0.8s linear infinite' }} /> : <Send size={17} strokeWidth={ICON_STROKE} />}
@@ -928,10 +939,10 @@ export default function MessagesPage() {
               )}
             </div>
           ) : (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: C.textDim, gap: 12 }}>
-              <MessagesSquare size={44} strokeWidth={ICON_STROKE} />
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: C.textDim, gap: 12, padding: 16 }}>
+              <MessagesSquare size={compact ? 28 : 44} strokeWidth={ICON_STROKE} />
               <div style={{ fontSize: 15, fontWeight: 600, color: C.textMid }}>Tes messages</div>
-              <div style={{ fontSize: 13, color: C.textDim, textAlign: 'center', maxWidth: 200 }}>Sélectionne une conversation ou cherche un membre à gauche</div>
+              {!compact && <div style={{ fontSize: 13, color: C.textDim, textAlign: 'center', maxWidth: 200 }}>Sélectionne une conversation ou cherche un membre à gauche</div>}
             </div>
           )
         )}
