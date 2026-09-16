@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Search, Flag, Trash2, Paperclip, Smile, Send, Ban,
-  MessagesSquare, Camera, Mic, X, Loader2, ArrowLeft, Video,
+  MessagesSquare, Camera, Mic, X, Loader2, ArrowLeft, Video, Pencil, Check,
 } from 'lucide-react'
 import { C } from '../lib/constants'
 import { RoleBadge } from '../components/UI'
@@ -22,9 +22,6 @@ const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
 const INPUT_MAX_HEIGHT = 120
 const ICON_STROKE = 1.75
 
-// Rafraîchissement périodique de la liste des membres (pour que last_seen
-// avance) et re-render périodique forcé (pour que isOnline() recalcule la
-// fraîcheur même sans nouvelle donnée — le statut expire avec le temps).
 const MEMBERS_POLL_MS = 20000
 const ONLINE_TICK_MS  = 15000
 
@@ -57,8 +54,6 @@ function formatTime(ts) {
   return d.toLocaleDateString('fr-FR')
 }
 
-// Étiquette de séparateur de date façon Facebook : "Aujourd'hui", "Hier",
-// ou "lundi 14 septembre" (+ année si différente de l'année en cours)
 function formatDayLabel(ts) {
   const d = new Date(ts)
   const today = new Date()
@@ -143,7 +138,6 @@ function MessageBody({ body, isMe, compact }) {
   )
 }
 
-// Petite bulle "… est en train d'écrire" avec 3 points animés
 function TypingBubble({ isMobile }) {
   return (
     <div style={{
@@ -165,7 +159,6 @@ function TypingBubble({ isMobile }) {
   )
 }
 
-// Séparateur de date entre messages (façon Facebook)
 function DateDivider({ label }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '10px 0' }}>
@@ -188,9 +181,8 @@ export default function MessagesPage() {
   const fileInputRef = useRef()
   const inputRef = useRef()
   const emojiRef = useRef()
+  const editInputRef = useRef()
 
-  // Détection par appareil (pas par largeur) : un téléphone à l'horizontal
-  // reste en layout mobile. `landscape` = hauteur écrasée → on compacte.
   const isMobile  = useIsMobile()
   const landscape = useIsLandscape()
   const compact   = isMobile && landscape
@@ -212,14 +204,16 @@ export default function MessagesPage() {
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [reporting, setReporting] = useState(null)
   const [showEmoji, setShowEmoji] = useState(false)
-  const [reactionPicker, setReactionPicker] = useState(null) // message id
+  const [reactionPicker, setReactionPicker] = useState(null)
   const [otherTyping, setOtherTyping] = useState(false)
+  const [editingMsg, setEditingMsg] = useState(null)
+  const [editText,   setEditText]   = useState('')
+  const [savingEdit,  setSavingEdit] = useState(false)
   const bottomRef = useRef(null)
   const longPressTimer = useRef(null)
   const channelRef = useRef(null)
   const typingStopTimer = useRef(null)
 
-  // Taille du picker d'emojis adaptée à la fenêtre (sinon 400x550 déborde en paysage)
   const [emojiSize, setEmojiSize] = useState({ w: 400, h: 550 })
   useEffect(() => {
     const update = () => setEmojiSize({
@@ -235,7 +229,6 @@ export default function MessagesPage() {
     }
   }, [])
 
-  // Keyframes pour les animations (réactions + "en train d'écrire" + envoi de message + spinner)
   useEffect(() => {
     const style = document.createElement('style')
     style.id = 'reaction-animations'
@@ -299,7 +292,6 @@ export default function MessagesPage() {
     clearTimeout(longPressTimer.current)
   }
 
-  // Fermer emoji picker au clic extérieur
   useEffect(() => {
     const handler = (e) => {
       if (emojiRef.current && !emojiRef.current.contains(e.target)) setShowEmoji(false)
@@ -308,9 +300,6 @@ export default function MessagesPage() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // ── Tick périodique : force un re-render pour que isOnline() recalcule
-  // la fraîcheur de last_seen même si aucune donnée n'a changé (le statut
-  // "en ligne" expire avec le temps qui passe, pas avec un événement). ──
   const [, forceOnlineTick] = useState(0)
   useEffect(() => {
     const t = setInterval(() => forceOnlineTick(n => n + 1), ONLINE_TICK_MS)
@@ -335,8 +324,6 @@ export default function MessagesPage() {
         .then(r => r.json()).then(d => { if (Array.isArray(d)) setMembers(d) })
     }
     loadMembers()
-    // Rafraîchit la liste régulièrement pour que last_seen avance vraiment
-    // (sinon un membre resté "online=true" en base ne redevient jamais gris).
     const t = setInterval(loadMembers, MEMBERS_POLL_MS)
     api(`/rest/v1/blocks?blocker_id=eq.${user.id}&select=blocked_id`)
       .then(r => r.json()).then(d => { if (Array.isArray(d)) setBlockedIds(d.map(b => b.blocked_id)) })
@@ -378,7 +365,6 @@ export default function MessagesPage() {
     })
   }, [activeId, user])
 
-  // ── REALTIME : messages instants + "en train d'écrire" ──
   useEffect(() => {
     if (!activeId || !user || !supabase) return
 
@@ -401,6 +387,14 @@ export default function MessagesPage() {
         window.dispatchEvent(new CustomEvent('messages-read'))
         loadConvos()
       })
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'messages',
+        filter: `to_id=eq.${user.id}`
+      }, (payload) => {
+        const m = payload.new
+        if (m.from_id !== activeId) return
+        setMessages(prev => prev.map(x => x.id === m.id ? { ...x, body: m.body } : x))
+      })
       .on('broadcast', { event: 'typing' }, ({ payload }) => {
         if (payload?.userId !== activeId) return
         setOtherTyping(payload.isTyping)
@@ -422,7 +416,6 @@ export default function MessagesPage() {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, otherTyping])
 
-  // ── AUTO-RESIZE de la textarea de saisie ──
   const autoResizeInput = (el) => {
     if (!el) return
     el.style.height = 'auto'
@@ -430,6 +423,16 @@ export default function MessagesPage() {
   }
 
   useEffect(() => { autoResizeInput(inputRef.current) }, [text, activeId, compact])
+
+  useEffect(() => {
+    if (editingMsg && editInputRef.current) {
+      const el = editInputRef.current
+      el.style.height = 'auto'
+      el.style.height = Math.min(el.scrollHeight, INPUT_MAX_HEIGHT) + 'px'
+      el.focus()
+      el.setSelectionRange(el.value.length, el.value.length)
+    }
+  }, [editingMsg, editText])
 
   const broadcastTyping = (isTyping) => {
     channelRef.current?.send({ type: 'broadcast', event: 'typing', payload: { userId: user.id, isTyping } })
@@ -479,7 +482,6 @@ export default function MessagesPage() {
     if (newMsg) {
       setMessages(prev => prev.some(x => x.id === newMsg.id) ? prev : [...prev, newMsg])
     } else {
-      // fallback si return=representation indisponible
       const msgs = await api(`/rest/v1/messages?or=(and(from_id.eq.${user.id},to_id.eq.${activeId}),and(from_id.eq.${activeId},to_id.eq.${user.id}))&order=created_at.asc`)
         .then(r => r.json())
       if (Array.isArray(msgs)) setMessages(msgs)
@@ -500,6 +502,33 @@ export default function MessagesPage() {
     if (!text.trim()) return
     await sendMessage(text.trim())
     setText('')
+  }
+
+  const startEdit = (m) => {
+    setReactionPicker(null)
+    setEditingMsg(m.id)
+    setEditText(m.body || '')
+  }
+
+  const cancelEdit = () => {
+    setEditingMsg(null)
+    setEditText('')
+  }
+
+  const saveEdit = async () => {
+    const newBody = editText.trim()
+    if (!newBody || !editingMsg) { cancelEdit(); return }
+    const msgId = editingMsg
+    setSavingEdit(true)
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, body: newBody } : m))
+    await api(`/rest/v1/messages?id=eq.${msgId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ body: newBody }),
+      headers: { 'Prefer': 'return=minimal' }
+    })
+    setSavingEdit(false)
+    cancelEdit()
+    loadConvos()
   }
 
   const uploadMedia = async (file) => {
@@ -561,8 +590,6 @@ export default function MessagesPage() {
 
   const openConvo = (id) => { setActiveId(id); if (isMobile) setShowSidebar(false) }
 
-  // Hauteur du panneau : sur mobile on prend toute la fenêtre visible (dvh),
-  // en paysage la barre de nav est plus courte → on retire moins.
   const panelHeight = isMobile
     ? `calc(100dvh - ${compact ? 48 : 64}px)`
     : 600
@@ -766,6 +793,8 @@ export default function MessagesPage() {
                   const isImg = m.body?.startsWith('__IMG__')
                   const isVid = m.body?.startsWith('__VID__')
                   const isVoice = m.type === 'voice'
+                  const isEditable = isMe && !isImg && !isVid && !isVoice
+                  const isEditing = editingMsg === m.id
                   const showAvatar = !isMe && (i === 0 || messages[i - 1]?.from_id !== m.from_id)
                   const isDeleting = deletingMsg === m.id
                   const reactions = m.reactions || {}
@@ -798,9 +827,15 @@ export default function MessagesPage() {
                                 {emoji}
                               </button>
                             ))}
+                            {isMobile && isMe && isEditable && (
+                              <button onClick={() => startEdit(m)}
+                                style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.textMid, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s cubic-bezier(.34,1.56,.64,1) ${QUICK_EMOJIS.length * 30}ms both` }}>
+                                <Pencil size={16} strokeWidth={ICON_STROKE} />
+                              </button>
+                            )}
                             {isMobile && isMe && (
                               <button onClick={() => { setReactionPicker(null); setConfirmDelete({ type: 'msg', id: m.id }) }}
-                                style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.red, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s cubic-bezier(.34,1.56,.64,1) ${QUICK_EMOJIS.length * 30}ms both` }}>
+                                style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.red, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s cubic-bezier(.34,1.56,.64,1) ${(QUICK_EMOJIS.length + 1) * 30}ms both` }}>
                                 <Trash2 size={18} strokeWidth={ICON_STROKE} />
                               </button>
                             )}
@@ -815,7 +850,7 @@ export default function MessagesPage() {
                               </button>
                             )}
                             <button onClick={() => setReactionPicker(null)}
-                              style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s ease ${(QUICK_EMOJIS.length + 1) * 30}ms both` }}><X size={14} strokeWidth={ICON_STROKE} /></button>
+                              style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s ease ${(QUICK_EMOJIS.length + 2) * 30}ms both` }}><X size={14} strokeWidth={ICON_STROKE} /></button>
                           </div>
                         )}
 
@@ -823,35 +858,67 @@ export default function MessagesPage() {
                         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, flexDirection: isMe ? 'row-reverse' : 'row', maxWidth: '100%', minWidth: 0 }}>
                           {!isMe && <div style={{ width: 28, flexShrink: 0 }}>{showAvatar && <Avatar member={activeMember} size={28} />}</div>}
 
-                          {/* Bulle message — maxWidth en % de la ligne, jamais en vw */}
-                          <div
-                            onDoubleClick={() => !isMobile && setReactionPicker(pickerOpen ? null : m.id)}
-                            onTouchStart={() => isMobile && handleLongPressStart(m.id)}
-                            onTouchEnd={handleLongPressEnd}
-                            onTouchMove={handleLongPressEnd}
-                            onContextMenu={e => e.preventDefault()}
-                            style={{
-                              width: isVoice ? 240 : undefined,
-                              maxWidth: isVoice ? 240 : (isMobile ? (compact ? '68%' : '78%') : '60%'),
-                              minWidth: 0,
-                              background: (isImg || isVid) ? 'transparent' : isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.white,
-                              border: (isImg || isVid) ? 'none' : isMe ? 'none' : `1px solid ${C.border}`,
-                              borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                              padding: (isImg || isVid) ? 0 : isVoice ? '8px 10px' : '10px 14px',
-                              boxShadow: (isImg || isVid) ? 'none' : '0 1px 3px rgba(0,0,0,.08)',
-                              WebkitTouchCallout: 'none',
-                              WebkitUserSelect: isMobile ? 'none' : 'auto',
-                              userSelect: isMobile ? 'none' : 'auto',
-                            }}>
-                            {isVoice ? (
-                              <VoiceMessagePlayer url={m.body} duration={m.voice_duration} waveform={m.voice_waveform} isMe={isMe} />
-                            ) : (
-                              <MessageBody body={m.body} isMe={isMe} compact={compact} />
-                            )}
-                          </div>
+                          {isEditing ? (
+                            <div style={{ width: '100%', maxWidth: isMobile ? (compact ? '68%' : '78%') : '60%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              <textarea
+                                ref={editInputRef}
+                                value={editText}
+                                rows={1}
+                                onChange={e => setEditText(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit() }
+                                  if (e.key === 'Escape') cancelEdit()
+                                }}
+                                style={{
+                                  width: '100%', boxSizing: 'border-box', border: `1px solid ${C.borderMid}`,
+                                  borderRadius: 14, padding: '10px 14px', fontSize: 13, color: C.text,
+                                  fontFamily: 'inherit', outline: 'none', background: C.white,
+                                  resize: 'none', overflow: 'hidden', lineHeight: 1.5,
+                                  maxHeight: INPUT_MAX_HEIGHT,
+                                }}
+                                onFocus={e => e.target.style.borderColor = '#c8a200'} />
+                              <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                                <button onClick={cancelEdit}
+                                  style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.surfaceB, color: C.textMid, fontWeight: 600, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+                                  Annuler
+                                </button>
+                                <button onClick={saveEdit} disabled={savingEdit || !editText.trim()}
+                                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 12px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#f0c800,#c8a200)', color: '#3a2e00', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', opacity: editText.trim() ? 1 : .6 }}>
+                                  {savingEdit ? <Loader2 size={12} strokeWidth={ICON_STROKE} style={{ animation: 'wmSpin 0.8s linear infinite' }} /> : <Check size={12} strokeWidth={ICON_STROKE} />}
+                                  Enregistrer
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div
+                              onDoubleClick={() => !isMobile && setReactionPicker(pickerOpen ? null : m.id)}
+                              onTouchStart={() => isMobile && handleLongPressStart(m.id)}
+                              onTouchEnd={handleLongPressEnd}
+                              onTouchMove={handleLongPressEnd}
+                              onContextMenu={e => e.preventDefault()}
+                              style={{
+                                width: isVoice ? 240 : undefined,
+                                maxWidth: isVoice ? 240 : (isMobile ? (compact ? '68%' : '78%') : '60%'),
+                                minWidth: 0,
+                                background: (isImg || isVid) ? 'transparent' : isMe ? 'linear-gradient(135deg,#f0c800,#c8a200)' : C.white,
+                                border: (isImg || isVid) ? 'none' : isMe ? 'none' : `1px solid ${C.border}`,
+                                borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                                padding: (isImg || isVid) ? 0 : isVoice ? '8px 10px' : '10px 14px',
+                                boxShadow: (isImg || isVid) ? 'none' : '0 1px 3px rgba(0,0,0,.08)',
+                                WebkitTouchCallout: 'none',
+                                WebkitUserSelect: isMobile ? 'none' : 'auto',
+                                userSelect: isMobile ? 'none' : 'auto',
+                              }}>
+                              {isVoice ? (
+                                <VoiceMessagePlayer url={m.body} duration={m.voice_duration} waveform={m.voice_waveform} isMe={isMe} />
+                              ) : (
+                                <MessageBody body={m.body} isMe={isMe} compact={compact} />
+                              )}
+                            </div>
+                          )}
 
                           {/* Actions au hover */}
-                          {hovered && !isMobile && (
+                          {hovered && !isMobile && !isEditing && (
                             <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
                               <button onClick={() => setReactionPicker(pickerOpen ? null : m.id)}
                                 style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.textMid, opacity: 0.5, padding: '2px', lineHeight: 1, transition: 'opacity .15s' }}
@@ -859,6 +926,14 @@ export default function MessagesPage() {
                                 onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}>
                                 <Smile size={15} strokeWidth={ICON_STROKE} />
                               </button>
+                              {isEditable && (
+                                <button onClick={() => startEdit(m)}
+                                  style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.textMid, opacity: 0.5, padding: '2px', lineHeight: 1, transition: 'opacity .15s' }}
+                                  onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                                  onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}>
+                                  <Pencil size={13} strokeWidth={ICON_STROKE} />
+                                </button>
+                              )}
                               {isMe && (
                                 <button onClick={() => setConfirmDelete({ type: 'msg', id: m.id })} disabled={isDeleting}
                                   style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.red, opacity: 0.5, padding: '2px', lineHeight: 1, transition: 'opacity .15s' }}
@@ -883,7 +958,7 @@ export default function MessagesPage() {
                         </div>
 
                         {/* Réactions existantes */}
-                        {hasReactions && (
+                        {hasReactions && !isEditing && (
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignSelf: isMe ? 'flex-end' : 'flex-start' }}>
                             {Object.entries(reactions).map(([emoji, likers]) => {
                               const iLiked = likers.includes(user.id)
@@ -899,9 +974,11 @@ export default function MessagesPage() {
                         )}
 
                         {/* Heure */}
-                        <div style={{ fontSize: 10, color: C.textDim, alignSelf: isMe ? 'flex-end' : 'flex-start', paddingLeft: isMe ? 0 : 36 }}>
-                          {new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                        </div>
+                        {!isEditing && (
+                          <div style={{ fontSize: 10, color: C.textDim, alignSelf: isMe ? 'flex-end' : 'flex-start', paddingLeft: isMe ? 0 : 36 }}>
+                            {new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )
