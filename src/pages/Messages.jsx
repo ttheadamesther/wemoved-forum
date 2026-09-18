@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Search, Flag, Trash2, Paperclip, Smile, Send, Ban,
-  MessagesSquare, Camera, Mic, X, Loader2, ArrowLeft, Video, Pencil, Check,
+  MessagesSquare, Camera, Mic, X, Loader2, ArrowLeft, Video, Pencil, Check, CheckCheck,
 } from 'lucide-react'
 import { C } from '../lib/constants'
 import { RoleBadge } from '../components/UI'
@@ -173,14 +173,11 @@ function DateDivider({ label }) {
   )
 }
 
-// Petit avatar + "Vu" à la Facebook, affiché sous le dernier message envoyé une fois lu
-function SeenIndicator({ member, compact }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4, alignSelf: 'flex-end', marginTop: 2, paddingRight: 2 }}>
-      <Avatar member={member} size={compact ? 12 : 14} />
-      <span style={{ fontSize: 10, color: C.textDim }}>Vu</span>
-    </div>
-  )
+// Coches façon WhatsApp — simple = envoyé, double bleue = lu
+function ReadTicks({ read }) {
+  return read
+    ? <CheckCheck size={13} strokeWidth={2} style={{ color: '#53bdeb', flexShrink: 0 }} />
+    : <Check size={13} strokeWidth={2} style={{ color: C.textDim, flexShrink: 0 }} />
 }
 
 export default function MessagesPage() {
@@ -409,7 +406,7 @@ export default function MessagesPage() {
         event: 'UPDATE', schema: 'public', table: 'messages',
         filter: `from_id=eq.${user.id}`
       }, (payload) => {
-        // mes propres messages passés en "lu" côté destinataire → indicateur "Vu"
+        // mes propres messages passés en "lu" côté destinataire → coches bleues
         const m = payload.new
         if (m.to_id !== activeId) return
         setMessages(prev => prev.map(x => x.id === m.id ? { ...x, read: m.read } : x))
@@ -742,7 +739,7 @@ export default function MessagesPage() {
                                 ? <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: C.red, fontStyle: 'italic' }}><Ban size={12} strokeWidth={ICON_STROKE} /> Bloqué</div>
                                 : last && (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: unread > 0 ? C.text : C.textDim, overflow: 'hidden', whiteSpace: 'nowrap', fontWeight: unread > 0 ? 600 : 400 }}>
-                                    {last.from_id === user.id && <span>Vous : </span>}
+                                    {last.from_id === user.id && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>Vous <ReadTicks read={last.read} /> :</span>}
                                     {isImgPreview ? (
                                       <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><Camera size={12} strokeWidth={ICON_STROKE} /> Photo</span>
                                     ) : isVideoPreview ? (
@@ -822,8 +819,6 @@ export default function MessagesPage() {
                   const hovered = hoveredMsg === m.id
                   const showDate = i === 0 ||
                     new Date(m.created_at).toDateString() !== new Date(messages[i - 1].created_at).toDateString()
-                  const isLast = i === messages.length - 1
-                  const showSeen = isLast && isMe && m.read
                   return (
                     <div key={m.id ?? i} style={{ display: 'contents' }}>
                       {showDate && <DateDivider label={formatDayLabel(m.created_at)} />}
@@ -994,16 +989,12 @@ export default function MessagesPage() {
                           </div>
                         )}
 
-                        {/* Heure */}
+                        {/* Heure + coches (WhatsApp) */}
                         {!isEditing && (
-                          <div style={{ fontSize: 10, color: C.textDim, alignSelf: isMe ? 'flex-end' : 'flex-start', paddingLeft: isMe ? 0 : 36 }}>
-                            {new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: C.textDim, alignSelf: isMe ? 'flex-end' : 'flex-start', paddingLeft: isMe ? 0 : 36 }}>
+                            <span>{new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                            {isMe && !isVoice && !isImg && !isVid && <ReadTicks read={m.read} />}
                           </div>
-                        )}
-
-                        {/* "Vu" — comme Facebook, sous le dernier message envoyé une fois lu */}
-                        {showSeen && !isEditing && !otherTyping && (
-                          <SeenIndicator member={activeMember} compact={compact} />
                         )}
                       </div>
                     </div>
