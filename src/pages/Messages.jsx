@@ -173,6 +173,16 @@ function DateDivider({ label }) {
   )
 }
 
+// Petit avatar + "Vu" à la Facebook, affiché sous le dernier message envoyé une fois lu
+function SeenIndicator({ member, compact }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, alignSelf: 'flex-end', marginTop: 2, paddingRight: 2 }}>
+      <Avatar member={member} size={compact ? 12 : 14} />
+      <span style={{ fontSize: 10, color: C.textDim }}>Vu</span>
+    </div>
+  )
+}
+
 export default function MessagesPage() {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
@@ -394,6 +404,15 @@ export default function MessagesPage() {
         const m = payload.new
         if (m.from_id !== activeId) return
         setMessages(prev => prev.map(x => x.id === m.id ? { ...x, body: m.body } : x))
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'messages',
+        filter: `from_id=eq.${user.id}`
+      }, (payload) => {
+        // mes propres messages passés en "lu" côté destinataire → indicateur "Vu"
+        const m = payload.new
+        if (m.to_id !== activeId) return
+        setMessages(prev => prev.map(x => x.id === m.id ? { ...x, read: m.read } : x))
       })
       .on('broadcast', { event: 'typing' }, ({ payload }) => {
         if (payload?.userId !== activeId) return
@@ -803,6 +822,8 @@ export default function MessagesPage() {
                   const hovered = hoveredMsg === m.id
                   const showDate = i === 0 ||
                     new Date(m.created_at).toDateString() !== new Date(messages[i - 1].created_at).toDateString()
+                  const isLast = i === messages.length - 1
+                  const showSeen = isLast && isMe && m.read
                   return (
                     <div key={m.id ?? i} style={{ display: 'contents' }}>
                       {showDate && <DateDivider label={formatDayLabel(m.created_at)} />}
@@ -978,6 +999,11 @@ export default function MessagesPage() {
                           <div style={{ fontSize: 10, color: C.textDim, alignSelf: isMe ? 'flex-end' : 'flex-start', paddingLeft: isMe ? 0 : 36 }}>
                             {new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                           </div>
+                        )}
+
+                        {/* "Vu" — comme Facebook, sous le dernier message envoyé une fois lu */}
+                        {showSeen && !isEditing && !otherTyping && (
+                          <SeenIndicator member={activeMember} compact={compact} />
                         )}
                       </div>
                     </div>
