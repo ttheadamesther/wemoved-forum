@@ -236,6 +236,24 @@ export default function MessagesPage() {
     }
   }, [])
 
+  // Reconnecte le websocket Realtime quand l'app mobile revient au premier plan
+  // (les OS mobiles suspendent le WebSocket en arrière-plan et ne le relancent pas seuls)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && supabase) {
+        supabase.realtime.connect()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    window.addEventListener('focus', handleVisibility)
+    window.addEventListener('pageshow', handleVisibility)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+      window.removeEventListener('focus', handleVisibility)
+      window.removeEventListener('pageshow', handleVisibility)
+    }
+  }, [])
+
   useEffect(() => {
     const style = document.createElement('style')
     style.id = 'reaction-animations'
