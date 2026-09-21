@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Search, Flag, Trash2, Paperclip, Smile, Send, Ban,
-  MessagesSquare, Camera, Mic, X, Loader2, ArrowLeft, Video, Pencil, Check, CheckCheck,
+  MessagesSquare, Camera, Mic, X, Loader2, ArrowLeft, Video, Pencil, Check,
 } from 'lucide-react'
 import { C } from '../lib/constants'
 import { RoleBadge } from '../components/UI'
@@ -173,11 +173,34 @@ function DateDivider({ label }) {
   )
 }
 
-// Coches façon WhatsApp — simple = envoyé, double bleue = lu
-function ReadTicks({ read }) {
-  return read
-    ? <CheckCheck size={13} strokeWidth={2} style={{ color: '#53bdeb', flexShrink: 0 }} />
-    : <Check size={13} strokeWidth={2} style={{ color: C.textDim, flexShrink: 0 }} />
+// Coches de lecture — visuel maison en dégradé doré, avec un petit "pop" à l'apparition de la 2e coche
+function ReadTicks({ read, compact }) {
+  const size = compact ? 13 : 15
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none"
+      style={{ flexShrink: 0, display: 'block' }}>
+      <defs>
+        <linearGradient id="wmTickGrad" x1="0" y1="0" x2="20" y2="20">
+          <stop offset="0%" stopColor="#f0c800" />
+          <stop offset="100%" stopColor="#c8a200" />
+        </linearGradient>
+      </defs>
+      {/* première coche — toujours visible dès l'envoi */}
+      <path d="M2.5 10.3L7 14.8L13.5 5.8"
+        stroke={read ? 'url(#wmTickGrad)' : C.textDim}
+        strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
+      {/* seconde coche — apparaît uniquement une fois lu, avec un petit pop doré */}
+      {read && (
+        <path d="M7.8 10.3L12.3 14.8L18.8 5.8"
+          stroke="url(#wmTickGrad)" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"
+          style={{
+            transformOrigin: '13px 10px',
+            filter: 'drop-shadow(0 0 2.5px rgba(240,200,0,.65))',
+            animation: 'tickPop .38s cubic-bezier(.34,1.56,.64,1) both',
+          }} />
+      )}
+    </svg>
+  )
 }
 
 export default function MessagesPage() {
@@ -237,7 +260,6 @@ export default function MessagesPage() {
   }, [])
 
   // Reconnecte le websocket Realtime quand l'app mobile revient au premier plan
-  // (les OS mobiles suspendent le WebSocket en arrière-plan et ne le relancent pas seuls)
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible' && supabase) {
@@ -281,6 +303,11 @@ export default function MessagesPage() {
       @keyframes wmSpin {
         from { transform: rotate(0deg); }
         to   { transform: rotate(360deg); }
+      }
+      @keyframes tickPop {
+        0%   { opacity: 0; transform: scale(.3) translateX(-3px); }
+        55%  { opacity: 1; transform: scale(1.3) translateX(0);   }
+        100% { opacity: 1; transform: scale(1)   translateX(0);   }
       }
     `
     if (!document.getElementById('reaction-animations')) {
@@ -424,7 +451,7 @@ export default function MessagesPage() {
         event: 'UPDATE', schema: 'public', table: 'messages',
         filter: `from_id=eq.${user.id}`
       }, (payload) => {
-        // mes propres messages passés en "lu" côté destinataire → coches bleues
+        // mes propres messages passés en "lu" côté destinataire → coches dorées
         const m = payload.new
         if (m.to_id !== activeId) return
         setMessages(prev => prev.map(x => x.id === m.id ? { ...x, read: m.read } : x))
@@ -1007,11 +1034,11 @@ export default function MessagesPage() {
                           </div>
                         )}
 
-                        {/* Heure + coches (WhatsApp) */}
+                        {/* Heure + coches dorées */}
                         {!isEditing && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: C.textDim, alignSelf: isMe ? 'flex-end' : 'flex-start', paddingLeft: isMe ? 0 : 36 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: C.textDim, alignSelf: isMe ? 'flex-end' : 'flex-start', paddingLeft: isMe ? 0 : 36 }}>
                             <span>{new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
-                            {isMe && !isVoice && !isImg && !isVid && <ReadTicks read={m.read} />}
+                            {isMe && !isVoice && !isImg && !isVid && <ReadTicks read={m.read} compact={compact} />}
                           </div>
                         )}
                       </div>
