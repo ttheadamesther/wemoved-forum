@@ -6,6 +6,11 @@ import { BADGES_DEF } from '../lib/xp'
 import { RoleBadge, Btn, Input, Textarea } from '../components/UI'
 import { GeoSelects } from '../components/GeoSelects'
 import { updateOwnProfile } from '../lib/security'
+import {
+  Calendar, Cake, User, MapPin, Map as MapIcon, Globe2, Heart, PenLine,
+  Image as ImageIcon, Camera, Upload, Move, Palette, X as XIcon, ZoomIn,
+  Award, Bell, Users, Target, Star, CheckCircle2,
+} from 'lucide-react'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -69,17 +74,28 @@ const BANNER_GRADIENTS = [
 ]
 
 const STATUTS = [
-  { value: '',            label: 'Non renseigné',   emoji: '—' },
-  { value: 'celibataire', label: 'Célibataire',     emoji: '💚' },
-  { value: 'couple',      label: 'En couple',       emoji: '❤️' },
-  { value: 'complique',   label: "C'est compliqué", emoji: '💛' },
+  { value: '',            label: 'Non renseigné',   color: null },
+  { value: 'celibataire', label: 'Célibataire',     color: '#2ecc71' },
+  { value: 'couple',      label: 'En couple',       color: '#e74c3c' },
+  { value: 'complique',   label: "C'est compliqué", color: '#f0c800' },
 ]
 
 const PANEL = { background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid var(--accent)', borderRadius: 16, padding: 20, boxShadow: '0 2px 16px rgba(0,0,0,.07), 0 1px 4px rgba(0,0,0,.05)' }
-const Tag = ({ icon, label }) => (
-  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--textMid)', background: 'var(--surfaceB)', padding: '4px 11px', borderRadius: 99, border: '1px solid var(--border)', fontWeight: 500 }}>
-    {icon} {label}
+
+// Pastille d'info — icône Lucide dorée + libellé, cohérent avec la DA du site
+const Tag = ({ icon: Icon, label, color }) => (
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--textMid)', background: 'var(--surfaceB)', padding: '5px 12px', borderRadius: 99, border: '1px solid var(--border)', fontWeight: 500 }}>
+    <Icon size={13} strokeWidth={2.2} style={{ color: color || '#c8a200', flexShrink: 0 }} />
+    {label}
   </span>
+)
+
+// En-tête de section — icône ronde dorée + libellé en petites capitales
+const SectionTitle = ({ icon: Icon, children, style }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, ...style }}>
+    <Icon size={13} strokeWidth={2.2} style={{ color: '#c8a200', flexShrink: 0 }} />
+    {children}
+  </div>
 )
 
 function parsePos(str) {
@@ -108,7 +124,9 @@ function BannerPositionModal({ url, initialPosition, onConfirm, onCancel }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
       <div style={{ background: '#1a1a2e', borderRadius: 14, overflow: 'hidden', width: '100%', maxWidth: 800, boxShadow: '0 8px 40px rgba(0,0,0,.6)' }}>
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,.1)', fontWeight: 700, fontSize: 14, color: '#fff' }}>🖼️ Repositionner la bannière</div>
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,.1)', fontWeight: 700, fontSize: 14, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <ImageIcon size={16} style={{ color: '#f0c800' }} /> Repositionner la bannière
+        </div>
         <div style={{ padding: '6px 16px', fontSize: 11, color: 'rgba(255,255,255,.5)', textAlign: 'center' }}>Glisse l'image pour repositionner</div>
         <div ref={containerRef}
           onMouseDown={e => { e.preventDefault(); startDrag(e.clientX, e.clientY) }}
@@ -296,14 +314,14 @@ export default function Profile() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', flexShrink: 0 }}>
               <div style={{ fontSize: 13, color: 'rgba(255,255,255,.6)', fontWeight: 600 }}>{lightbox.index + 1} / {total}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: 13, color: '#fff', fontWeight: 700 }}>❤️ {likers.length}</span>
-                <button onClick={() => setLightbox(null)} style={{ background: 'rgba(255,255,255,.12)', border: 'none', borderRadius: '50%', width: 38, height: 38, color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: '#fff', fontWeight: 700 }}><Heart size={14} fill="#e74c3c" stroke="#e74c3c" /> {likers.length}</span>
+                <button onClick={() => setLightbox(null)} style={{ background: 'rgba(255,255,255,.12)', border: 'none', borderRadius: '50%', width: 38, height: 38, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><XIcon size={18} /></button>
               </div>
             </div>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }} onClick={() => setLightbox(null)}>
-              {total > 1 && <button onClick={e => { e.stopPropagation(); goTo(lightbox.index - 1) }} style={{ position: 'absolute', left: 16, zIndex: 10, background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: '50%', width: 48, height: 48, color: '#fff', fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>}
+              {total > 1 && <button onClick={e => { e.stopPropagation(); goTo(lightbox.index - 1) }} style={{ position: 'absolute', left: 16, zIndex: 10, background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: '50%', width: 48, height: 48, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>}
               <img src={lightbox.url} alt="" onClick={e => e.stopPropagation()} style={{ maxWidth: 'calc(100vw - 140px)', maxHeight: 'calc(100vh - 180px)', objectFit: 'contain', borderRadius: 8, boxShadow: '0 8px 60px rgba(0,0,0,.8)', userSelect: 'none' }} />
-              {total > 1 && <button onClick={e => { e.stopPropagation(); goTo(lightbox.index + 1) }} style={{ position: 'absolute', right: 16, zIndex: 10, background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: '50%', width: 48, height: 48, color: '#fff', fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>}
+              {total > 1 && <button onClick={e => { e.stopPropagation(); goTo(lightbox.index + 1) }} style={{ position: 'absolute', right: 16, zIndex: 10, background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: '50%', width: 48, height: 48, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>}
             </div>
             <div style={{ flexShrink: 0, padding: '12px 20px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
               {likerProfiles.length > 0 && (
@@ -378,13 +396,13 @@ export default function Profile() {
           <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10, display: 'flex', gap: 6 }}>
             {profile.banner_url && (
               <button onClick={() => { setShowBannerPicker(false); setShowPositionSlider(true) }}
-                style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
-                ↕️ Position
+                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
+                <Move size={13} /> Position
               </button>
             )}
             <button onClick={() => setShowBannerPicker(p => !p)}
-              style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
-              🎨 Bannière
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
+              <Palette size={13} /> Bannière
             </button>
           </div>
           {showBannerPicker && (
@@ -397,8 +415,8 @@ export default function Profile() {
                 ))}
               </div>
               <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>Image</div>
-              <button onClick={() => bannerRef.current.click()} style={{ width: '100%', padding: '8px', borderRadius: 8, border: `1px dashed ${C.borderMid}`, background: C.surfaceB, color: C.textMid, fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
-                📸 Importer une image
+              <button onClick={() => bannerRef.current.click()} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', padding: '8px', borderRadius: 8, border: `1px dashed ${C.borderMid}`, background: C.surfaceB, color: C.textMid, fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+                <Upload size={14} style={{ color: '#c8a200' }} /> Importer une image
               </button>
               <input ref={bannerRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={selectBanner} />
             </div>
@@ -413,7 +431,7 @@ export default function Profile() {
                 {profile.avatar_url ? <img loading="lazy" src={profile.avatar_url} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : profile.initials || profile.pseudo?.slice(0, 2).toUpperCase()}
                 <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: '.2s', borderRadius: '50%' }}
                   onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0}>
-                  <span style={{ color: '#fff', fontSize: 20 }}>{uploading ? '…' : '📷'}</span>
+                  {uploading ? <span style={{ color: '#fff', fontSize: 14 }}>…</span> : <Camera size={20} color="#fff" />}
                 </div>
               </div>
               <input ref={avatarRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadAvatar} />
@@ -432,13 +450,13 @@ export default function Profile() {
               )}
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {profile.joined && <Tag icon="📅" label={profile.joined} />}
-              {profile.age    && <Tag icon="🎂" label={`${profile.age} ans`} />}
-              {sexeLabel      && <Tag icon="👤" label={sexeLabel} />}
-              {profile.city   && <Tag icon="📍" label={profile.city} />}
-              {profile.dept   && <Tag icon="🗺️" label={profile.dept} />}
-              {profile.region && <Tag icon="🏳️" label={profile.region} />}
-              {profile.statut && statutDef.value && <Tag icon={statutDef.emoji} label={statutDef.label} />}
+              {profile.joined && <Tag icon={Calendar} label={profile.joined} />}
+              {profile.age    && <Tag icon={Cake} label={`${profile.age} ans`} />}
+              {sexeLabel      && <Tag icon={User} label={sexeLabel} />}
+              {profile.city   && <Tag icon={MapPin} label={profile.city} />}
+              {profile.dept   && <Tag icon={MapIcon} label={profile.dept} />}
+              {profile.region && <Tag icon={Globe2} label={profile.region} />}
+              {profile.statut && statutDef.value && <Tag icon={Heart} label={statutDef.label} color={statutDef.color} />}
             </div>
           </div>
         </div>
@@ -457,11 +475,11 @@ export default function Profile() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', gap: 12, flexShrink: 0 }}>
                     {[
-                      { icon: '👥', label: 'Amis',  value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
-                      { icon: '⭐', label: 'Votes', value: totalVotes, color: '#c8a200' },
+                      { icon: Users, label: 'Amis',  value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
+                      { icon: Star,  label: 'Votes', value: totalVotes, color: '#c8a200' },
                     ].map(s => (
                       <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ fontSize: 13 }}>{s.icon}</span>
+                        <s.icon size={13} style={{ color: s.color }} />
                         <div>
                           <div style={{ fontWeight: 700, fontSize: 13, color: s.color, lineHeight: 1 }}>{s.value}</div>
                           <div style={{ fontSize: 8, color: C.textDim, textTransform: 'uppercase', letterSpacing: .4 }}>{s.label}</div>
@@ -483,7 +501,7 @@ export default function Profile() {
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>✍️ Bio</div>
+                <SectionTitle icon={PenLine}>Bio</SectionTitle>
                 {!editing && <button onClick={() => { setBio(profile.bio || ''); setEditing(true) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.accentTxt, fontWeight: 600 }}>Modifier</button>}
               </div>
               {editing ? (
@@ -503,13 +521,13 @@ export default function Profile() {
 
             <div style={PANEL}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8 }}>🖼️ Photos ({(profile.photos || []).length})</div>
+                <SectionTitle>{`Photos (${(profile.photos || []).length})`}</SectionTitle>
                 <Btn onClick={() => photoRef.current.click()} variant="ghost" style={{ fontSize: 11 }}>{uploadingPhoto ? '…' : '+ Ajouter'}</Btn>
                 <input ref={photoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadPhoto} />
               </div>
               {(profile.photos || []).length === 0
                 ? <div style={{ textAlign: 'center', padding: '36px', color: C.textDim, fontSize: 13, background: C.surfaceB, borderRadius: 12, border: '1px dashed rgba(200,162,0,.3)' }}>
-                    <div style={{ fontSize: 36, marginBottom: 10 }}>📷</div>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10, color: '#c8a200' }}><Camera size={34} strokeWidth={1.5} /></div>
                     <div style={{ fontWeight: 600, marginBottom: 4 }}>Aucune photo</div>
                     <div style={{ fontSize: 12 }}>Ajoute tes premières photos</div>
                   </div>
@@ -522,12 +540,12 @@ export default function Profile() {
                           onMouseEnter={e => { e.currentTarget.querySelector('img').style.transform = 'scale(1.05)'; e.currentTarget.querySelector('.overlay').style.opacity = '1' }}
                           onMouseLeave={e => { e.currentTarget.querySelector('img').style.transform = 'scale(1)'; e.currentTarget.querySelector('.overlay').style.opacity = '0' }}>
                           <img loading="lazy" src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform .3s ease' }} />
-                          {likers.length > 0 && <div style={{ position: 'absolute', bottom: 8, left: 10, fontSize: 12, color: '#fff', fontWeight: 700, textShadow: '0 1px 3px rgba(0,0,0,.9)' }}>❤️ {likers.length}</div>}
+                          {likers.length > 0 && <div style={{ position: 'absolute', bottom: 8, left: 10, display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, color: '#fff', fontWeight: 700, textShadow: '0 1px 3px rgba(0,0,0,.9)' }}><Heart size={12} fill="#e74c3c" stroke="#e74c3c" /> {likers.length}</div>}
                           <div className="overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.3)', opacity: 0, transition: 'opacity .2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <span style={{ fontSize: 28, color: '#fff', opacity: .9 }}>🔍</span>
+                            <ZoomIn size={26} color="#fff" style={{ opacity: .9 }} />
                           </div>
                           <button onClick={e => { e.stopPropagation(); removePhoto(url) }}
-                            style={{ position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.7)', color: '#fff', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>✕</button>
+                            style={{ position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.7)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}><XIcon size={14} /></button>
                         </div>
                       )
                     })}
@@ -537,7 +555,7 @@ export default function Profile() {
 
             {(profile.badges || []).length > 0 && (
               <div style={{ ...PANEL, borderTop: '3px solid #c8a200' }}>
-                <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>🎖️ Badges obtenus</div>
+                <SectionTitle icon={Award} style={{ marginBottom: 14 }}>Badges obtenus</SectionTitle>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
                   {BADGES_DEF.filter(b => (profile.badges || []).includes(b.key)).map(b => (
                     <div key={b.key} title={b.desc} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'help' }}>
@@ -553,7 +571,7 @@ export default function Profile() {
 
             {pendingRequests.length > 0 && (
               <div style={{ ...PANEL, borderTop: '3px solid #e67e22' }}>
-                <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>🔔 Demandes d'amis ({pendingRequests.length})</div>
+                <SectionTitle icon={Bell} style={{ marginBottom: 14 }}>{`Demandes d'amis (${pendingRequests.length})`}</SectionTitle>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {pendingRequests.map(friendship => {
                     const sender = pendingProfiles.find(p => p.id === friendship.user_a)
@@ -569,8 +587,8 @@ export default function Profile() {
                           <div style={{ fontSize: 11, color: C.textDim }}>veut être ton ami</div>
                         </div>
                         <div style={{ display: 'flex', gap: 6 }}>
-                          <button onClick={() => acceptFriend(friendship)} style={{ padding: '6px 14px', borderRadius: 20, border: 'none', background: '#2ecc71', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>✅ Accepter</button>
-                          <button onClick={() => rejectFriend(friendship)} style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.white, color: C.textMid, fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>✕</button>
+                          <button onClick={() => acceptFriend(friendship)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 20, border: 'none', background: '#2ecc71', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}><CheckCircle2 size={14} /> Accepter</button>
+                          <button onClick={() => rejectFriend(friendship)} style={{ padding: '6px 12px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.white, color: C.textMid, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center' }}><XIcon size={14} /></button>
                         </div>
                       </div>
                     )
@@ -585,7 +603,7 @@ export default function Profile() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
             <div style={{ ...PANEL, borderTop: '3px solid #3498db' }}>
-              <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>👥 Amis ({friendsList.length})</div>
+              <SectionTitle icon={Users} style={{ marginBottom: 14 }}>{`Amis (${friendsList.length})`}</SectionTitle>
               {friendsLoading
                 ? <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', padding: 12 }}>Chargement…</div>
                 : friendsList.length === 0
@@ -613,16 +631,16 @@ export default function Profile() {
             </div>
 
             <div style={PANEL}>
-              <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 12 }}>🎯 Intérêts</div>
+              <SectionTitle icon={Target} style={{ marginBottom: 12 }}>Intérêts</SectionTitle>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 12, minHeight: 28 }}>
                 {(profile.interests || []).length === 0
                   ? <span style={{ fontSize: 12, color: C.textDim, fontStyle: 'italic' }}>Ajoutes-en ci-dessous</span>
                   : (profile.interests || []).map(i => (
                     <span key={i} onClick={() => removeInterest(i)}
-                      style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, background: C.accentBg, color: C.accentTxt, border: `1px solid ${C.accentDk}`, cursor: 'pointer', fontWeight: 600, transition: 'all .15s' }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px 5px 14px', borderRadius: 20, fontSize: 12, background: C.accentBg, color: C.accentTxt, border: `1px solid ${C.accentDk}`, cursor: 'pointer', fontWeight: 600, transition: 'all .15s' }}
                       onMouseEnter={e => e.currentTarget.style.opacity = '.7'}
                       onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                      title="Cliquer pour supprimer">{i} ✕</span>
+                      title="Cliquer pour supprimer">{i} <XIcon size={12} /></span>
                   ))
                 }
               </div>

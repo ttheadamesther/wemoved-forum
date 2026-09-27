@@ -5,6 +5,11 @@ import { BADGES_DEF } from '../lib/xp'
 import { RoleBadge, Btn } from '../components/UI'
 import { useAuth } from '../hooks/useAuth'
 import { toggleVote, togglePhotoLike as togglePhotoLikeRpc, setMemberRole, acceptFriendship, isOnline } from '../lib/security'
+import {
+  Calendar, Cake, User, MapPin, Map as MapIcon, Globe2, Heart, Image as ImageIcon,
+  ZoomIn, X as XIcon, Award, Users, Target, Star, ArrowLeft, Shield, Mail, Ban,
+  Unlock, UserPlus, UserCheck, Clock, CheckCircle2, ChevronLeft, ChevronRight,
+} from 'lucide-react'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -39,27 +44,49 @@ const sendNotif = async (userId, type, content, link) => {
   try { await api('/rest/v1/notifications', { method: 'POST', body: JSON.stringify({ user_id: userId, type, content, link, read: false }) }) } catch {}
 }
 
-const statutLabel = (s) => {
-  if (s === 'celibataire') return '💚 Célibataire'
-  if (s === 'couple')      return '❤️ En couple'
-  if (s === 'complique')   return "💛 C'est compliqué"
+const statutInfo = (s) => {
+  if (s === 'celibataire') return { color: '#2ecc71', label: 'Célibataire' }
+  if (s === 'couple')      return { color: '#e74c3c', label: 'En couple' }
+  if (s === 'complique')   return { color: '#f0c800', label: "C'est compliqué" }
   return null
 }
 
 const PANEL = { background: 'var(--white)', border: '1px solid var(--border)', borderTop: '2px solid var(--accent)', borderRadius: 16, padding: 20, boxShadow: '0 2px 16px rgba(0,0,0,.07)' }
 
+// Pastille d'info — icône Lucide dorée + libellé
+const Tag = ({ icon: Icon, label, color }) => (
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--textMid)', background: 'var(--surfaceB)', padding: '5px 12px', borderRadius: 99, border: '1px solid var(--border)', fontWeight: 500 }}>
+    <Icon size={13} strokeWidth={2.2} style={{ color: color || '#c8a200', flexShrink: 0 }} />
+    {label}
+  </span>
+)
+
+// En-tête de section — icône ronde dorée + libellé
+const SectionTitle = ({ icon: Icon, children, style, small }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: 700, fontSize: small ? 11 : 13, color: small ? C.textDim : C.text, textTransform: small ? 'uppercase' : 'none', letterSpacing: small ? .8 : 0, ...style }}>
+    <Icon size={small ? 13 : 15} strokeWidth={2.2} style={{ color: '#c8a200', flexShrink: 0 }} />
+    {children}
+  </div>
+)
+
 function FriendBtn({ user, id, friendship, friendLoading, onAdd, onAccept, onRemove }) {
   if (!user || user.id === id) return null
   if (friendLoading) return <button disabled style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.surfaceB, color: C.textDim, fontSize: 12, fontWeight: 600, cursor: 'wait', fontFamily: 'inherit' }}>…</button>
-  if (!friendship) return <button onClick={onAdd} style={{ padding: '6px 14px', borderRadius: 20, border: '1px solid #3498db', background: 'transparent', color: '#3498db', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>👥 Ajouter ami</button>
-  if (friendship.status === 'pending' && friendship.user_a === user.id) return <button onClick={onRemove} style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.surfaceB, color: C.textMid, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>⏳ Demande envoyée</button>
+  if (!friendship) return (
+    <button onClick={onAdd} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 20, border: '1px solid #3498db', background: 'transparent', color: '#3498db', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}><UserPlus size={13} /> Ajouter ami</button>
+  )
+  if (friendship.status === 'pending' && friendship.user_a === user.id) return (
+    <button onClick={onRemove} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.surfaceB, color: C.textMid, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}><Clock size={13} /> Demande envoyée</button>
+  )
   if (friendship.status === 'pending' && friendship.user_b === user.id) return (
     <div style={{ display: 'flex', gap: 6 }}>
-      <button onClick={onAccept} style={{ padding: '6px 14px', borderRadius: 20, border: '1px solid #2ecc71', background: '#2ecc71', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>✅ Accepter</button>
-      <button onClick={onRemove} style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${C.red}`, background: 'transparent', color: C.red, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>✕ Refuser</button>
+      <button onClick={onAccept} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 20, border: '1px solid #2ecc71', background: '#2ecc71', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}><CheckCircle2 size={13} /> Accepter</button>
+      <button onClick={onRemove} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 20, border: `1px solid ${C.red}`, background: 'transparent', color: C.red, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}><XIcon size={13} /> Refuser</button>
     </div>
   )
-  if (friendship.status === 'accepted') return <button onClick={onRemove} style={{ padding: '6px 14px', borderRadius: 20, border: '1px solid #3498db', background: '#3498db', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>👥 Amis ✓</button>
+  if (friendship.status === 'accepted') return (
+    <button onClick={onRemove} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 20, border: '1px solid #3498db', background: '#3498db', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}><UserCheck size={13} /> Amis</button>
+  )
   return null
 }
 
@@ -225,9 +252,11 @@ export default function MemberProfile() {
 
   if (blockedByThem) return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 16px 80px' }}>
-      <Btn onClick={() => navigate('/members')} variant="ghost" style={{ marginBottom: 16, fontSize: 12 }}>← Retour</Btn>
+      <Btn onClick={() => navigate('/members')} variant="ghost" style={{ marginBottom: 16, fontSize: 12 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ArrowLeft size={13} /> Retour</span>
+      </Btn>
       <div style={{ background: 'var(--white)', borderRadius: 20, padding: 48, textAlign: 'center' }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>🚫</div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16, color: C.red }}><Ban size={44} strokeWidth={1.5} /></div>
         <div style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 8 }}>Profil indisponible</div>
         <div style={{ fontSize: 13, color: C.textDim }}>Ce profil n'est pas accessible.</div>
       </div>
@@ -239,7 +268,7 @@ export default function MemberProfile() {
   const votes      = member.votes || { mimi: 0, cool: 0, sexy: 0, loose: 0 }
   const totalVotes = Object.values(votes).reduce((a, b) => a + b, 0)
   const sexeLabel  = member.sexe ? member.sexe.charAt(0).toUpperCase() + member.sexe.slice(1) : null
-  const statut     = statutLabel(member.statut)
+  const statut     = statutInfo(member.statut)
   const colors     = ['#e74c3c','#e67e22','#c8a200','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63']
   const avatarColor = colors[(member.pseudo?.charCodeAt(0) || 0) % colors.length]
   const initials   = member.initials || member.pseudo?.slice(0, 2).toUpperCase() || '??'
@@ -261,14 +290,14 @@ export default function MemberProfile() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px' }}>
               <span style={{ fontSize: 13, color: 'rgba(255,255,255,.6)' }}>{lightbox.index + 1} / {total}</span>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <span style={{ fontSize: 13, color: '#fff', fontWeight: 700 }}>❤️ {likers.length}</span>
-                <button onClick={() => setLightbox(null)} style={{ background: 'rgba(255,255,255,.12)', border: 'none', borderRadius: '50%', width: 38, height: 38, color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: '#fff', fontWeight: 700 }}><Heart size={14} fill="#e74c3c" stroke="#e74c3c" /> {likers.length}</span>
+                <button onClick={() => setLightbox(null)} style={{ background: 'rgba(255,255,255,.12)', border: 'none', borderRadius: '50%', width: 38, height: 38, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><XIcon size={18} /></button>
               </div>
             </div>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }} onClick={() => setLightbox(null)}>
-              {total > 1 && <button onClick={e => { e.stopPropagation(); goTo(lightbox.index - 1) }} style={{ position: 'absolute', left: 16, background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: '50%', width: 48, height: 48, color: '#fff', fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>}
+              {total > 1 && <button onClick={e => { e.stopPropagation(); goTo(lightbox.index - 1) }} style={{ position: 'absolute', left: 16, background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: '50%', width: 48, height: 48, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ChevronLeft size={22} /></button>}
               <img src={lightbox.url} alt="" onClick={e => e.stopPropagation()} style={{ maxWidth: 'calc(100vw - 140px)', maxHeight: 'calc(100vh - 180px)', objectFit: 'contain', borderRadius: 8 }} />
-              {total > 1 && <button onClick={e => { e.stopPropagation(); goTo(lightbox.index + 1) }} style={{ position: 'absolute', right: 16, background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: '50%', width: 48, height: 48, color: '#fff', fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>}
+              {total > 1 && <button onClick={e => { e.stopPropagation(); goTo(lightbox.index + 1) }} style={{ position: 'absolute', right: 16, background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: '50%', width: 48, height: 48, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ChevronRight size={22} /></button>}
             </div>
             {likerProfiles.length > 0 && (
               <div style={{ padding: '8px 20px', display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
@@ -307,7 +336,9 @@ export default function MemberProfile() {
           <div style={{ height: 200, overflow: 'hidden', position: 'relative', background: 'linear-gradient(135deg,#0e0e1e 0%,#1a1240 50%,#0a0a18 100%)', flexShrink: 0 }}>
             {member.banner_url && <img src={member.banner_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: member.banner_position || 'center', display: 'block' }} />}
             <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10 }}>
-              <Btn onClick={() => navigate('/members')} variant="ghost" style={{ fontSize: 12, background: 'rgba(0,0,0,.5)', border: '1px solid rgba(255,255,255,.2)', color: '#fff' }}>← Retour</Btn>
+              <Btn onClick={() => navigate('/members')} variant="ghost" style={{ fontSize: 12, background: 'rgba(0,0,0,.5)', border: '1px solid rgba(255,255,255,.2)', color: '#fff' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ArrowLeft size={13} /> Retour</span>
+              </Btn>
             </div>
           </div>
 
@@ -319,11 +350,19 @@ export default function MemberProfile() {
               </div>
             {user && user.id !== id && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                {canManageRoles && <Btn onClick={() => setShowRolePanel(v => !v)} variant="ghost" style={{ fontSize: 12 }}>🛡️ Gérer le rôle</Btn>}
+                {canManageRoles && (
+                  <Btn onClick={() => setShowRolePanel(v => !v)} variant="ghost" style={{ fontSize: 12 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Shield size={13} /> Gérer le rôle</span>
+                  </Btn>
+                )}
                 <FriendBtn user={user} id={id} friendship={friendship} friendLoading={friendLoading} onAdd={sendFriendRequest} onAccept={acceptFriendRequest} onRemove={removeFriend} />
-                {!isBlocked && <Btn onClick={() => navigate(`/messages?to=${id}`)} variant="yellow" style={{ fontSize: 12 }}>✉️ Message</Btn>}
-                <button onClick={toggleBlock} disabled={blocking} style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${isBlocked ? C.border : C.red}`, background: isBlocked ? C.surfaceB : 'transparent', color: isBlocked ? C.textMid : C.red, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  {blocking ? '…' : isBlocked ? '🔓 Débloquer' : '🚫 Bloquer'}
+                {!isBlocked && (
+                  <Btn onClick={() => navigate(`/messages?to=${id}`)} variant="yellow" style={{ fontSize: 12 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Mail size={13} /> Message</span>
+                  </Btn>
+                )}
+                <button onClick={toggleBlock} disabled={blocking} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 20, border: `1px solid ${isBlocked ? C.border : C.red}`, background: isBlocked ? C.surfaceB : 'transparent', color: isBlocked ? C.textMid : C.red, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  {blocking ? '…' : isBlocked ? <><Unlock size={13} /> Débloquer</> : <><Ban size={13} /> Bloquer</>}
                 </button>
               </div>
             )}
@@ -331,7 +370,7 @@ export default function MemberProfile() {
 
           {canManageRoles && showRolePanel && (
             <div style={{ background: C.surfaceB, border: `1px solid ${C.accentDk}`, borderRadius: 12, padding: 16, marginBottom: 14 }}>
-              <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 12 }}>🛡️ Attribuer un rôle à @{member.pseudo}</div>
+              <SectionTitle icon={Shield} style={{ marginBottom: 12 }}>{`Attribuer un rôle à @${member.pseudo}`}</SectionTitle>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {ROLES_ASSIGNABLES.filter(r => isAdmin || ['membre', 'animateur', 'moderateur'].includes(r.value)).map(r => (
                   <button key={r.value} onClick={() => assignRole(r.value)} disabled={updatingRole || member.role === r.value}
@@ -344,8 +383,8 @@ export default function MemberProfile() {
           )}
 
           {isBlocked && (
-            <div style={{ background: '#fff3f3', border: `1px solid ${C.red}`, borderRadius: 8, padding: '8px 14px', marginBottom: 12, fontSize: 12, color: C.red }}>
-              🚫 Vous avez bloqué ce membre.
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff3f3', border: `1px solid ${C.red}`, borderRadius: 8, padding: '8px 14px', marginBottom: 12, fontSize: 12, color: C.red }}>
+              <Ban size={14} /> Vous avez bloqué ce membre.
             </div>
           )}
 
@@ -358,17 +397,13 @@ export default function MemberProfile() {
           </div>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {[
-              member.joined && { icon: '📅', label: member.joined },
-              member.age    && { icon: '🎂', label: `${member.age} ans` },
-              sexeLabel     && { icon: '👤', label: sexeLabel },
-              member.city   && { icon: '📍', label: member.city },
-              member.dept   && { icon: '🗺', label: member.dept },
-              member.region && { icon: '🌍', label: member.region },
-              statut        && { icon: '', label: statut },
-            ].filter(Boolean).map((t, i) => (
-              <span key={i} style={{ fontSize: 12, color: 'var(--textMid)', background: 'var(--surfaceB)', padding: '4px 12px', borderRadius: 99, border: '1px solid var(--border)', fontWeight: 500 }}>{t.icon} {t.label}</span>
-            ))}
+            {member.joined && <Tag icon={Calendar} label={member.joined} />}
+            {member.age    && <Tag icon={Cake} label={`${member.age} ans`} />}
+            {sexeLabel     && <Tag icon={User} label={sexeLabel} />}
+            {member.city   && <Tag icon={MapPin} label={member.city} />}
+            {member.dept   && <Tag icon={MapIcon} label={member.dept} />}
+            {member.region && <Tag icon={Globe2} label={member.region} />}
+            {statut        && <Tag icon={Heart} label={statut.label} color={statut.color} />}
           </div>
           </div>{/* fin Header */}
         </div>{/* fin bloc bordure */}
@@ -392,11 +427,11 @@ export default function MemberProfile() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', gap: 12, flexShrink: 0 }}>
                     {[
-                      { icon: '👥', label: 'Amis',  value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
-                      { icon: '⭐', label: 'Votes', value: totalVotes, color: '#c8a200' },
+                      { icon: Users, label: 'Amis',  value: friendsLoading ? '…' : friendsList.length, color: '#3498db' },
+                      { icon: Star,  label: 'Votes', value: totalVotes, color: '#c8a200' },
                     ].map(s => (
                       <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ fontSize: 13 }}>{s.icon}</span>
+                        <s.icon size={13} style={{ color: s.color }} />
                         <div>
                           <div style={{ fontWeight: 700, fontSize: 13, color: s.color, lineHeight: 1 }}>{s.value}</div>
                           <div style={{ fontSize: 8, color: C.textDim, textTransform: 'uppercase', letterSpacing: .4 }}>{s.label}</div>
@@ -422,7 +457,10 @@ export default function MemberProfile() {
                 </div>
               </div>
 
-              <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8 }}>✍️ Bio</div>
+              <SectionTitle icon={undefined ?? (() => null)} style={{ display: 'none' }} />
+              <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <User size={13} style={{ color: '#c8a200' }} /> Bio
+              </div>
               <div style={{ fontSize: 13, color: member.bio ? C.textMid : C.textDim, lineHeight: 1.7, fontStyle: member.bio ? 'normal' : 'italic', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                 {member.bio || 'Aucune bio renseignée.'}
               </div>
@@ -431,7 +469,7 @@ export default function MemberProfile() {
             {/* Photos */}
             {photos.length > 0 && (
               <div style={{ ...PANEL, borderTop: '2px solid var(--accentDk)' }}>
-                <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 14 }}>📸 Photos ({photos.length})</div>
+                <SectionTitle icon={ImageIcon} style={{ marginBottom: 14 }}>{`Photos (${photos.length})`}</SectionTitle>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
                   {photos.map((url, i) => {
                     const likers = photoLikes[String(i)] || []
@@ -443,14 +481,14 @@ export default function MemberProfile() {
                         onMouseLeave={e => { e.currentTarget.querySelector('img').style.transform = 'scale(1)'; e.currentTarget.querySelector('.ovl').style.opacity = '0' }}>
                         <img loading="lazy" src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform .3s' }} />
                         <div className="ovl" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.3)', opacity: 0, transition: 'opacity .2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <span style={{ fontSize: 24, color: '#fff' }}>🔍</span>
+                          <ZoomIn size={24} color="#fff" />
                         </div>
                         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,.7), transparent)', padding: '16px 8px 6px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
-                          {likers.length > 0 && <span style={{ fontSize: 11, color: '#fff', fontWeight: 700 }}>❤️ {likers.length}</span>}
+                          {likers.length > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#fff', fontWeight: 700 }}><Heart size={11} fill="#e74c3c" stroke="#e74c3c" /> {likers.length}</span>}
                           <button onClick={e => { e.stopPropagation(); user && user.id !== id && !isBlocked && togglePhotoLike(url, i) }}
                             disabled={likingPhoto !== null || !user || user.id === id || isBlocked}
-                            style={{ background: liked ? 'rgba(231,76,60,.85)' : 'rgba(255,255,255,.18)', border: `1px solid ${liked ? '#e74c3c' : 'rgba(255,255,255,.35)'}`, borderRadius: 20, padding: '3px 8px', cursor: 'pointer', fontSize: 13, backdropFilter: 'blur(4px)' }}>
-                            {likingPhoto === i ? '…' : liked ? '❤️' : '🤍'}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: liked ? 'rgba(231,76,60,.85)' : 'rgba(255,255,255,.18)', border: `1px solid ${liked ? '#e74c3c' : 'rgba(255,255,255,.35)'}`, borderRadius: 20, padding: '4px 8px', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
+                            {likingPhoto === i ? <span style={{ fontSize: 11, color: '#fff' }}>…</span> : <Heart size={13} color="#fff" fill={liked ? '#fff' : 'none'} />}
                           </button>
                         </div>
                       </div>
@@ -463,7 +501,7 @@ export default function MemberProfile() {
             {/* Badges */}
             {(member.badges || []).length > 0 && (
               <div style={{ ...PANEL, borderTop: '2px solid #c8a200' }}>
-                <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 16 }}>🎖️ Badges obtenus</div>
+                <SectionTitle icon={Award} style={{ marginBottom: 16 }}>Badges obtenus</SectionTitle>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
                   {BADGES_DEF.filter(b => member.badges.includes(b.key)).map(b => (
                     <div key={b.key} title={b.desc} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'help' }}>
@@ -483,7 +521,7 @@ export default function MemberProfile() {
 
             {/* Amis */}
             <div style={{ ...PANEL, borderTop: '2px solid #3498db' }}>
-              <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 14 }}>👥 Amis ({friendsLoading ? '…' : friendsList.length})</div>
+              <SectionTitle icon={Users} style={{ marginBottom: 14 }}>{`Amis (${friendsLoading ? '…' : friendsList.length})`}</SectionTitle>
               {friendsLoading
                 ? <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', padding: 12 }}>Chargement…</div>
                 : friendsList.length === 0
@@ -515,7 +553,7 @@ export default function MemberProfile() {
             {/* Intérêts */}
             {(member.interests || []).length > 0 && (
               <div style={PANEL}>
-                <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 12 }}>🎯 Intérêts</div>
+                <SectionTitle icon={Target} style={{ marginBottom: 12 }}>Intérêts</SectionTitle>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {member.interests.map(i => (
                     <span key={i} style={{ padding: '5px 14px', borderRadius: 99, fontSize: 12, background: 'var(--accentBg)', color: 'var(--accentTxt)', border: '1px solid rgba(200,162,0,.2)', fontWeight: 600 }}>{i}</span>
