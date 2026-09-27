@@ -521,7 +521,7 @@ export default function Profile() {
 
             <div style={PANEL}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <SectionTitle>{`Photos (${(profile.photos || []).length})`}</SectionTitle>
+                <SectionTitle icon={ImageIcon}>{`Photos (${(profile.photos || []).length})`}</SectionTitle>
                 <Btn onClick={() => photoRef.current.click()} variant="ghost" style={{ fontSize: 11 }}>{uploadingPhoto ? '…' : '+ Ajouter'}</Btn>
                 <input ref={photoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadPhoto} />
               </div>
