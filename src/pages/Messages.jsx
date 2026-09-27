@@ -185,11 +185,9 @@ function ReadTicks({ read, compact }) {
           <stop offset="100%" stopColor="#c8a200" />
         </linearGradient>
       </defs>
-      {/* première coche — toujours visible dès l'envoi */}
       <path d="M2.5 10.3L7 14.8L13.5 5.8"
         stroke={read ? 'url(#wmTickGrad)' : C.textDim}
         strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
-      {/* seconde coche — apparaît uniquement une fois lu, avec un petit pop doré */}
       {read && (
         <path d="M7.8 10.3L12.3 14.8L18.8 5.8"
           stroke="url(#wmTickGrad)" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"
@@ -200,6 +198,24 @@ function ReadTicks({ read, compact }) {
           }} />
       )}
     </svg>
+  )
+}
+
+// Bouton "modifier" — pastille dorée assortie au thème du site, plutôt qu'un simple crayon gris
+function EditButton({ onClick, size = 13, style }) {
+  return (
+    <button onClick={onClick} title="Modifier"
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: size + 14, height: size + 14, borderRadius: '50%',
+        border: '1px solid rgba(200,162,0,.35)', background: 'rgba(200,162,0,.1)',
+        color: '#c8a200', cursor: 'pointer', flexShrink: 0, transition: 'all .15s', fontFamily: 'inherit',
+        ...style,
+      }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(200,162,0,.22)'; e.currentTarget.style.borderColor = '#c8a200' }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(200,162,0,.1)'; e.currentTarget.style.borderColor = 'rgba(200,162,0,.35)' }}>
+      <Pencil size={size} strokeWidth={ICON_STROKE} />
+    </button>
   )
 }
 
@@ -485,15 +501,23 @@ export default function MessagesPage() {
 
   useEffect(() => { autoResizeInput(inputRef.current) }, [text, activeId, compact])
 
+  // Focus + curseur en fin de texte : uniquement à l'OUVERTURE de l'édition, pas à chaque frappe
+  useEffect(() => {
+    if (editingMsg && editInputRef.current) {
+      const el = editInputRef.current
+      el.focus()
+      el.setSelectionRange(el.value.length, el.value.length)
+    }
+  }, [editingMsg])
+
+  // Redimensionnement de la zone de texte : sur chaque frappe, sans toucher au curseur
   useEffect(() => {
     if (editingMsg && editInputRef.current) {
       const el = editInputRef.current
       el.style.height = 'auto'
       el.style.height = Math.min(el.scrollHeight, INPUT_MAX_HEIGHT) + 'px'
-      el.focus()
-      el.setSelectionRange(el.value.length, el.value.length)
     }
-  }, [editingMsg, editText])
+  }, [editText, editingMsg])
 
   const broadcastTyping = (isTyping) => {
     channelRef.current?.send({ type: 'broadcast', event: 'typing', payload: { userId: user.id, isTyping } })
@@ -889,10 +913,8 @@ export default function MessagesPage() {
                               </button>
                             ))}
                             {isMobile && isMe && isEditable && (
-                              <button onClick={() => startEdit(m)}
-                                style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.textMid, padding: '0 3px', lineHeight: 1, animation: `reactionEmojiIn .2s cubic-bezier(.34,1.56,.64,1) ${QUICK_EMOJIS.length * 30}ms both` }}>
-                                <Pencil size={16} strokeWidth={ICON_STROKE} />
-                              </button>
+                              <EditButton onClick={() => startEdit(m)} size={15}
+                                style={{ animation: `reactionEmojiIn .2s cubic-bezier(.34,1.56,.64,1) ${QUICK_EMOJIS.length * 30}ms both` }} />
                             )}
                             {isMobile && isMe && (
                               <button onClick={() => { setReactionPicker(null); setConfirmDelete({ type: 'msg', id: m.id }) }}
@@ -988,12 +1010,7 @@ export default function MessagesPage() {
                                 <Smile size={15} strokeWidth={ICON_STROKE} />
                               </button>
                               {isEditable && (
-                                <button onClick={() => startEdit(m)}
-                                  style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: C.textMid, opacity: 0.5, padding: '2px', lineHeight: 1, transition: 'opacity .15s' }}
-                                  onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                                  onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}>
-                                  <Pencil size={13} strokeWidth={ICON_STROKE} />
-                                </button>
+                                <EditButton onClick={() => startEdit(m)} size={13} />
                               )}
                               {isMe && (
                                 <button onClick={() => setConfirmDelete({ type: 'msg', id: m.id })} disabled={isDeleting}
