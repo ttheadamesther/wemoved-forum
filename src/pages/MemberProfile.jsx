@@ -135,12 +135,41 @@ export default function MemberProfile() {
   }
 
   useEffect(() => {
-    notifSentRef.current = false; setLoading(true); setFriendship(null)
-    getToken().then(token => {
-      fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${id}&limit=1`, { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` } })
-        .then(r => r.json()).then(data => { if (data?.[0]) setMember({ ...data[0], online: isOnline(data[0]) }); setLoading(false) })
-        .catch(() => setLoading(false))
+    notifSentRef.current = false
+    setLoading(true)
+    setFriendship(null)
+    setMember(null)
+
+    fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(id)}&limit=1`, {
+      headers: {
+        apikey: ANON_KEY,
+        Authorization: `Bearer ${ANON_KEY}`
+      }
     })
+      .then(async r => {
+        const data = await r.json()
+
+        if (!r.ok) {
+          console.error('[MemberProfile] Erreur profil:', r.status, data)
+          throw new Error(`Erreur profil ${r.status}`)
+        }
+
+        return data
+      })
+      .then(data => {
+        if (data?.[0]) {
+          setMember({
+            ...data[0],
+            online: isOnline(data[0])
+          })
+        }
+        setLoading(false)
+      })
+      .catch(error => {
+        console.error('[MemberProfile] Chargement impossible:', error)
+        setLoading(false)
+      })
+
     loadFriendsList()
   }, [id])
 
