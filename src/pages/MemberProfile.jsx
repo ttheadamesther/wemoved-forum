@@ -8,7 +8,7 @@ import { toggleVote, togglePhotoLike as togglePhotoLikeRpc, setMemberRole, accep
 import {
   Calendar, Cake, User, MapPin, Map as MapIcon, Globe2, Heart, Image as ImageIcon,
   ZoomIn, X as XIcon, Award, Users, Target, Star, ArrowLeft, Shield, Mail, Ban,
-  Unlock, UserPlus, UserCheck, Clock, CheckCircle2, ChevronLeft, ChevronRight,
+  Unlock, UserPlus, UserCheck, Clock, CheckCircle2, ChevronLeft, ChevronRight, PenLine,
 } from 'lucide-react'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
@@ -61,7 +61,7 @@ const Tag = ({ icon: Icon, label, color }) => (
   </span>
 )
 
-// En-tête de section — icône ronde dorée + libellé
+// En-tête de section — icône dorée + libellé
 const SectionTitle = ({ icon: Icon, children, style, small }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: 700, fontSize: small ? 11 : 13, color: small ? C.textDim : C.text, textTransform: small ? 'uppercase' : 'none', letterSpacing: small ? .8 : 0, ...style }}>
     <Icon size={small ? 13 : 15} strokeWidth={2.2} style={{ color: '#c8a200', flexShrink: 0 }} />
@@ -128,27 +128,33 @@ export default function MemberProfile() {
     setLightbox({ url, index }); setLikerProfiles([])
     const likerIds = (member?.photo_likes || {})[String(index)] || []
     if (!likerIds.length) return
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=in.(${likerIds.join(',')})&select=id,pseudo,initials,avatar_url`, { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` } })
+    const token = await getToken()
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=in.(${likerIds.join(',')})&select=id,pseudo,initials,avatar_url`, { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` } })
     const d = await r.json()
     if (Array.isArray(d)) setLikerProfiles(d)
   }
 
   useEffect(() => {
     notifSentRef.current = false; setLoading(true); setFriendship(null)
-    fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${id}&limit=1`, { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` } })
-      .then(r => r.json()).then(data => { if (data?.[0]) setMember({ ...data[0], online: isOnline(data[0]) }); setLoading(false) })
+    getToken().then(token => {
+      fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${id}&limit=1`, { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` } })
+        .then(r => r.json()).then(data => { if (data?.[0]) setMember({ ...data[0], online: isOnline(data[0]) }); setLoading(false) })
+        .catch(() => setLoading(false))
+    })
     loadFriendsList()
   }, [id])
 
   useEffect(() => {
     if (!user || !id) return
-    const h = { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
-    fetch(`${SUPABASE_URL}/rest/v1/votes?from_id=eq.${user.id}&to_id=eq.${id}&month_key=eq.${monthKey()}`, { headers: h })
-      .then(r => r.json()).then(data => { if (Array.isArray(data)) { const v = {}; data.forEach(d => { v[d.vote_type] = true }); setMyVotes(v) } })
-    fetch(`${SUPABASE_URL}/rest/v1/blocks?blocker_id=eq.${user.id}&blocked_id=eq.${id}&limit=1`, { headers: h })
-      .then(r => r.json()).then(data => setIsBlocked(Array.isArray(data) && data.length > 0))
-    fetch(`${SUPABASE_URL}/rest/v1/blocks?blocker_id=eq.${id}&blocked_id=eq.${user.id}&limit=1`, { headers: h })
-      .then(r => r.json()).then(data => setBlockedByThem(Array.isArray(data) && data.length > 0))
+    getToken().then(token => {
+      const h = { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
+      fetch(`${SUPABASE_URL}/rest/v1/votes?from_id=eq.${user.id}&to_id=eq.${id}&month_key=eq.${monthKey()}`, { headers: h })
+        .then(r => r.json()).then(data => { if (Array.isArray(data)) { const v = {}; data.forEach(d => { v[d.vote_type] = true }); setMyVotes(v) } })
+      fetch(`${SUPABASE_URL}/rest/v1/blocks?blocker_id=eq.${user.id}&blocked_id=eq.${id}&limit=1`, { headers: h })
+        .then(r => r.json()).then(data => setIsBlocked(Array.isArray(data) && data.length > 0))
+      fetch(`${SUPABASE_URL}/rest/v1/blocks?blocker_id=eq.${id}&blocked_id=eq.${user.id}&limit=1`, { headers: h })
+        .then(r => r.json()).then(data => setBlockedByThem(Array.isArray(data) && data.length > 0))
+    })
     loadFriendship()
   }, [id, user?.id])
 
@@ -162,7 +168,8 @@ export default function MemberProfile() {
 
   const loadFriendsList = async () => {
     setFriendsLoading(true)
-    const h = { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+    const token = await getToken()
+    const h = { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` }
     const [r1, r2] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/friendships?user_a=eq.${id}&status=eq.accepted&select=user_b`, { headers: h }),
       fetch(`${SUPABASE_URL}/rest/v1/friendships?user_b=eq.${id}&status=eq.accepted&select=user_a`, { headers: h })
@@ -348,63 +355,63 @@ export default function MemberProfile() {
               <div style={{ width: 88, height: 88, borderRadius: '50%', background: member.avatar_url ? '#444' : avatarColor, border: ROLE_RING[member.role] ? `4px solid ${ROLE_RING[member.role]}` : '4px solid var(--white)', boxShadow: ROLE_RING[member.role] ? `0 0 16px ${ROLE_RING[member.role]}99` : '0 4px 16px rgba(0,0,0,.2)', marginTop: -44, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, position: 'relative', zIndex: 2 }}>
                 {member.avatar_url ? <img loading="lazy" src={member.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : initials}
               </div>
-            {user && user.id !== id && (
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                {canManageRoles && (
-                  <Btn onClick={() => setShowRolePanel(v => !v)} variant="ghost" style={{ fontSize: 12 }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Shield size={13} /> Gérer le rôle</span>
-                  </Btn>
-                )}
-                <FriendBtn user={user} id={id} friendship={friendship} friendLoading={friendLoading} onAdd={sendFriendRequest} onAccept={acceptFriendRequest} onRemove={removeFriend} />
-                {!isBlocked && (
-                  <Btn onClick={() => navigate(`/messages?to=${id}`)} variant="yellow" style={{ fontSize: 12 }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Mail size={13} /> Message</span>
-                  </Btn>
-                )}
-                <button onClick={toggleBlock} disabled={blocking} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 20, border: `1px solid ${isBlocked ? C.border : C.red}`, background: isBlocked ? C.surfaceB : 'transparent', color: isBlocked ? C.textMid : C.red, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  {blocking ? '…' : isBlocked ? <><Unlock size={13} /> Débloquer</> : <><Ban size={13} /> Bloquer</>}
-                </button>
+              {user && user.id !== id && (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  {canManageRoles && (
+                    <Btn onClick={() => setShowRolePanel(v => !v)} variant="ghost" style={{ fontSize: 12 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Shield size={13} /> Gérer le rôle</span>
+                    </Btn>
+                  )}
+                  <FriendBtn user={user} id={id} friendship={friendship} friendLoading={friendLoading} onAdd={sendFriendRequest} onAccept={acceptFriendRequest} onRemove={removeFriend} />
+                  {!isBlocked && (
+                    <Btn onClick={() => navigate(`/messages?to=${id}`)} variant="yellow" style={{ fontSize: 12 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Mail size={13} /> Message</span>
+                    </Btn>
+                  )}
+                  <button onClick={toggleBlock} disabled={blocking} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 20, border: `1px solid ${isBlocked ? C.border : C.red}`, background: isBlocked ? C.surfaceB : 'transparent', color: isBlocked ? C.textMid : C.red, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {blocking ? '…' : isBlocked ? <><Unlock size={13} /> Débloquer</> : <><Ban size={13} /> Bloquer</>}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {canManageRoles && showRolePanel && (
+              <div style={{ background: C.surfaceB, border: `1px solid ${C.accentDk}`, borderRadius: 12, padding: 16, marginBottom: 14 }}>
+                <SectionTitle icon={Shield} style={{ marginBottom: 12 }}>{`Attribuer un rôle à @${member.pseudo}`}</SectionTitle>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {ROLES_ASSIGNABLES.filter(r => isAdmin || ['membre', 'animateur', 'moderateur'].includes(r.value)).map(r => (
+                    <button key={r.value} onClick={() => assignRole(r.value)} disabled={updatingRole || member.role === r.value}
+                      style={{ padding: '8px 16px', borderRadius: 20, border: `2px solid ${member.role === r.value ? r.color : C.border}`, background: member.role === r.value ? r.color : C.white, color: member.role === r.value ? '#fff' : C.textMid, fontWeight: member.role === r.value ? 700 : 400, fontSize: 12, cursor: member.role === r.value ? 'default' : 'pointer', fontFamily: 'inherit' }}>
+                      {r.label}{member.role === r.value && ' ✓'}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
-          </div>
 
-          {canManageRoles && showRolePanel && (
-            <div style={{ background: C.surfaceB, border: `1px solid ${C.accentDk}`, borderRadius: 12, padding: 16, marginBottom: 14 }}>
-              <SectionTitle icon={Shield} style={{ marginBottom: 12 }}>{`Attribuer un rôle à @${member.pseudo}`}</SectionTitle>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {ROLES_ASSIGNABLES.filter(r => isAdmin || ['membre', 'animateur', 'moderateur'].includes(r.value)).map(r => (
-                  <button key={r.value} onClick={() => assignRole(r.value)} disabled={updatingRole || member.role === r.value}
-                    style={{ padding: '8px 16px', borderRadius: 20, border: `2px solid ${member.role === r.value ? r.color : C.border}`, background: member.role === r.value ? r.color : C.white, color: member.role === r.value ? '#fff' : C.textMid, fontWeight: member.role === r.value ? 700 : 400, fontSize: 12, cursor: member.role === r.value ? 'default' : 'pointer', fontFamily: 'inherit' }}>
-                    {r.label}{member.role === r.value && ' ✓'}
-                  </button>
-                ))}
+            {isBlocked && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff3f3', border: `1px solid ${C.red}`, borderRadius: 8, padding: '8px 14px', marginBottom: 12, fontSize: 12, color: C.red }}>
+                <Ban size={14} /> Vous avez bloqué ce membre.
               </div>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+              <h1 style={{ fontWeight: 800, fontSize: 20, color: 'var(--text)', margin: 0 }}>@{member.pseudo}</h1>
+              {member.is_bot && <span style={{ padding: '1px 6px', borderRadius: 4, fontSize: 9, fontWeight: 700, background: '#5865f2', color: '#fff' }}>BOT</span>}
+              <RoleBadge role={member.role} />
+              <span style={{ fontSize: 12, color: '#c8a200', fontWeight: 700, background: 'rgba(200,162,0,.1)', padding: '2px 10px', borderRadius: 20, border: '1px solid #c8a20044' }}>Niv. {member.level || 1}</span>
+              {member.online && <span style={{ fontSize: 11, color: '#2ecc71', fontWeight: 600 }}>● En ligne</span>}
             </div>
-          )}
 
-          {isBlocked && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff3f3', border: `1px solid ${C.red}`, borderRadius: 8, padding: '8px 14px', marginBottom: 12, fontSize: 12, color: C.red }}>
-              <Ban size={14} /> Vous avez bloqué ce membre.
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {member.joined && <Tag icon={Calendar} label={member.joined} />}
+              {member.age    && <Tag icon={Cake} label={`${member.age} ans`} />}
+              {sexeLabel     && <Tag icon={User} label={sexeLabel} />}
+              {member.city   && <Tag icon={MapPin} label={member.city} />}
+              {member.dept   && <Tag icon={MapIcon} label={member.dept} />}
+              {member.region && <Tag icon={Globe2} label={member.region} />}
+              {statut        && <Tag icon={Heart} label={statut.label} color={statut.color} />}
             </div>
-          )}
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-            <h1 style={{ fontWeight: 800, fontSize: 20, color: 'var(--text)', margin: 0 }}>@{member.pseudo}</h1>
-            {member.is_bot && <span style={{ padding: '1px 6px', borderRadius: 4, fontSize: 9, fontWeight: 700, background: '#5865f2', color: '#fff' }}>BOT</span>}
-            <RoleBadge role={member.role} />
-            <span style={{ fontSize: 12, color: '#c8a200', fontWeight: 700, background: 'rgba(200,162,0,.1)', padding: '2px 10px', borderRadius: 20, border: '1px solid #c8a20044' }}>Niv. {member.level || 1}</span>
-            {member.online && <span style={{ fontSize: 11, color: '#2ecc71', fontWeight: 600 }}>● En ligne</span>}
-          </div>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {member.joined && <Tag icon={Calendar} label={member.joined} />}
-            {member.age    && <Tag icon={Cake} label={`${member.age} ans`} />}
-            {sexeLabel     && <Tag icon={User} label={sexeLabel} />}
-            {member.city   && <Tag icon={MapPin} label={member.city} />}
-            {member.dept   && <Tag icon={MapIcon} label={member.dept} />}
-            {member.region && <Tag icon={Globe2} label={member.region} />}
-            {statut        && <Tag icon={Heart} label={statut.label} color={statut.color} />}
-          </div>
           </div>{/* fin Header */}
         </div>{/* fin bloc bordure */}
       </div>{/* fin maxWidth wrapper */}
@@ -457,10 +464,7 @@ export default function MemberProfile() {
                 </div>
               </div>
 
-              <SectionTitle icon={undefined ?? (() => null)} style={{ display: 'none' }} />
-              <div style={{ fontWeight: 700, fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: .8, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <User size={13} style={{ color: '#c8a200' }} /> Bio
-              </div>
+              <SectionTitle icon={PenLine} small style={{ marginBottom: 8 }}>Bio</SectionTitle>
               <div style={{ fontSize: 13, color: member.bio ? C.textMid : C.textDim, lineHeight: 1.7, fontStyle: member.bio ? 'normal' : 'italic', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                 {member.bio || 'Aucune bio renseignée.'}
               </div>
